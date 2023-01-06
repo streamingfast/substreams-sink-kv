@@ -11,7 +11,7 @@ require (
 	github.com/streamingfast/kvdb v0.1.1-0.20230106211814-335aada11ecd
 	github.com/streamingfast/logging v0.0.0-20220813175024-b4fbb0e893df
 	github.com/streamingfast/substreams v0.0.22-0.20221124192438-6ef4954ac865
-	github.com/streamingfast/substreams-sink v0.0.0-20221126181610-9684cae306cd
+	github.com/streamingfast/substreams-sink v0.0.0-20230106184704-6fb0a5ec4a7a
 	go.uber.org/zap v1.23.0
 	google.golang.org/protobuf v1.28.1
 )
