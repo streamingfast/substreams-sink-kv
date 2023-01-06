@@ -85,7 +85,7 @@ func New(config *Config, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, 
 }
 
 func (s *KVSinker) Start(ctx context.Context) error {
-	cursor, err := s.DBLoader.GetCursor(ctx, hex.EncodeToString(s.OutputModuleHash))
+	cursor, err := s.DBLoader.GetCursor(ctx)
 	if err != nil && !errors.Is(err, db.ErrCursorNotFound) {
 		return fmt.Errorf("unable to retrieve cursor: %w", err)
 	}
@@ -98,7 +98,7 @@ func (s *KVSinker) Start(ctx context.Context) error {
 
 		cursor = sink.NewCursor("", bstream.NewBlockRef("", cursorStartBlock))
 
-		if err = s.DBLoader.WriteCursor(ctx, hex.EncodeToString(s.OutputModuleHash), cursor); err != nil {
+		if err = s.DBLoader.WriteCursor(ctx, cursor); err != nil {
 			return fmt.Errorf("failed to create initial cursor: %w", err)
 		}
 	}
@@ -115,11 +115,11 @@ func (s *KVSinker) Stop(ctx context.Context, err error) {
 		return
 	}
 
-	_ = s.DBLoader.WriteCursor(ctx, hex.EncodeToString(s.OutputModuleHash), s.lastCursor)
+	_ = s.DBLoader.WriteCursor(ctx, s.lastCursor)
 }
 
 func (s *KVSinker) Run(ctx context.Context) error {
-	cursor, err := s.DBLoader.GetCursor(ctx, hex.EncodeToString(s.OutputModuleHash))
+	cursor, err := s.DBLoader.GetCursor(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve cursor: %w", err)
 	}

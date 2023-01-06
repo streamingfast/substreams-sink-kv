@@ -18,7 +18,7 @@ main() {
 
   if [[ "$clean" == "true" ]]; then
     echo "Cleaning up existing data"
-    rm badger_data
+    rm -rf badger_data.db
   fi
 
   dsn="${KV_DSN:-"badger3:///${ROOT}/badger_data.db"}"

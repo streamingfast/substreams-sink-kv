@@ -13,14 +13,10 @@ import (
 )
 
 var ErrCursorNotFound = errors.New("cursor not found")
-var cursorPrefix = "xc"
+var cursorKey = []byte("xc")
 
-func CursorKey(outputModuleHash string) []byte {
-	return []byte(cursorPrefix + outputModuleHash)
-}
-
-func (l *Loader) GetCursor(ctx context.Context, moduleHash string) (*sink.Cursor, error) {
-	val, err := l.store.Get(ctx, CursorKey(moduleHash))
+func (l *Loader) GetCursor(ctx context.Context) (*sink.Cursor, error) {
+	val, err := l.store.Get(ctx, cursorKey)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, ErrCursorNotFound
@@ -32,9 +28,9 @@ func (l *Loader) GetCursor(ctx context.Context, moduleHash string) (*sink.Cursor
 	return cursorFromBytes(val)
 }
 
-func (l *Loader) WriteCursor(ctx context.Context, moduleHash string, c *sink.Cursor) error {
+func (l *Loader) WriteCursor(ctx context.Context, c *sink.Cursor) error {
 	val := cursorToBytes(c)
-	if err := l.store.Put(ctx, CursorKey(moduleHash), val); err != nil {
+	if err := l.store.Put(ctx, cursorKey, val); err != nil {
 		return err
 	}
 	return l.store.FlushPuts(ctx)

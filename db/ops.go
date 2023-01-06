@@ -30,7 +30,7 @@ func (l *Loader) Flush(ctx context.Context, moduleHash string, cursor *sink.Curs
 		return 0, err
 	}
 
-	if err := l.WriteCursor(ctx, moduleHash, cursor); err != nil {
+	if err := l.WriteCursor(ctx, cursor); err != nil {
 		return 0, err
 	}
 	l.reset()
