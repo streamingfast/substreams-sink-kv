@@ -28,7 +28,7 @@ This is a command line tool to quickly sync a substreams with a kv database.
 
     ```shell
     substreams-sink-kv run \
-        "badger:///home/user/sf-data/my-badger.db" \
+        "badger3:///home/user/sf-data/my-badger.db" \
         "mainnet.eth.streamingfast.io:443" \
         "substreams.yaml" \
         kv_out

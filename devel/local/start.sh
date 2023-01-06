@@ -21,14 +21,14 @@ main() {
     rm badger_data
   fi
 
-  pg_dsn="${KV_DSN:-"badger:///${ROOT}/badger_data.db"}"
+  dsn="${KV_DSN:-"badger3:///${ROOT}/badger_data.db"}"
   sink="../substreams-sink-kv"
 
   $sink run \
-    ${pg_dsn} \
+    ${dsn} \
     "${SUBSTREAMS_ENDPOINT:-"mainnet.eth.streamingfast.io:443"}" \
-    "${SUBSTREAMS_MANIFEST:-"substreams-eth-block-meta-v0.2.0.spkg"}" \
-    "${SUBSTREAMS_MODULE:-"db_out"}" \
+    "${SUBSTREAMS_MANIFEST:-"substreams-eth-block-meta-v0.2.1.spkg"}" \
+    "${SUBSTREAMS_MODULE:-"kv_out"}" \
     "$@"
 }
 

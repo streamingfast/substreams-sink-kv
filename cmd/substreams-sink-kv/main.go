@@ -13,6 +13,7 @@ import (
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/dmetrics"
 	_ "github.com/streamingfast/kvdb/store/badger"
+	_ "github.com/streamingfast/kvdb/store/badger3"
 	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
 )
