@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/streamingfast/bstream"
+	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
@@ -29,12 +30,13 @@ type Config struct {
 	OutputModuleName string
 	OutputModuleHash manifest.ModuleHash
 	ClientConfig     *client.SubstreamsClientConfig
+	Store            store.KVStore
 }
 
 type KVSinker struct {
 	*shutter.Shutter
 
-	//	DBLoader          //FIXME
+	store            store.KVStore
 	Pkg              *pbsubstreams.Package
 	OutputModule     *pbsubstreams.Module
 	OutputModuleName string
@@ -59,7 +61,7 @@ func New(config *Config, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, 
 		logger:  logger,
 		tracer:  tracer,
 
-		//DBLoader:         config.DBLoader,
+		store:            config.Store,
 		Pkg:              config.Pkg,
 		OutputModule:     config.OutputModule,
 		OutputModuleName: config.OutputModuleName,
