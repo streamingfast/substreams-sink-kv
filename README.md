@@ -17,7 +17,6 @@ This is a command line tool to quickly sync a substreams with a kv database.
         kind: map
         initialBlock: 0
         inputs:
-          - source: sf.ethereum.type.v2.Block
           - store: store_something
         output:
           type: proto:substreams.kv.v1.KVOperations
@@ -33,3 +32,11 @@ This is a command line tool to quickly sync a substreams with a kv database.
         "substreams.yaml" \
         kv_out
     ```
+
+### Even quicker iteration
+
+* Run `devel/local/start.sh`
+
+### Example integration
+
+* See https://github.com/streamingfast/substreams-eth-block-meta
