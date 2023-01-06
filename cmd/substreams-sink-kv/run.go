@@ -11,6 +11,7 @@ import (
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
+	"github.com/streamingfast/substreams-sink-kv/db"
 	"github.com/streamingfast/substreams-sink-kv/sinker"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
@@ -18,7 +19,7 @@ import (
 )
 
 var SinkRunCmd = Command(sinkRunE,
-	"run <psql_dsn> <endpoint> <manifest> <module> [<start>:<stop>]",
+	"run <dsn> <endpoint> <manifest> <module> [<start>:<stop>]",
 	"Runs  extractor code",
 	RangeArgs(4, 5),
 	Flags(func(flags *pflag.FlagSet) {
@@ -38,7 +39,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		cancelApp()
 	})
 
-	psqlDSN := args[0]
+	dsn := args[0]
 	endpoint := args[1]
 	manifestPath := args[2]
 	outputModuleName := args[3]
@@ -47,18 +48,18 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		blockRange = args[4]
 	}
 
-	zlog.Info("sink from psql",
-		zap.String("dsn", psqlDSN),
+	zlog.Info("sink to kv",
+		zap.String("dsn", dsn),
 		zap.String("endpoint", endpoint),
 		zap.String("manifest_path", manifestPath),
 		zap.String("output_module_name", outputModuleName),
 		zap.String("block_range", blockRange),
 	)
 
-	//dbLoader, err := db.NewLoader(psqlDSN, zlog, tracer)
-	//if err != nil {
-	//	return fmt.Errorf("new psql loader: %w", err)
-	//}
+	dbLoader, err := db.NewLoader(dsn, zlog, tracer)
+	if err != nil {
+		return fmt.Errorf("new psql loader: %w", err)
+	}
 
 	zlog.Info("reading substreams manifest", zap.String("manifest_path", manifestPath))
 	pkg, err := manifest.NewReader(manifestPath).Read()
@@ -80,8 +81,8 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("ouput module %q is *not* of  type 'Mapper'", outputModuleName)
 	}
 
-	if module.Output.Type != "proto:substreams.database.v1.DatabaseChanges" {
-		return fmt.Errorf("kv sync only supports maps with output type 'proto:substreams.database.v1.DatabaseChanges'")
+	if module.Output.Type != "proto:substreams.kv.v1.KVOperations" {
+		return fmt.Errorf("kv sync only supports maps with output type 'proto:substreams.kv.v1.KVOperations'")
 	}
 	hashes := manifest.NewModuleHashes()
 	outputModuleHash := hashes.HashModule(pkg.Modules, module, graph)
@@ -97,7 +98,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 
 	apiToken := readAPIToken()
 	config := &sinker.Config{
-		//		DBLoader:         dbLoader,
+		DBLoader:         dbLoader,
 		BlockRange:       blockRange,
 		Pkg:              pkg,
 		OutputModule:     module,

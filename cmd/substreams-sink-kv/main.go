@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/dmetrics"
+	_ "github.com/streamingfast/kvdb/store/badger"
 	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
 )
@@ -34,7 +35,6 @@ func init() {
 func main() {
 	Run("substreams-sink-kv", "Substreams KV Sink",
 		SinkRunCmd,
-		SinkSetupCmd,
 
 		ConfigureViper("SINK"),
 		ConfigureVersion(),

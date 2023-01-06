@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -14,8 +15,9 @@ type CursorError struct {
 type Loader struct {
 	store store.KVStore
 
-	logger *zap.Logger
-	tracer logging.Tracer
+	pendingOperations []*pbkv.KVOperation
+	logger            *zap.Logger
+	tracer            logging.Tracer
 }
 
 func NewLoader(dsn string, logger *zap.Logger, tracer logging.Tracer) (*Loader, error) {

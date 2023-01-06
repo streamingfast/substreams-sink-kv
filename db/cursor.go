@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/streamingfast/bstream"
+	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
 )
 
@@ -21,6 +22,11 @@ func CursorKey(outputModuleHash string) []byte {
 func (l *Loader) GetCursor(ctx context.Context, moduleHash string) (*sink.Cursor, error) {
 	val, err := l.store.Get(ctx, CursorKey(moduleHash))
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, ErrCursorNotFound
+		} else {
+			fmt.Println("wtf is this", err)
+		}
 		return nil, err
 	}
 	return cursorFromBytes(val)
@@ -28,7 +34,10 @@ func (l *Loader) GetCursor(ctx context.Context, moduleHash string) (*sink.Cursor
 
 func (l *Loader) WriteCursor(ctx context.Context, moduleHash string, c *sink.Cursor) error {
 	val := cursorToBytes(c)
-	return l.store.Put(ctx, CursorKey(moduleHash), val)
+	if err := l.store.Put(ctx, CursorKey(moduleHash), val); err != nil {
+		return err
+	}
+	return l.store.FlushPuts(ctx)
 }
 
 func cursorToBytes(c *sink.Cursor) []byte {

@@ -16,7 +16,7 @@
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
 # Protobuf definitions
-DATABASE_PROTO="$ROOT/../substreams-database-change/proto"
+KV_PROTO="$ROOT/proto"
 
 function main() {
   checks
@@ -26,7 +26,7 @@ function main() {
 
   pushd "$ROOT/pb" > /dev/null
 
-  generate "substreams/sink/database/v1/database.proto"
+  generate "substreams/sink/kv/v1/kv.proto"
 
   echo "generate.sh - `date` - `whoami`" > $ROOT/pb/last_generate.txt
   echo "streamingfast/proto revision: `GIT_DIR=$ROOT/.git git rev-parse HEAD`" >> $ROOT/pb/last_generate.txt
@@ -42,11 +42,11 @@ function generate() {
     fi
 
     for file in "$@"; do
-      protoc -I$DATABASE_PROTO \
+      protoc -I$KV_PROTO \
         --go_out=. \
         --go_opt=paths=source_relative \
         --go-grpc_out=. \
-        --go_opt="Msubstreams/sink/database/v1/database.proto=github.com/streamingfast/substreams-database-change/pb;pbdatabase" \
+        --go_opt="Msubstreams/sink/kv/v1/kv.proto=github.com/streamingfast/substreams-sink-kv/pb;pbkv" \
         --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false \
          $base$file
     done

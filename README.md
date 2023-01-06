@@ -10,17 +10,17 @@ This is a command line tool to quickly sync a substreams with a kv database.
  go install ./cmd/substreams-sink-kv
  ```
 
-2. Add a 'map' module to your `substreams.yaml` with an output type of `proto:substreams.database.v1.DatabaseChanges`:
+2. Add a 'map' module to your `substreams.yaml` with an output type of `proto:substreams.kv.v1.KVOperations`:
 
     modules:
-      - name: db_out
+      - name: kv_out
         kind: map
         initialBlock: 0
         inputs:
           - source: sf.ethereum.type.v2.Block
           - store: store_something
         output:
-          type: proto:substreams.database.v1.DatabaseChanges
+          type: proto:substreams.kv.v1.KVOperations
 
 3. Run the sink to a local 'badger' database
 
@@ -31,5 +31,5 @@ This is a command line tool to quickly sync a substreams with a kv database.
         "badger:///home/user/sf-data/my-badger.db" \
         "mainnet.eth.streamingfast.io:443" \
         "substreams.yaml" \
-        db_out
+        kv_out
     ```

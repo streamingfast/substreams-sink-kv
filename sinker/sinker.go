@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/streamingfast/bstream"
-	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
-	pbddatabase "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/database/v1"
+	"github.com/streamingfast/substreams-sink-kv/db"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
@@ -30,13 +30,13 @@ type Config struct {
 	OutputModuleName string
 	OutputModuleHash manifest.ModuleHash
 	ClientConfig     *client.SubstreamsClientConfig
-	Store            store.KVStore
+	DBLoader         *db.Loader
 }
 
 type KVSinker struct {
 	*shutter.Shutter
 
-	store            store.KVStore
+	DBLoader         *db.Loader
 	Pkg              *pbsubstreams.Package
 	OutputModule     *pbsubstreams.Module
 	OutputModuleName string
@@ -61,7 +61,7 @@ func New(config *Config, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, 
 		logger:  logger,
 		tracer:  tracer,
 
-		store:            config.Store,
+		DBLoader:         config.DBLoader,
 		Pkg:              config.Pkg,
 		OutputModule:     config.OutputModule,
 		OutputModuleName: config.OutputModuleName,
@@ -86,11 +86,11 @@ func New(config *Config, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, 
 
 func (s *KVSinker) Start(ctx context.Context) error {
 	cursor, err := s.DBLoader.GetCursor(ctx, hex.EncodeToString(s.OutputModuleHash))
-	if err != nil && !errors.Is(err, ErrCursorNotFound) {
+	if err != nil && !errors.Is(err, db.ErrCursorNotFound) {
 		return fmt.Errorf("unable to retrieve cursor: %w", err)
 	}
 
-	if errors.Is(err, ErrCursorNotFound) {
+	if errors.Is(err, db.ErrCursorNotFound) {
 		cursorStartBlock := s.OutputModule.InitialBlock
 		if s.blockRange.StartBlock() > 0 {
 			cursorStartBlock = s.blockRange.StartBlock() - 1
@@ -151,75 +151,33 @@ func (s *KVSinker) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *KVSinker) applyDatabaseChanges(dbChanges *pbddatabase.DatabaseChanges) error {
-	for _, change := range dbChanges.TableChanges {
-		if !s.DBLoader.HasTable(change.Table) {
-			return fmt.Errorf(
-				"your Substreams sent us a change for a table named %s we don't know about on %s (available tables: %s)",
-				change.Table,
-				s.DBLoader.GetIdentifier(),
-				s.DBLoader.GetAvailableTablesInSchema(),
-			)
-		}
-
-		primaryKey := change.Pk
-		changes := map[string]string{}
-		for _, field := range change.Fields {
-			changes[field.Name] = field.NewValue
-		}
-
-		switch change.Operation {
-		case pbddatabase.TableChange_CREATE:
-			err := s.DBLoader.Insert(change.Table, primaryKey, changes)
-			if err != nil {
-				return fmt.Errorf("database insert: %w", err)
-			}
-		case pbddatabase.TableChange_UPDATE:
-			err := s.DBLoader.Update(change.Table, primaryKey, changes)
-			if err != nil {
-				return fmt.Errorf("database update: %w", err)
-			}
-		case pbddatabase.TableChange_DELETE:
-			err := s.DBLoader.Delete(change.Table, primaryKey)
-			if err != nil {
-				return fmt.Errorf("database delete: %w", err)
-			}
-		default:
-			//case database.TableChange_UNSET:
-		}
-	}
-	return nil
-}
-
 func (s *KVSinker) handleBlockScopeData(ctx context.Context, cursor *sink.Cursor, data *pbsubstreams.BlockScopedData) error {
 	for _, output := range data.Outputs {
 		if output.Name != s.OutputModuleName {
 			continue
 		}
 
-		dbChanges := &pbddatabase.DatabaseChanges{}
-		err := proto.Unmarshal(output.GetMapOutput().GetValue(), dbChanges)
+		kvOps := &pbkv.KVOperations{}
+		err := proto.Unmarshal(output.GetMapOutput().GetValue(), kvOps)
 		if err != nil {
 			return fmt.Errorf("unmarshal database changes: %w", err)
 		}
 
-		err = s.applyDatabaseChanges(dbChanges)
-		if err != nil {
-			return fmt.Errorf("apply database changes: %w", err)
-		}
+		s.DBLoader.AddOperations(kvOps)
 	}
 
 	s.lastCursor = cursor
 
 	if cursor.Block.Num()%BLOCK_PROGRESS == 0 {
 		flushStart := time.Now()
-		if err := s.DBLoader.Flush(ctx, hex.EncodeToString(s.OutputModuleHash), cursor); err != nil {
+		count, err := s.DBLoader.Flush(ctx, hex.EncodeToString(s.OutputModuleHash), cursor)
+		if err != nil {
 			return fmt.Errorf("failed to flush: %w", err)
 		}
 
 		flushDuration := time.Since(flushStart)
 		FlushCount.Inc()
-		FlushedEntriesCount.AddUint64(s.DBLoader.EntriesCount)
+		FlushedEntriesCount.AddUint64(uint64(count))
 		FlushDuration.AddInt(int(flushDuration.Nanoseconds()))
 	}
 
