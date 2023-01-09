@@ -8,17 +8,17 @@ import (
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 )
 
-func (l *Loader) AddOperations(ops *pbkv.KVOperations) {
+func (l *DB) AddOperations(ops *pbkv.KVOperations) {
 	for _, op := range ops.Operations {
 		l.AddOperation(op)
 	}
 }
 
-func (l *Loader) AddOperation(op *pbkv.KVOperation) {
+func (l *DB) AddOperation(op *pbkv.KVOperation) {
 	l.pendingOperations = append(l.pendingOperations, op)
 }
 
-func (l *Loader) Flush(ctx context.Context, moduleHash string, cursor *sink.Cursor) (count int, err error) {
+func (l *DB) Flush(ctx context.Context, moduleHash string, cursor *sink.Cursor) (count int, err error) {
 	puts, deletes := lastOperationPerKey(l.pendingOperations)
 	for _, put := range puts {
 		if err := l.store.Put(ctx, userKey(put.Key), put.Value); err != nil {
@@ -58,7 +58,7 @@ func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, del
 	return
 }
 
-func (l *Loader) reset() {
+func (l *DB) reset() {
 	l.pendingOperations = nil
 }
 

@@ -56,7 +56,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		zap.String("block_range", blockRange),
 	)
 
-	dbLoader, err := db.NewLoader(dsn, zlog, tracer)
+	db, err := db.New(dsn, zlog, tracer)
 	if err != nil {
 		return fmt.Errorf("new psql loader: %w", err)
 	}
@@ -98,7 +98,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 
 	apiToken := readAPIToken()
 	config := &sinker.Config{
-		DBLoader:         dbLoader,
+		DBLoader:         db,
 		BlockRange:       blockRange,
 		Pkg:              pkg,
 		OutputModule:     module,

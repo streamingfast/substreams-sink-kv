@@ -11,8 +11,7 @@ service Kv {
   // Get returns the requested value as google.protobuf.Any if it exists, grpc_error: NOT_FOUND otherwise.
   rpc Get(GetRequest) returns (GetResponse);
 
-  // GetMany returns the requested values as google.protobuf.Any if at least one of them exists, grpc_error: NOT_FOUND otherwise.
-  // The list of found key indexes will also be returned, so you know if there were only partial matches.
+  // GetMany returns the requested values as google.protobuf.Any if all of them exists, grpc_error: NOT_FOUND otherwise.
   rpc GetMany(GetManyRequest) returns (GetManyResponse);
 
   // GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
@@ -34,9 +33,6 @@ message GetManyRequest {
 
   // Keys to fetch
   repeated string keys = 1;
-
-  // If true, any single missing key will cause the whole call to fail with grpc_error: NOT_FOUND
-  bool fail_on_missing = 2;
 }
 
 message GetByPrefixRequest {
@@ -55,6 +51,9 @@ message ScanRequest {
 
   // scanning will start at this point, lexicographically
   string begin_prefix = 2;
+
+  // If set, scanning will stop when it reaches this point or above, excluding this exact key
+  optional string exclusive_end_prefix = 3;
 }
 
 
@@ -69,9 +68,6 @@ message GetManyResponse {
 
   // Values that were found for the requested keys
   repeated google.protobuf.Any value = 1;
-
-  // If you requested keys ['a', 'b', 'c'] and 'b' was not found, `found_key_indexes` will be: [0, 2]
-  repeated uint64 found_key_indexes = 2; 
 }
 
 message GetByPrefixResponse {
