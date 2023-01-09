@@ -12,6 +12,7 @@ This is a command line tool to quickly sync a substreams with a kv database.
 
 2. Add a 'map' module to your `substreams.yaml` with an output type of `proto:substreams.kv.v1.KVOperations`:
 
+    ```yaml
     modules:
       - name: kv_out
         kind: map
@@ -20,6 +21,7 @@ This is a command line tool to quickly sync a substreams with a kv database.
           - store: store_something
         output:
           type: proto:substreams.kv.v1.KVOperations
+    ```
 
 3. Run the sink to a local 'badger' database
 
