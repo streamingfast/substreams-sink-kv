@@ -20,8 +20,6 @@ func (l *DB) GetCursor(ctx context.Context) (*sink.Cursor, error) {
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, ErrCursorNotFound
-		} else {
-			fmt.Println("wtf is this", err)
 		}
 		return nil, err
 	}

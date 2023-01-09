@@ -48,10 +48,10 @@ message ScanRequest {
   uint64 limit = 1;
 
   // scanning will start at this point, lexicographically
-  string begin_prefix = 2;
+  string begin = 2;
 
   // If set, scanning will stop when it reaches this point or above, excluding this exact key
-  optional string exclusive_end_prefix = 3;
+  optional string exclusive_end = 3;
 }
 
 

@@ -9,10 +9,17 @@ import (
 	sink "github.com/streamingfast/substreams-sink"
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	"go.uber.org/zap"
 )
 
 var ErrInvalidArguments = errors.New("invalid arguments")
 var ErrNotFound = errors.New("not found")
+
+// FIXME: open-ended scans need to be implemented in kvdb
+var InfiniteEndBytes = []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
 func (l *DB) AddOperations(ops *pbkv.KVOperations) {
 	for _, op := range ops.Operations {
@@ -68,21 +75,6 @@ func (l *DB) reset() {
 	l.pendingOperations = nil
 }
 
-func userKey(k string) []byte {
-	return []byte(fmt.Sprintf("k%s", k))
-}
-
-func isUserKey(k []byte) bool {
-	if len(k) > 1 && k[0] == 'k' {
-		return true
-	}
-	return false
-}
-
-func fromUserKey(k []byte) string {
-	return string(k[1:])
-}
-
 func (l *DB) Get(ctx context.Context, key string) (val []byte, err error) {
 	val, err = l.store.Get(ctx, userKey(key))
 	if err != nil && errors.Is(err, store.ErrNotFound) {
@@ -92,6 +84,9 @@ func (l *DB) Get(ctx context.Context, key string) (val []byte, err error) {
 }
 
 func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err error) {
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("%w: you must specify at least one key", ErrInvalidArguments)
+	}
 	userKeys := make([][]byte, len(keys))
 	for i := range keys {
 		userKeys[i] = userKey(keys[i])
@@ -117,7 +112,7 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 		return nil, false, fmt.Errorf("%w: request value for 'prefix' must not be empty", ErrInvalidArguments)
 	}
 
-	itr := l.store.Prefix(ctx, userKey(prefix), limit)
+	itr := l.store.Prefix(ctx, userKey(prefix), limit+1)
 	for itr.Next() {
 		if len(values) == limit {
 			limitReached = true
@@ -139,6 +134,51 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 	return values, limitReached, nil
 }
 
-//		if !isUserKey(it.Key) {
-//			continue
-//		}
+func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+	if limit <= 0 || limit > l.QueryRowsLimit {
+		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, l.QueryRowsLimit, limit)
+	}
+
+	endBytes := InfiniteEndBytes
+	if exclusiveEnd != "" {
+		endBytes = userKey(exclusiveEnd)
+	}
+	itr := l.store.Scan(ctx, userKey(begin), endBytes, limit+1)
+	for itr.Next() {
+		if !isUserKey(itr.Item().Key) {
+			l.logger.Debug("skipping non-user-key", zap.String("key", string(itr.Item().Key)))
+			continue // skip keys that are not valid user keys
+		}
+		if len(values) == limit {
+			limitReached = true
+			break
+		}
+		it := itr.Item()
+		values = append(values, &kvv1.KV{
+			Key:   fromUserKey(it.Key),
+			Value: it.Value,
+		})
+	}
+	if err := itr.Err(); err != nil {
+		return nil, false, err
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+	return values, limitReached, nil
+}
+
+func userKey(k string) []byte {
+	return []byte(fmt.Sprintf("k%s", k))
+}
+
+func isUserKey(k []byte) bool {
+	if len(k) > 1 && k[0] == 'k' {
+		return true
+	}
+	return false
+}
+
+func fromUserKey(k []byte) string {
+	return string(k[1:])
+}
