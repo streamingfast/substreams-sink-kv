@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package substreams.sink.kv.v1;
+
+option go_package = "github.com/streamingfast/substreams-sink-kv/pb;pbkv";
+
+import "google/protobuf/any.proto";
+
+service Kv {
+
+  // Get returns the requested value as google.protobuf.Any if it exists, grpc_error: NOT_FOUND otherwise.
+  rpc Get(GetRequest) returns (GetResponse);
+
+  // GetMany returns the requested values as google.protobuf.Any if at least one of them exists, grpc_error: NOT_FOUND otherwise.
+  // The list of found key indexes will also be returned, so you know if there were only partial matches.
+  rpc GetMany(GetManyRequest) returns (GetManyResponse);
+
+  // GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+  rpc GetByPrefix(GetByPrefixRequest) returns (GetByPrefixResponse);
+
+  // Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+  rpc Scan(ScanRequest) returns (ScanResponse);
+
+}
+
+message GetRequest {
+
+  // Key to fetch
+  string key = 1;
+}
+
+
+message GetManyRequest {
+
+  // Keys to fetch
+  repeated string keys = 1;
+
+  // If true, any single missing key will cause the whole call to fail with grpc_error: NOT_FOUND
+  bool fail_on_missing = 2;
+}
+
+message GetByPrefixRequest {
+
+  // server may impose a hard limit, trying to go above it would return grpc_error: INVALID_ARGUMENT
+  uint64 limit = 1;
+
+  // requested prefix
+  string prefix = 2;
+}
+
+message ScanRequest {
+
+  // server may impose a hard limit, trying to go above it would return grpc_error: INVALID_ARGUMENT
+  uint64 limit = 1;
+
+  // scanning will start at this point, lexicographically
+  string begin_prefix = 2;
+}
+
+
+message GetResponse {
+
+  // Value that was found for the requested key
+  google.protobuf.Any value = 1;
+}
+
+
+message GetManyResponse {
+
+  // Values that were found for the requested keys
+  repeated google.protobuf.Any value = 1;
+
+  // If you requested keys ['a', 'b', 'c'] and 'b' was not found, `found_key_indexes` will be: [0, 2]
+  repeated uint64 found_key_indexes = 2; 
+}
+
+message GetByPrefixResponse {
+
+  // KV are the key/value pairs that were found with the given prefix
+  repeated KV key_values = 1;
+
+  // limit_reached is true if there is at least ONE MORE result than the requested limit
+  bool limit_reached = 2;
+}
+
+message ScanResponse {
+
+  // KV are the key/value pairs that were found during scan
+  repeated KV key_values = 1;
+
+  // limit_reached is true if there is at least ONE MORE result than the requested limit
+  bool limit_reached = 2;
+}
+
+
+
+message KV {
+    string key = 1;
+    google.protobuf.Any value = 2;
+}
+

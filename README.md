@@ -37,6 +37,11 @@ This is a command line tool to quickly sync a substreams with a kv database.
 
 * Run `devel/local/start.sh`
 
+### Protobuf generation
+
+* Requires 'buf.build' with protoc-gen-go and protoc-gen-go-grpc (https://docs.buf.build/tour/generate-go-code)
+* Run `cd proto && buf generate`
+
 ### Example integration
 
 * See https://github.com/streamingfast/substreams-eth-block-meta
