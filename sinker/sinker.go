@@ -2,7 +2,6 @@ package sinker
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -171,7 +170,7 @@ func (s *KVSinker) handleBlockScopeData(ctx context.Context, cursor *sink.Cursor
 
 	if cursor.Block.Num()%BLOCK_PROGRESS == 0 {
 		flushStart := time.Now()
-		count, err := s.DBLoader.Flush(ctx, hex.EncodeToString(s.OutputModuleHash), cursor)
+		count, err := s.DBLoader.Flush(ctx, cursor)
 		if err != nil {
 			return fmt.Errorf("failed to flush: %w", err)
 		}

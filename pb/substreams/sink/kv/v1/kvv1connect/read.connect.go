@@ -27,9 +27,9 @@ const (
 
 // KvClient is a client for the substreams.sink.kv.v1.Kv service.
 type KvClient interface {
-	// Get returns the requested value as google.protobuf.Any if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
-	// GetMany returns the requested values as google.protobuf.Any if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
 	GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error)
 	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
 	GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error)
@@ -100,9 +100,9 @@ func (c *kvClient) Scan(ctx context.Context, req *connect_go.Request[v1.ScanRequ
 
 // KvHandler is an implementation of the substreams.sink.kv.v1.Kv service.
 type KvHandler interface {
-	// Get returns the requested value as google.protobuf.Any if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
-	// GetMany returns the requested values as google.protobuf.Any if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
 	GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error)
 	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
 	GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error)

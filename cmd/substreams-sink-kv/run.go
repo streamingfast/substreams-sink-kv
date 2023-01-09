@@ -12,6 +12,7 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
+	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/sinker"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
@@ -25,6 +26,7 @@ var SinkRunCmd = Command(sinkRunE,
 	Flags(func(flags *pflag.FlagSet) {
 		flags.BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 		flags.BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
+		flags.String("listen-connect-web", "localhost:8000", "Listen via GRPC Connect-Web on this address")
 	}),
 	AfterAllHook(func(_ *cobra.Command) {
 		sinker.RegisterMetrics()
@@ -56,7 +58,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		zap.String("block_range", blockRange),
 	)
 
-	db, err := db.New(dsn, zlog, tracer)
+	kvDB, err := db.New(dsn, zlog, tracer)
 	if err != nil {
 		return fmt.Errorf("new psql loader: %w", err)
 	}
@@ -98,7 +100,7 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 
 	apiToken := readAPIToken()
 	config := &sinker.Config{
-		DBLoader:         db,
+		DBLoader:         kvDB,
 		BlockRange:       blockRange,
 		Pkg:              pkg,
 		OutputModule:     module,
@@ -133,6 +135,15 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 			kvSinker.Shutdown(err)
 		}
 	}()
+
+	if cwListen := viper.GetString("run-listen-connect-web"); cwListen != "" {
+		go func() {
+			zlog.Info("starting to listen on", zap.String("addr", cwListen))
+			server.ListenConnectWeb(cwListen, kvDB, zlog)
+		}()
+	} else {
+		fmt.Println("oh shit its empty")
+	}
 
 	signalHandler := derr.SetupSignalHandler(0 * time.Second)
 	zlog.Info("ready, waiting for signal to quit")

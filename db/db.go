@@ -14,16 +14,17 @@ import (
 type DBLoader interface {
 	AddOperations(ops *pbkv.KVOperations)
 	AddOperation(op *pbkv.KVOperation)
-	Flush(ctx context.Context, moduleHash string, cursor *sink.Cursor) (count int, err error)
+	Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error)
 	GetCursor(ctx context.Context) (*sink.Cursor, error)
 	WriteCursor(ctx context.Context, c *sink.Cursor) error
 }
 
 type DBReader interface {
 	Get(ctx context.Context, key string) (value []byte, err error)
-	GetMany(ctx context.Context, keys []string) (values [][]byte, matchingKeys []int, err error)
-	//Scan(ctx context.Context, start, exclusiveEnd []byte, limit int, options ...ReadOption) *Iterator
-	//Prefix(ctx context.Context, prefix []byte, limit int, options ...ReadOption) *Iterator
+	//	GetMany(ctx context.Context, keys []string) (values [][]byte, matchingKeys []int, err error)
+	//
+	// Scan(ctx context.Context, start, exclusiveEnd []byte, limit int, options ...ReadOption) *Iterator
+	// Prefix(ctx context.Context, prefix []byte, limit int, options ...ReadOption) *Iterator
 }
 
 type CursorError struct {

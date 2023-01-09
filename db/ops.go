@@ -18,7 +18,7 @@ func (l *DB) AddOperation(op *pbkv.KVOperation) {
 	l.pendingOperations = append(l.pendingOperations, op)
 }
 
-func (l *DB) Flush(ctx context.Context, moduleHash string, cursor *sink.Cursor) (count int, err error) {
+func (l *DB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
 	puts, deletes := lastOperationPerKey(l.pendingOperations)
 	for _, put := range puts {
 		if err := l.store.Put(ctx, userKey(put.Key), put.Value); err != nil {
@@ -66,19 +66,6 @@ func userKey(k string) []byte {
 	return []byte(fmt.Sprintf("k%s", k))
 }
 
-/*
-
-map[key][]operation
-
-
-var batchPut []operation
-var batchDelete []operation
-
-for k, v := range map {
-	sort(v)
-
+func (l *DB) Get(ctx context.Context, key string) (val []byte, err error) {
+	return l.store.Get(ctx, userKey(key))
 }
-
-batchPUT
-
-*/
