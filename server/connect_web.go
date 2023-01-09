@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -57,7 +58,7 @@ func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.G
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			cs.logger.Debug("key not found", zap.String("key", req.Msg.Key), zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeNotFound, errors.New("requested key not found in database"))
+			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("requested key not found in database: %w", err))
 		}
 		cs.logger.Info("internal error", zap.String("key", req.Msg.Key), zap.Error(err))
 		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
@@ -68,12 +69,49 @@ func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.G
 	return resp, nil
 }
 
-func (cs *ConnectServer) GetMany(context.Context, *connect_go.Request[kvv1.GetManyRequest]) (*connect_go.Response[kvv1.GetManyResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.GetMany is not implemented"))
+func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[kvv1.GetManyRequest]) (*connect_go.Response[kvv1.GetManyResponse], error) {
+	vals, err := cs.DBReader.GetMany(ctx, req.Msg.Keys)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			cs.logger.Debug("key not found", zap.Strings("keys", req.Msg.Keys), zap.Error(err))
+			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
+		}
+		cs.logger.Info("internal error", zap.Strings("keys", req.Msg.Keys), zap.Error(err))
+		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+	}
+	resp := connect.NewResponse(&kvv1.GetManyResponse{
+		Values: vals,
+	})
+	return resp, nil
 }
 
-func (cs *ConnectServer) GetByPrefix(context.Context, *connect_go.Request[kvv1.GetByPrefixRequest]) (*connect_go.Response[kvv1.GetByPrefixResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.GetByPrefix is not implemented"))
+func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Request[kvv1.GetByPrefixRequest]) (*connect_go.Response[kvv1.GetByPrefixResponse], error) {
+	keyVals, limitReached, err := cs.DBReader.GetByPrefix(ctx, req.Msg.Prefix, int(req.Msg.Limit))
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			cs.logger.Debug("prefix not found", zap.String("prefix", req.Msg.Prefix), zap.Error(err))
+			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
+		}
+		if errors.Is(err, db.ErrInvalidArguments) {
+			cs.logger.Debug("invalid arguments", zap.String("prefix", req.Msg.Prefix), zap.Uint64("limit", req.Msg.Limit), zap.Error(err))
+			return nil, connect_go.NewError(connect_go.CodeInvalidArgument, err)
+
+		}
+		cs.logger.Info("internal error", zap.String("prefix", req.Msg.Prefix), zap.Error(err))
+		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+	}
+	protoKeyVals := make([]*kvv1.KV, len(keyVals))
+	for i := range keyVals {
+		protoKeyVals[i] = &kvv1.KV{
+			Key:   keyVals[i].Key,
+			Value: keyVals[i].Value,
+		}
+	}
+	resp := connect.NewResponse(&kvv1.GetByPrefixResponse{
+		KeyValues:    protoKeyVals,
+		LimitReached: limitReached,
+	})
+	return resp, nil
 }
 
 func (cs *ConnectServer) Scan(context.Context, *connect_go.Request[kvv1.ScanRequest]) (*connect_go.Response[kvv1.ScanResponse], error) {

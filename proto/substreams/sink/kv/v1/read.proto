@@ -65,7 +65,7 @@ message GetResponse {
 message GetManyResponse {
 
   // Values that were found for the requested keys
-  repeated bytes value = 1;
+  repeated bytes values = 1;
 }
 
 message GetByPrefixResponse {
