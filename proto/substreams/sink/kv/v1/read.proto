@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package substreams.sink.kv.v1;
+package sf.substreams.sink.kv.v1;
 
 option go_package = "github.com/streamingfast/substreams-sink-kv/pb;pbkv";
 

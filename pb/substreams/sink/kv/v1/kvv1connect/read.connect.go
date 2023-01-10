@@ -22,10 +22,10 @@ const _ = connect_go.IsAtLeastVersion0_1_0
 
 const (
 	// KvName is the fully-qualified name of the Kv service.
-	KvName = "substreams.sink.kv.v1.Kv"
+	KvName = "sf.substreams.sink.kv.v1.Kv"
 )
 
-// KvClient is a client for the substreams.sink.kv.v1.Kv service.
+// KvClient is a client for the sf.substreams.sink.kv.v1.Kv service.
 type KvClient interface {
 	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
@@ -37,8 +37,8 @@ type KvClient interface {
 	Scan(context.Context, *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error)
 }
 
-// NewKvClient constructs a client for the substreams.sink.kv.v1.Kv service. By default, it uses the
-// Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// NewKvClient constructs a client for the sf.substreams.sink.kv.v1.Kv service. By default, it uses
+// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
 // uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
 // connect.WithGRPCWeb() options.
 //
@@ -49,22 +49,22 @@ func NewKvClient(httpClient connect_go.HTTPClient, baseURL string, opts ...conne
 	return &kvClient{
 		get: connect_go.NewClient[v1.GetRequest, v1.GetResponse](
 			httpClient,
-			baseURL+"/substreams.sink.kv.v1.Kv/Get",
+			baseURL+"/sf.substreams.sink.kv.v1.Kv/Get",
 			opts...,
 		),
 		getMany: connect_go.NewClient[v1.GetManyRequest, v1.GetManyResponse](
 			httpClient,
-			baseURL+"/substreams.sink.kv.v1.Kv/GetMany",
+			baseURL+"/sf.substreams.sink.kv.v1.Kv/GetMany",
 			opts...,
 		),
 		getByPrefix: connect_go.NewClient[v1.GetByPrefixRequest, v1.GetByPrefixResponse](
 			httpClient,
-			baseURL+"/substreams.sink.kv.v1.Kv/GetByPrefix",
+			baseURL+"/sf.substreams.sink.kv.v1.Kv/GetByPrefix",
 			opts...,
 		),
 		scan: connect_go.NewClient[v1.ScanRequest, v1.ScanResponse](
 			httpClient,
-			baseURL+"/substreams.sink.kv.v1.Kv/Scan",
+			baseURL+"/sf.substreams.sink.kv.v1.Kv/Scan",
 			opts...,
 		),
 	}
@@ -78,27 +78,27 @@ type kvClient struct {
 	scan        *connect_go.Client[v1.ScanRequest, v1.ScanResponse]
 }
 
-// Get calls substreams.sink.kv.v1.Kv.Get.
+// Get calls sf.substreams.sink.kv.v1.Kv.Get.
 func (c *kvClient) Get(ctx context.Context, req *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error) {
 	return c.get.CallUnary(ctx, req)
 }
 
-// GetMany calls substreams.sink.kv.v1.Kv.GetMany.
+// GetMany calls sf.substreams.sink.kv.v1.Kv.GetMany.
 func (c *kvClient) GetMany(ctx context.Context, req *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error) {
 	return c.getMany.CallUnary(ctx, req)
 }
 
-// GetByPrefix calls substreams.sink.kv.v1.Kv.GetByPrefix.
+// GetByPrefix calls sf.substreams.sink.kv.v1.Kv.GetByPrefix.
 func (c *kvClient) GetByPrefix(ctx context.Context, req *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error) {
 	return c.getByPrefix.CallUnary(ctx, req)
 }
 
-// Scan calls substreams.sink.kv.v1.Kv.Scan.
+// Scan calls sf.substreams.sink.kv.v1.Kv.Scan.
 func (c *kvClient) Scan(ctx context.Context, req *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error) {
 	return c.scan.CallUnary(ctx, req)
 }
 
-// KvHandler is an implementation of the substreams.sink.kv.v1.Kv service.
+// KvHandler is an implementation of the sf.substreams.sink.kv.v1.Kv service.
 type KvHandler interface {
 	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
@@ -117,44 +117,44 @@ type KvHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewKvHandler(svc KvHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/substreams.sink.kv.v1.Kv/Get", connect_go.NewUnaryHandler(
-		"/substreams.sink.kv.v1.Kv/Get",
+	mux.Handle("/sf.substreams.sink.kv.v1.Kv/Get", connect_go.NewUnaryHandler(
+		"/sf.substreams.sink.kv.v1.Kv/Get",
 		svc.Get,
 		opts...,
 	))
-	mux.Handle("/substreams.sink.kv.v1.Kv/GetMany", connect_go.NewUnaryHandler(
-		"/substreams.sink.kv.v1.Kv/GetMany",
+	mux.Handle("/sf.substreams.sink.kv.v1.Kv/GetMany", connect_go.NewUnaryHandler(
+		"/sf.substreams.sink.kv.v1.Kv/GetMany",
 		svc.GetMany,
 		opts...,
 	))
-	mux.Handle("/substreams.sink.kv.v1.Kv/GetByPrefix", connect_go.NewUnaryHandler(
-		"/substreams.sink.kv.v1.Kv/GetByPrefix",
+	mux.Handle("/sf.substreams.sink.kv.v1.Kv/GetByPrefix", connect_go.NewUnaryHandler(
+		"/sf.substreams.sink.kv.v1.Kv/GetByPrefix",
 		svc.GetByPrefix,
 		opts...,
 	))
-	mux.Handle("/substreams.sink.kv.v1.Kv/Scan", connect_go.NewUnaryHandler(
-		"/substreams.sink.kv.v1.Kv/Scan",
+	mux.Handle("/sf.substreams.sink.kv.v1.Kv/Scan", connect_go.NewUnaryHandler(
+		"/sf.substreams.sink.kv.v1.Kv/Scan",
 		svc.Scan,
 		opts...,
 	))
-	return "/substreams.sink.kv.v1.Kv/", mux
+	return "/sf.substreams.sink.kv.v1.Kv/", mux
 }
 
 // UnimplementedKvHandler returns CodeUnimplemented from all methods.
 type UnimplementedKvHandler struct{}
 
 func (UnimplementedKvHandler) Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.Get is not implemented"))
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Get is not implemented"))
 }
 
 func (UnimplementedKvHandler) GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.GetMany is not implemented"))
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetMany is not implemented"))
 }
 
 func (UnimplementedKvHandler) GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.GetByPrefix is not implemented"))
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetByPrefix is not implemented"))
 }
 
 func (UnimplementedKvHandler) Scan(context.Context, *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("substreams.sink.kv.v1.Kv.Scan is not implemented"))
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Scan is not implemented"))
 }
