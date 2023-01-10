@@ -1,6 +1,7 @@
 # substreams-sink-kv
 
 This is a command line tool to quickly sync a substreams with a kv database.
+It exposes this data through Connect-Web protocol (compatible with GRPC)
 
 ### Quickstart
 
@@ -43,10 +44,10 @@ This is a command line tool to quickly sync a substreams with a kv database.
 
 (these commands have been tested while running the 'devel/local/start.sh' in another terminal)
 
-* Get single block data: `grpcurl --plaintext   -d '{"key":"72e08a117f596b31ae49bda6f093c2d812e64f69bb3d5aab2f4f47fdaea0c512"}' localhost:8000 substreams.sink.kv.v1.Kv/GetMany`
-* Get many: `grpcurl --plaintext   -d '{"keys":["72e08a117f596b31ae49bda6f093c2d812e64f69bb3d5aab2f4f47fdaea0c512","72e046b07eb0263277e3a5e5968d60810273f74a1e8ef64c9b3bf522285accc8"]}' localhost:8000 substreams.sink.kv.v1.Kv/GetMany`
-* By prefix: `grpcurl --plaintext   -d '{"prefix": "ffa", "limit":100}' localhost:8000 substreams.sink.kv.v1.Kv/GetByPrefix`
-* Scan: `grpcurl --plaintext   -d '{"begin": "ffff46b07eb0263277e3a5e5968d60810273f74a1e8ef64c9b3bf522285accc8", "exclusive_end": "ffffb5738d3f365313963d49af78f08e1953623189bea23d5ed3562a55f8d165", "limit":3}' localhost:8000 substreams.sink.kv.v1.Kv/Scan`
+* Get single block data: `grpcurl --plaintext   -d '{"key":"72e08a117f596b31ae49bda6f093c2d812e64f69bb3d5aab2f4f47fdaea0c512"}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetMany`
+* Get many: `grpcurl --plaintext   -d '{"keys":["72e08a117f596b31ae49bda6f093c2d812e64f69bb3d5aab2f4f47fdaea0c512","72e046b07eb0263277e3a5e5968d60810273f74a1e8ef64c9b3bf522285accc8"]}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetMany`
+* By prefix: `grpcurl --plaintext   -d '{"prefix": "ffa", "limit":100}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetByPrefix`
+* Scan: `grpcurl --plaintext   -d '{"begin": "ffff46b07eb0263277e3a5e5968d60810273f74a1e8ef64c9b3bf522285accc8", "exclusive_end": "ffffb5738d3f365313963d49af78f08e1953623189bea23d5ed3562a55f8d165", "limit":3}' localhost:8000 sf.substreams.sink.kv.v1.Kv/Scan`
 
 #### From your browser
 
