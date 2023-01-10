@@ -28,7 +28,7 @@ func ListenConnectWeb(addr string, dbReader db.DBReader, logger *zap.Logger) err
 	}
 
 	reflector := grpcreflect.NewStaticReflector(
-		"substreams.sink.kv.v1.Kv",
+		"sf.substreams.sink.kv.v1.Kv",
 	)
 
 	mux := http.NewServeMux()
