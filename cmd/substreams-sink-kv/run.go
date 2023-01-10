@@ -20,13 +20,24 @@ import (
 )
 
 var SinkRunCmd = Command(sinkRunE,
-	"run <dsn> <endpoint> <manifest> <module> [<start>:<stop>]",
-	"Runs  extractor code",
+	`run <dsn> <endpoint> <manifest> <module> [<start>:<stop>]
+
+  * dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
+  * endpoint: URL to the substreams endpoint (ex: mainnet.eth.streamingfast.io:443)
+  * manifest_path: URL or local path to a 'substreams.yaml' or '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
+  * module: Name of the output module (declared in the manifest), (ex: 'kv_out')
+
+Environment Variables:
+
+* SUBSTREAMS_API_TOKEN: Your authentication token (JWt) to the substreams endpoint
+	`,
+	"Fills a KV store from a substreams output and runs a Connect-Web listener",
 	RangeArgs(4, 5),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 		flags.BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
-		flags.String("listen-connect-web", "localhost:8000", "Listen via GRPC Connect-Web on this address")
+		flags.String("listen-addr", "localhost:8000", "Listen via GRPC Connect-Web on this address")
+		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
 	}),
 	AfterAllHook(func(_ *cobra.Command) {
 		sinker.RegisterMetrics()
@@ -136,10 +147,10 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	if cwListen := viper.GetString("run-listen-connect-web"); cwListen != "" {
+	if cwListen := viper.GetString("run-listen-addr"); cwListen != "" {
 		go func() {
 			zlog.Info("starting to listen on", zap.String("addr", cwListen))
-			server.ListenConnectWeb(cwListen, kvDB, zlog)
+			server.ListenConnectWeb(cwListen, kvDB, zlog, viper.GetBool("run-listen-ssl-self-signed"))
 		}()
 	} else {
 		fmt.Println("oh shit its empty")

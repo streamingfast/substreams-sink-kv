@@ -22,7 +22,6 @@ function App() {
     const [inputValue, setInputValue] = useState("");
     const [messages, setMessages] = useState<
         {
-            fromMe: boolean;
             message: string;
         }[]
     >([]);
@@ -31,7 +30,7 @@ function App() {
         <ol>
             {messages.map((msg, index) => (
                 <li key={index}>
-                    {`${msg.fromMe ? "Request:" : "Response:"} ${msg.message}`}
+                    {msg.message}
                 </li>
             ))}
         </ol>
@@ -39,25 +38,32 @@ function App() {
             e.preventDefault();
             // Clear inputValue since the user has submitted.
             setInputValue("");
-            // Store the inputValue in the chain of messages and
-            // mark this message as coming from "me"
             setMessages((prev) => [
                 ...prev,
                 {
-                    fromMe: true,
-                    message: inputValue,
+                    message: "Request: " + inputValue,
                 },
             ]);
-            const response = await client.get({
-                key: inputValue,
-            });
-            setMessages((prev) => [
-                ...prev,
-                {
-                    fromMe: false,
-                    message: bufferToHex(response.value),
-                },
-            ]);
+            try {
+                const response = await client.get({
+                    key: inputValue,
+                });
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        message: "Response: " + bufferToHex(response.value),
+                        error: "",
+                    },
+                ]);
+            } catch (e) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        message: "Error: " + JSON.stringify(e),
+                    },
+                ]);
+
+            }
         }}>
             <input value={inputValue} onChange={e => setInputValue(e.target.value)} />
             <button type="submit">Send</button>
