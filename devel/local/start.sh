@@ -27,7 +27,7 @@ main() {
   $sink run \
     ${dsn} \
     "${SUBSTREAMS_ENDPOINT:-"mainnet.eth.streamingfast.io:443"}" \
-    "${SUBSTREAMS_MANIFEST:-"substreams-eth-block-meta-v0.2.1.spkg"}" \
+    "${SUBSTREAMS_MANIFEST:-"substreams-eth-block-meta-v0.3.0.spkg"}" \
     "${SUBSTREAMS_MODULE:-"kv_out"}" \
     "$@"
 }
