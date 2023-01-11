@@ -3,6 +3,8 @@ import './App.css'
 import {
     createConnectTransport,
     createPromiseClient,
+    ConnectError,
+    codeToString,
 } from "@bufbuild/connect-web";
 
 // Import service definition that you want to connect to.
@@ -72,10 +74,21 @@ function App() {
                     },
                 ]);
             } catch (e) {
+                let errorMessage: string;
+
+                if (e instanceof ConnectError) {
+                    errorMessage = JSON.stringify({
+                        name: e.name,
+                        code: codeToString(e.code),
+                        message: e.rawMessage,
+                    }, null, 2);
+                } else {
+                    errorMessage = JSON.stringify(e, null, 2);
+                }
                 setMessages((prev) => [
                     ...prev,
                     {
-                        message: "Error: " + JSON.stringify(e),
+                        message: "Error: " + errorMessage,
                         color: "pink",
                     },
                 ]);
