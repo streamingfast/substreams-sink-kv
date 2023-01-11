@@ -30,7 +30,8 @@ function App() {
         }[]
     >([]);
     return <>
-        <h2>Enter a block ID to get the value from the kv store</h2>
+        <h1>Example UI for substreams-eth-block-meta</h1>
+        <h2>Enter a key to get the value from the kv store (ex: month:last:201511)</h2>
         <ol>
             {messages.map((msg, index) => (
                 <li key={index}>
@@ -55,21 +56,25 @@ function App() {
                 const response = await client.get({
                     key: inputValue.replace("0x", ""),
                 });
-                const blkmeta = BlockMeta.fromBinary(response.value);
-                const prettyJSON = JSON.stringify(blkmeta, (key, value) => {
-                    if (key === "hash") {
-                        return "0x" + bufferToHex(blkmeta.hash);
-                    }
-                    if (key === "parentHash") {
-                        return "0x" + bufferToHex(blkmeta.parentHash);
-                    }
-                    return value;
-                }, 2);
-                console.log(prettyJSON);
+                let output: string;
+                try {
+                    const blkmeta = BlockMeta.fromBinary(response.value);
+                    output = JSON.stringify(blkmeta, (key, value) => {
+                        if (key === "hash") {
+                            return "0x" + bufferToHex(blkmeta.hash);
+                        }
+                        if (key === "parentHash") {
+                            return "0x" + bufferToHex(blkmeta.parentHash);
+                        }
+                        return value;
+                    }, 2);
+                } catch (e) {
+                    output = "0x" + bufferToHex(response.value);
+                }
                 setMessages((prev) => [
                     ...prev,
                     {
-                        message: prettyJSON,
+                        message: output,
                         color: "lightblue",
                     },
                 ]);
