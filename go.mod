@@ -3,6 +3,7 @@ module github.com/streamingfast/substreams-sink-kv
 go 1.18
 
 require (
+	github.com/bufbuild/connect-go v1.4.1
 	github.com/lib/pq v1.10.6
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
@@ -18,6 +19,7 @@ require (
 
 require (
 	github.com/DataDog/zstd v1.4.1 // indirect
+	github.com/bufbuild/connect-grpcreflect-go v1.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
@@ -46,6 +48,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/cors v1.8.3 // indirect
 	github.com/sethvargo/go-retry v0.2.3 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -100,7 +103,7 @@ require (
 	github.com/streamingfast/bstream v0.0.2-0.20221117104246-5660c4ba5e8c
 	github.com/streamingfast/cli v0.0.4-0.20220630165922-bc58c6666fc8
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
-	github.com/streamingfast/dgrpc v0.0.0-20221031174241-978a7951c117 // indirect
+	github.com/streamingfast/dgrpc v0.0.0-20230110205116-9532afc211af
 	github.com/streamingfast/dmetrics v0.0.0-20221107142404-e88fe183f07d
 	github.com/streamingfast/dstore v0.1.1-0.20221118114203-13f4092e3bf0 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
