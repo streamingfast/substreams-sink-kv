@@ -6,7 +6,6 @@
 
 ## Prerequisites
 
-- Go installation and compiler
 - Rust installation and compiler
 - Cloned `substreams-sink-kv` repository
 - A Substreams module prepared for a kv-sink
@@ -14,10 +13,18 @@
 
 ## Installation
 
+### From source
+
+* This requires the [Go compiler](https://go.dev/)
 * Clone this repository, then run `go install -v ./cmd/substreams-sink-kv`
 * Check your installation by running `substreams-sink-kv --version`
 
 > **Note** the binary file will be installed in your *GO_PATH*, usually `$HOME/go/bin`. Ensure that this folder is included in your *PATH* environment variable.
+
+### From a pre-built binary release
+
+* Download the release from here: https://github.com/streamingfast/substreams-sink-kv/releases
+* Extract the `substreams-sink-kv` from the tarball into a folder available in your PATH.
 
 ## Running with an example substreams
 

@@ -33,8 +33,10 @@ plugins:
     # package.json
     # "scripts": {
     # ...
-    "buf:generate": "buf generate ../proto/substreams/sink/kv/v1",
+    "buf:generate": "buf generate ../proto/substreams/sink/kv/v1 && buf generate ./proto",
 ```
+
+* Add our custom (`block_meta.proto`) protobuf definition files to a new proto/ folder
 
 * Generate code:
 
@@ -64,7 +66,17 @@ const response = await client.get({
 // then display `response.value`, typed as 'Uint8Array'
 ```
 
-The rest is just front-end formatting ...
+* Use our generated 'block_meta_pb' protobuf bindings to decode the value:
+
+```
+import { BlockMeta } from "../gen/block_meta_pb";
+
+const blkmeta = BlockMeta.fromBinary(response.value);
+output = JSON.stringify(blkmeta, null, 2);
+
+```
+
+The rest is just formatting, error-handling and front-end stuff ...
 
 # Run it
 
