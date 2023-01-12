@@ -65,7 +65,7 @@ main() {
     trap cleanup_tag EXIT
   fi
 
-  #  goreleaser release $args
+  goreleaser release $args
 
   args="${CARGO_PUBISH_ARGS:-}"
   if [[ "$force" == "false" ]]; then
@@ -81,16 +81,16 @@ cleanup_tag() {
   fi
 }
 
-#verify_github_token() {
-#  if [[ ! -f "$HOME/.config/goreleaser/github_token" && "$GITHUB_TOKEN" = "" ]]; then
-#    echo "No GitHub token could be found in environment variable GITHUB_TOKEN"
-#    echo "nor at ~/.config/goreleaser/github_token."
-#    echo ""
-#    echo "You will need to create one on GitHub website and make it available through"
-#    echo "one of the accept way mentioned above."
-#    exit 1
-#  fi
-#}
+verify_github_token() {
+  if [[ ! -f "$HOME/.config/goreleaser/github_token" && "$GITHUB_TOKEN" = "" ]]; then
+    echo "No GitHub token could be found in environment variable GITHUB_TOKEN"
+    echo "nor at ~/.config/goreleaser/github_token."
+    echo ""
+    echo "You will need to create one on GitHub website and make it available through"
+    echo "one of the accept way mentioned above."
+    exit 1
+  fi
+}
 
 verify_keybase() {
   if ! command keybase &> /dev/null; then
@@ -139,13 +139,13 @@ usage() {
   echo "Perform the necessary commands to perform a release of the project to crates.io."
   echo "The <version> is optional, if not provided, you'll be asked the question."
   echo ""
-  #echo "The release being performed against GitHub, you need a valid GitHub API token"
-  #echo "with the necessary rights to upload release and push to repositories. It needs to"
-  #echo "be provided in file ~/.config/goreleaser/github_token or through an environment"
-  #echo "variable GITHUB_TOKEN."
-  #echo ""
-  #echo "Keybase is required to sign the release (the checksum of all the artifacts"
-  #echo "to be precise)."
+  echo "The release being performed against GitHub, you need a valid GitHub API token"
+  echo "with the necessary rights to upload release and push to repositories. It needs to"
+  echo "be provided in file ~/.config/goreleaser/github_token or through an environment"
+  echo "variable GITHUB_TOKEN."
+  echo ""
+  echo "Keybase is required to sign the release (the checksum of all the artifacts"
+  echo "to be precise)."
   echo ""
   echo "You will need to have it available ('brew install keybase' on Mac OS X) and"
   echo "configure it, just setting your Git username and a password should be enough."
