@@ -538,6 +538,8 @@ github.com/streamingfast/derr v0.0.0-20220526184630-695c21740145 h1:rSML09L92ful
 github.com/streamingfast/derr v0.0.0-20220526184630-695c21740145/go.mod h1:YUDWnOSPZvpD2bX6eThzcgHLyPObEjIOQ8007bG13no=
 github.com/streamingfast/dgrpc v0.0.0-20230110205116-9532afc211af h1:S2wdbaWv4He1ZcQ4KTQ5GSsD5eiMVKAQzPkF6L5Kips=
 github.com/streamingfast/dgrpc v0.0.0-20230110205116-9532afc211af/go.mod h1:eOuThj6Ix7vG5FxtGQNvkWxjRzDO+ApXO8mvgBqkksY=
+github.com/streamingfast/dgrpc v0.0.0-20230113212008-1898f17e0ac7 h1:eMbubEy/Q7Yuah8uSTRmo4MUbJ2mP0BOHM+3qfFyP4M=
+github.com/streamingfast/dgrpc v0.0.0-20230113212008-1898f17e0ac7/go.mod h1:eOuThj6Ix7vG5FxtGQNvkWxjRzDO+ApXO8mvgBqkksY=
 github.com/streamingfast/dmetrics v0.0.0-20221107142404-e88fe183f07d h1:LDjw8eiVC2sVO3WIBwonxwxXGNhIZvDde0wBvadSqGs=
 github.com/streamingfast/dmetrics v0.0.0-20221107142404-e88fe183f07d/go.mod h1:jc/U4gaLWSWhHWIW4on0tr8OkKr0U/yGK3f+I+YQIaU=
 github.com/streamingfast/dstore v0.1.1-0.20221118114203-13f4092e3bf0 h1:3dI8+vaOsELLpMfSDWSqqnBy6w/dyqtTrsiAr0du5u8=

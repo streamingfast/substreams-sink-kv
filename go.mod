@@ -103,7 +103,7 @@ require (
 	github.com/streamingfast/bstream v0.0.2-0.20221117104246-5660c4ba5e8c
 	github.com/streamingfast/cli v0.0.4-0.20220630165922-bc58c6666fc8
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
-	github.com/streamingfast/dgrpc v0.0.0-20230110205116-9532afc211af
+	github.com/streamingfast/dgrpc v0.0.0-20230113212008-1898f17e0ac7
 	github.com/streamingfast/dmetrics v0.0.0-20221107142404-e88fe183f07d
 	github.com/streamingfast/dstore v0.1.1-0.20221118114203-13f4092e3bf0 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
