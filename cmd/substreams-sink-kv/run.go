@@ -94,8 +94,8 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("ouput module %q is *not* of  type 'Mapper'", outputModuleName)
 	}
 
-	if module.Output.Type != "proto:sf.substreams.kv.v1.KVOperations" {
-		return fmt.Errorf("kv sync only supports maps with output type 'proto:sf.substreams.kv.v1.KVOperations'")
+	if module.Output.Type != "proto:sf.substreams.sink.kv.v1.KVOperations" {
+		return fmt.Errorf("kv sync only supports maps with output type 'proto:sf.substreams.sink.kv.v1.KVOperations'")
 	}
 	hashes := manifest.NewModuleHashes()
 	outputModuleHash := hashes.HashModule(pkg.Modules, module, graph)
