@@ -63,7 +63,7 @@ You should see output similar to this one:
 
 ## Running with your own substreams
 
-1. Add a 'map' module to your `substreams.yaml` with an output type of `proto:sf.substreams.kv.v1.KVOperations`:
+1. Add a 'map' module to your `substreams.yaml` with an output type of `proto:sf.substreams.sink.kv.v1.KVOperations`:
 
 ```yaml
 modules:
