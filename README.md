@@ -96,7 +96,7 @@ substreams-sink-kv run \
 
 ### In command-line
 
-* Get single block data: `grpcurl --plaintext   -d '{"key":"month:last:201511"}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetMany`
+* Get single block data: `grpcurl --plaintext   -d '{"key":"month:last:201511"}' localhost:8000 sf.substreams.sink.kv.v1.Kv/Get`
 * Get many: `grpcurl --plaintext   -d '{"keys":["day:first:20151201","day:first:20151202"]}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetMany`
 * By prefix: `grpcurl --plaintext   -d '{"prefix": "day:first:201511", "limit":31}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetByPrefix`
 * Scan: `grpcurl --plaintext   -d '{"begin": "day:first:201501", "exclusive_end": "day:first:2016", "limit":400}' localhost:8000 sf.substreams.sink.kv.v1.Kv/Scan`
