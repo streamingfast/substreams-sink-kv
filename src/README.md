@@ -5,7 +5,7 @@ to a kv store.
 
 ## Create a kv_out module in your substreams
 
-```
+```rust
 // lib.rs
 
 use substreams_sink_kv::pb::kv::KvOperations;
