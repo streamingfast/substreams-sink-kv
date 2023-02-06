@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: substreams_sink_kv
-  version: v0.1.0
+  version: v0.1.2
   url: https://github.com/streamingfast/substreams-sink-kv
   doc: |
     Protobuf definitions for Substreams KV Sink modules.
