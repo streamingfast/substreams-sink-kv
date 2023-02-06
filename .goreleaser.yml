@@ -1,19 +1,19 @@
-project_name: firehose-near
+project_name: substreams-sink-kv
 
 release:
   draft: true
   github:
     owner: streamingfast
-    name: firehose-near
+    name: substreams-sink-kv
   name_template: '{{.Tag}}'
   target_commitish: '{{ .Commit }}'
   extra_files:
-    - glob: build/substreams-near-{{.Tag}}.spkg
+    - glob: build/substreams-sink-kv-{{.Tag}}.spkg
 
 builds:
   - id: darwin-amd64
-    main: ./cmd/firenear
-    binary: firenear
+    main: ./cmd/substreams-sink-kv
+    binary: substreams-sink-kv
     goos:
       - darwin
     goarch:
@@ -27,8 +27,8 @@ builds:
       - -s -w -X main.version={{.Version}}
 
   - id: darwin-arm64
-    main: ./cmd/firenear
-    binary: firenear
+    main: ./cmd/substreams-sink-kv
+    binary: substreams-sink-kv
     goos:
       - darwin
     goarch:
@@ -42,8 +42,8 @@ builds:
       - -s -w -X main.version={{.Version}}
 
   - id: linux-amd64
-    main: ./cmd/firenear
-    binary: firenear
+    main: ./cmd/substreams-sink-kv
+    binary: substreams-sink-kv
     goos:
       - linux
     goarch:
@@ -57,13 +57,13 @@ builds:
       - -s -w -X main.version={{.Version}}
 
 archives:
-  - id: firehose-near
+  - id: substreams-sink-kv
     builds:
       - darwin-amd64
       - darwin-arm64
       - linux-amd64
     name_template: >-
-      firenear_
+      substreams_sink_kv_
       {{- tolower .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -82,15 +82,15 @@ checksum:
 dist: dist
 
 brews:
-  - name: firehose-near
+  - name: substreams-sink-kv
     ids:
-    - firehose-near
+    - substreams-sink-kv
     tap:
       owner: streamingfast
       name: homebrew-tap
     commit_author:
       name: goreleaserbot
       email: goreleaser@streamingfast.io
-    homepage: "https://github.com/streamingfast/firehose-near"
-    description: "Firehose on NEAR stack"
+    homepage: "https://github.com/streamingfast/substreams-sink-kv"
+    description: "Substreams Sink KV"
     license: "Apache-2.0"

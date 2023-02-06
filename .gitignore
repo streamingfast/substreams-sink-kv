@@ -1,3 +1,6 @@
+.env.release
+.release_notes.md
 /target
 /dist
+/build
 .DS_Store
