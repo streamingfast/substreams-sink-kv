@@ -20,7 +20,7 @@ import (
 )
 
 var SinkRunCmd = Command(sinkRunE,
-	`run <dsn> <endpoint> <manifest> <module> [<start>:<stop>]
+	`run <dsn> <manifest> <module> [<start>:<stop>]
 
   * dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
   * endpoint: URL to the substreams endpoint (ex: mainnet.eth.streamingfast.io:443)
@@ -32,17 +32,40 @@ Environment Variables:
 * SUBSTREAMS_API_TOKEN: Your authentication token (JWt) to the substreams endpoint
 	`,
 	"Fills a KV store from a substreams output and runs a Connect-Web listener",
-	RangeArgs(4, 5),
+	RangeArgs(1, 4),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 		flags.BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
 		flags.String("listen-addr", "localhost:8000", "Listen via GRPC Connect-Web on this address")
 		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
+		flags.StringP("endpoint", "e", "mainnet.eth.streamingfast.io:443", "URL to the substreams endpoint")
 	}),
 	AfterAllHook(func(_ *cobra.Command) {
 		sinker.RegisterMetrics()
 	}),
 )
+
+func parseArgs(cmd *cobra.Command, args []string) (dsn, manifestPath, outputModuleName, blockRange string) {
+	switch len(args) {
+	case 4:
+		blockRange = args[3]
+		fallthrough
+	case 3:
+		dsn = args[0]
+		manifestPath = args[1]
+		outputModuleName = args[2]
+	case 2:
+		dsn = args[0]
+		manifestPath = args[1]
+		outputModuleName = "kv_out"
+	case 1:
+		dsn = args[0]
+		manifestPath = "substreams.yaml"
+		outputModuleName = "kv_out"
+	default:
+	}
+	return
+}
 
 func sinkRunE(cmd *cobra.Command, args []string) error {
 	app := shutter.New()
@@ -52,14 +75,8 @@ func sinkRunE(cmd *cobra.Command, args []string) error {
 		cancelApp()
 	})
 
-	dsn := args[0]
-	endpoint := args[1]
-	manifestPath := args[2]
-	outputModuleName := args[3]
-	blockRange := ""
-	if len(args) > 4 {
-		blockRange = args[4]
-	}
+	dsn, manifestPath, outputModuleName, blockRange := parseArgs(cmd, args)
+	endpoint := viper.GetString("run-endpoint")
 
 	zlog.Info("sink to kv",
 		zap.String("dsn", dsn),
