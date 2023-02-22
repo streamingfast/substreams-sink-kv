@@ -1,69 +1,28 @@
 # Substreams sink key-value store
 
-## Description
+`substreams-sink-kv` is a tool that allows developers to pipe data extracted from a blockchain into a key-value store and expose it through [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible).
 
-`substreams-sink-kv` is a tool that allows developers to pipe data extracted from a blockchain into a key-value store and expose it through Connect-Web protocol (compatible with GRPC)
+## Install
 
-## Prerequisites
+Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
-- Rust installation and compiler
-- Cloned `substreams-sink-kv` repository
-- A Substreams module prepared for a kv-sink
-- Knowledge of blockchain and substreams development
+```bash
+go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
+```
 
-## Installation
-
-### From source
-
-* This requires the [Go compiler](https://go.dev/)
-* Clone this repository, then run `go install -v ./cmd/substreams-sink-kv`
-* Check your installation by running `substreams-sink-kv --version`
-
-> **Note** the binary file will be installed in your *GO_PATH*, usually `$HOME/go/bin`. Ensure that this folder is included in your *PATH* environment variable.
-
-### From a pre-built binary release
-
-* Download the release from here: https://github.com/streamingfast/substreams-sink-kv/releases
-* Extract the `substreams-sink-kv` from the tarball into a folder available in your PATH.
-
-## Running with an example substreams
+## Run
 
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
 ```bash
-substreams-sink-kv \
-  run \
-  "badger3://$(pwd)/badger_data.db" \
-  mainnet.eth.streamingfast.io:443 \
-  https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg \
-  kv_out
+export PACKAGE=https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg
+
+substreams-sink-kv run "badger3://$(pwd)/badger_data.db" mainnet.eth.streamingfast.io:443 $PACKAGE kv_out
 ```
 
-You should see output similar to this one:
-```bash
-2023-01-12T10:08:31.803-0500 INFO (sink-kv) starting prometheus metrics server {"listen_addr": "localhost:9102"}
-2023-01-12T10:08:31.803-0500 INFO (sink-kv) sink to kv {"dsn": "badger3:///Users/stepd/repos/substreams-sink-kv/badger_data.db", "endpoint": "mainnet.eth.streamingfast.io:443", "manifest_path": "https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg", "output_module_name": "kv_out", "block_range": ""}
-2023-01-12T10:08:31.803-0500 INFO (sink-kv) starting pprof server {"listen_addr": "localhost:6060"}
-2023-01-12T10:08:31.826-0500 INFO (sink-kv) reading substreams manifest {"manifest_path": "https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg"}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) validating output store {"output_store": "kv_out"}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) resolved block range {"start_block": 0, "stop_block": 0}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) starting to listen on {"addr": "localhost:8000"}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) starting stats service {"runs_each": "2s"}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) no block data buffer provided. since undo steps are possible, using default buffer size {"size": 12}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) starting stats service {"runs_each": "2s"}
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) ready, waiting for signal to quit
-2023-01-12T10:08:32.186-0500 INFO (sink-kv) launching server {"listen_addr": "localhost:8000"}
-2023-01-12T10:08:32.187-0500 INFO (sink-kv) serving plaintext {"listen_addr": "localhost:8000"}
-2023-01-12T10:08:32.278-0500 INFO (sink-kv) session init {"trace_id": "a3c59bd7992c433402b70f9541565d2d"}
-2023-01-12T10:08:34.186-0500 INFO (sink-kv) substreams sink stats {"db_flush_rate": "10.500 flush/s (21 total)", "data_msg_rate": "0.000 msg/s (0 total)", "progress_msg_rate": "0.000 msg/s (0 total)", "block_rate": "0.000 blocks/s (0 total)", "flushed_entries": 0, "last_block": "None"}
-2023-01-12T10:08:34.186-0500 INFO (sink-kv) substreams sink stats {"progress_msg_rate": "16551.500 msg/s (33103 total)", "block_rate": "10941.500 blocks/s (21883 total)", "last_block": "#291883 (66d03f819dde948b297c8d582889246d7ba11a5b947335497f8716a7b608f78e)"}
-```
+## Integrate
 
-> **Note** Alternatively, you can simply run `./devel/local/start.sh` which runs this command for you.
-
-## Running with your own substreams
-
-1. Add a 'map' module to your `substreams.yaml` with an output type of `proto:sf.substreams.sink.kv.v1.KVOperations`:
+Create a [Substreams `map` module](https://substreams.streamingfast.io) with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto):
 
 ```yaml
 modules:
@@ -75,106 +34,72 @@ modules:
       type: proto:substreams.kv.v1.KVOperations
 ```
 
-2. Write the `kv_out` module in your substreams code (and recompile)
+**Cargo.toml** (see [crate](https://crates.io/crates/substreams-sink-kv))
 
-* See [substreams-eth-block-meta](https://github.com/streamingfast/substreams-eth-block-meta) for an example integration
-
-
-3. Run your substreams with the sink-kv, writing a local 'badger' database
-
-> **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
-
-```shell
-substreams-sink-kv run \
-    "badger3:///$(pwd)/my-badger.db" \
-    "mainnet.eth.streamingfast.io:443" \
-    "substreams.yaml" \
-    kv_out
+```toml
+[dependencies]
+...
+substreams-sink-kv = "0.1.1"
 ```
 
-## Querying the data
+**`lib.rs`**
 
-### In command-line
+```rust
+use substreams::proto;
+use substreams::store::{self, DeltaProto};
+use substreams_sink_kv::pb::kv::KvOperations;
 
-* Get single block data: `grpcurl --plaintext   -d '{"key":"month:last:201511"}' localhost:8000 sf.substreams.sink.kv.v1.Kv/Get`
-* Get many: `grpcurl --plaintext   -d '{"keys":["day:first:20151201","day:first:20151202"]}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetMany`
-* By prefix: `grpcurl --plaintext   -d '{"prefix": "day:first:201511", "limit":31}' localhost:8000 sf.substreams.sink.kv.v1.Kv/GetByPrefix`
-* Scan: `grpcurl --plaintext   -d '{"begin": "day:first:201501", "exclusive_end": "day:first:2016", "limit":400}' localhost:8000 sf.substreams.sink.kv.v1.Kv/Scan`
+use crate::pb::block_meta::BlockMeta;
 
-> **Note** These commands have been tested with `devel/local/start.sh` running in another terminal, which runs [substreams-eth-block-meta](https://github.com/streamingfast/substreams-eth-block-meta)
-### From your browser
+pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaProto<BlockMeta>>) {
+    use substreams::pb::substreams::store_delta::Operation;
 
-* Run `npm run dev` from within `/connect-web-example` to see a Vite JS example connecting to the KV GRPC Connect-Web interface
-
-> **Note** The 'connect-web-version' works best with `devel/local/start.sh` running in another terminal, which runs [substreams-eth-block-meta](https://github.com/streamingfast/substreams-eth-block-meta)
-
-
-## Protobuf generation
-
-* Requires 'buf.build' with protoc-gen-go and protoc-gen-go-grpc (https://docs.buf.build/tour/generate-go-code)
-* Run `cd proto && buf generate`
-
-## Cargo crate
-
-A library containing the protobuf bindings and a few helpers has been published as a crate for your convenience.
-
-* https://crates.io/crates/substreams-sink-kv
-
-See [substreams-eth-block-meta](https://github.com/streamingfast/substreams-eth-block-meta) for an example integration
-
-## Release
-
-1. Define the version information that we are about to release:
-
-    ```bash
-    version=1.0.0 # Use correct version, latest released is given by 'git describe --tags --abbrev=0'
-    ```
-
-    > **Note** Those instructions uses [sd](https://github.com/chmln/sd#installation), `brew install sd` (or see [sd](https://github.com/chmln/sd#installation))
-
-1. Prepare the release by updating the [CHANGELOG.md](./CHANGELOG.md) file, updating `## Unreleased` title:
-
-    ```bash
-    sd "## Unreleased" "## [$version](https://github.com/streamingfast/substreams-sink-kv/releases/tag/v$version)" CHANGELOG.md
-    ```
-
-1. Update [substreams.yaml](./substreams.yaml) `version: vX.Y.Z` to `version: v1.0.0`:
-
-    ```bash
-    sd "version: v.*" "version: v$version" substreams.yaml
-    ```
-
-1. Commit to prepare release:
-
-    ```bash
-    git add CHANGELOG.md substreams.yaml
-    git commit -m "Preparing for release v$version"
-    ```
-
-1. Run the [./bin/release.sh](./bin/release.sh) Bash script to perform a new release. It will ask you questions as well as driving all the required commands, performing the necessary operation automatically. The Bash script publishes a GitHub release by default, so you can check first that everything is all right.
-
-    ```bash
-    ./bin/release.sh v$version
-    ```
-
-### One-Liner
-
+    for delta in deltas.deltas {
+        match delta.operation {
+            Operation::Create | Operation::Update => {
+                let val = proto::encode(&delta.new_value).unwrap();
+                ops.push_new(delta.key, val, delta.ordinal);
+            }
+            Operation::Delete => ops.push_delete(&delta.key, delta.ordinal),
+            x => panic!("unsupported opeation {:?}", x),
+        }
+    }
+}
 ```
-version=1.0.0 # Use correct version, latest released is given by 'git describe --tags --abbrev=0'
 
-sd "## Unreleased" "## [$version](https://github.com/streamingfast/substreams-sink-kv/releases/tag/v$version)" CHANGELOG.md &&\
-sd "version: v.*" "version: v$version" substreams.yaml &&\
-git add CHANGELOG.md substreams.yaml &&\
-git commit -m "Preparing for release v$version" &&\
-./bin/release.sh v$version
+More details here: https://github.com/streamingfast/substreams-eth-block-meta/blob/master/src/kv_out.rs
+
+
+## Query
+
+```bash
+grpcurl --plaintext -d '{"key":"month:last:201511"}' localhost:8000 \ 
+    sf.substreams.sink.kv.v1.Kv/Get
+grpcurl --plaintext -d '{"keys":["day:first:20151201","day:first:20151202"]}' localhost:8000 \ 
+    sf.substreams.sink.kv.v1.Kv/GetMany
+grpcurl --plaintext -d '{"prefix": "day:first:201511", "limit":31}' localhost:8000 \
+    sf.substreams.sink.kv.v1.Kv/GetByPrefix
+grpcurl --plaintext -d '{"begin": "day:first:201501", "exclusive_end": "day:first:2016", "limit":400}' localhost:8000 \
+    sf.substreams.sink.kv.v1.Kv/Scan
 ```
+
+Sample browser interface:
+
+```bash
+# in a first tab
+./devel/local/start.sh
+
+# in a second tab
+cd connect-web-example
+npm run dev
+```
+
 
 ## Contributing
 
-For additional information, [refer to the general StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md).
+Refer to the [general StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md).
 
 ## License
 
-The `substreams-sink-kv` tool [uses the Apache 2.0 license](https://github.com/streamingfast/substreams/blob/develop/LICENSE/README.md).
+[Apache 2.0](https://github.com/streamingfast/substreams/blob/develop/LICENSE/README.md).
 
-This is a command line tool to quickly sync a substreams with a kv database.
