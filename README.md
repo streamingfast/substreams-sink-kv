@@ -1,6 +1,6 @@
-# Substreams sink key-value store
+# Substreams key-value service Sink
 
-`substreams-sink-kv` is a tool that allows developers to pipe data extracted from a blockchain into a key-value store and expose it through [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible).
+A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-targets) to pipe data from a [Substreams](https://substreams.streamingfast.io) endpoint into a key-value store and serve queries through [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible).
 
 ## Install
 
