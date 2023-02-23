@@ -31,6 +31,8 @@ func init() {
 func main() {
 	Run("substreams-sink-kv", "Substreams KV Sink",
 		SinkRunCmd,
+		InjectCmd,
+		ServeCmd,
 
 		ConfigureViper("SINK"),
 		ConfigureVersion(),
