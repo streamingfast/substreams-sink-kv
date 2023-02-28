@@ -1,21 +1,24 @@
 package main
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	. "github.com/streamingfast/cli"
-	"github.com/streamingfast/dgrpc/server"
-	"github.com/streamingfast/dgrpc/server/standard"
+	"github.com/streamingfast/substreams/manifest"
 )
 
-var ServeCmd = Command(serveE,
-	`serve <dsn> <spkg>`,
-	"Serves the contents of an spkg",
-	ExactArgs(2),
-	Flags(func(flags *pflag.FlagSet) {
-		flags.String("listen-addr", "", "Listen via GRPC Connect-Web on this address")
-	}),
-)
+var serveCmd = &cobra.Command{
+	Use:   `serve <spkg>`,
+	Short: "Serves the contents of an spkg",
+	Args:  cobra.ExactArgs(1),
+	RunE:  serveE,
+}
+
+func init() {
+	serveCmd.Flags().String("listen-addr", "", "Listen via GRPC Connect-Web on this address")
+
+	rootCmd.AddCommand(serveCmd)
+}
 
 func serveE(cmd *cobra.Command, args []string) error {
 	s := standard.NewServer(server.NewOptions())
