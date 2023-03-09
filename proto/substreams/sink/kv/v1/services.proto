@@ -1,5 +1,5 @@
 syntax = "proto3";
-package sf.services.v1;
+package sf.substreams.sink.kv.v1;
 
 
 message Config {
