@@ -2,21 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/second-state/WasmEdge-go/wasmedge"
-	bindgen "github.com/second-state/wasmedge-bindgen/host/go"
-	"github.com/spf13/cobra"
-	"github.com/streamingfast/derr"
-	"github.com/streamingfast/dgrpc/server"
-	"github.com/streamingfast/dgrpc/server/standard"
-	"github.com/streamingfast/substreams-sink-kv/db"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
-	. "github.com/streamingfast/substreams-sink-kv/server"
-	"github.com/streamingfast/substreams/manifest"
+
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
-	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/descriptorpb"
+
 	"time"
+
+	"github.com/spf13/cobra"
+	. "github.com/streamingfast/cli"
+	"github.com/streamingfast/derr"
+	"github.com/streamingfast/shutter"
+	"github.com/streamingfast/substreams-sink-kv/db"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	"github.com/streamingfast/substreams-sink-kv/server"
+	"github.com/streamingfast/substreams-sink-kv/server/standard"
+	"github.com/streamingfast/substreams-sink-kv/server/wasm"
+	"github.com/streamingfast/substreams/manifest"
+	"go.uber.org/zap"
 )
 
 // in the proto file that is given to us, the sinkConfig > grpcService will point to a proto file contained within the "REPEATED"
@@ -37,13 +39,6 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
-type Service struct {
-	bg *bindgen.Bindgen
-	vm *wasmedge.VM
-
-	kv *db.DB
-}
-
 func mustGetString(cmd *cobra.Command, flagName string) string {
 	val, err := cmd.Flags().GetString(flagName)
 	if err != nil {
@@ -61,6 +56,7 @@ func mustGetBool(cmd *cobra.Command, flagName string) bool {
 }
 
 func serveE(cmd *cobra.Command, args []string) error {
+	app := shutter.New()
 
 	// parse args
 	dsn := args[0]
@@ -73,20 +69,9 @@ func serveE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
-
 	if pkg.SinkConfig == nil {
 		return fmt.Errorf("no sink config found in spkg")
 	}
-
-	sinkConfigType := pkg.SinkConfig.TypeUrl
-	if sinkConfigType != "sf.substreams.sink.kv.v1.WASMQueryService" && sinkConfigType != "sf.substreams.sink.kv.v1.GenericService" {
-		return fmt.Errorf("invalid sink_config type: %s", sinkConfigType)
-	}
-
-	zlog.Info("sink to kv",
-		zap.String("dsn", dsn),
-		zap.String("manifest_path", manifestPath),
-	)
 
 	// init db
 	kvDB, err := db.New(dsn, zlog, tracer)
@@ -94,19 +79,40 @@ func serveE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("new psql loader: %w", err)
 	}
 
-	if sinkConfigType == "sf.substreams.sink.kv.v1.GenericService" {
-		go func() {
-			zlog.Info("starting to listen on: ", zap.String("addr", listenAddr))
-			ListenConnectWeb(listenAddr, kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed"))
-		}()
-	} else {
-		go func() {
-			err := wasmQueryServiceServe(kvDB, pkg, manifestPath)
-			if err != nil {
-				fmt.Errorf("serving wasm query service: %w", err)
-			}
-		}()
+	zlog.Info("sink to kv",
+		zap.String("dsn", dsn),
+		zap.String("manifest_path", manifestPath),
+	)
+
+	server, err := setupServer(cmd, pkg, kvDB)
+	if err != nil {
+		return fmt.Errorf("setup server: %w", err)
+
 	}
+	app.OnTerminating(func(err error) {
+		zlog.Info("application terminating shutting down server")
+		server.Shutdown()
+	})
+
+	go func() {
+		if err := server.Serve(listenAddr); err != nil {
+			app.Shutdown(err)
+		}
+	}()
+
+	//if sinkConfigType == "sf.substreams.sink.kv.v1.GenericService" {
+	//	go func() {
+	//		zlog.Info("starting to listen on: ", zap.String("addr", listenAddr))
+	//		ListenConnectWeb(listenAddr, kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed"))
+	//	}()
+	//} else {
+	//	go func() {
+	//		err := wasmQueryServiceServe(kvDB, pkg, manifestPath)
+	//		if err != nil {
+	//			fmt.Errorf("serving wasm query service: %w", err)
+	//		}
+	//	}()
+	//}
 
 	// Clean up and wait
 	signalHandler := derr.SetupSignalHandler(0 * time.Second)
@@ -114,59 +120,53 @@ func serveE(cmd *cobra.Command, args []string) error {
 	select {
 	case <-signalHandler:
 		zlog.Info("received termination signal, quitting application")
+		go app.Shutdown(nil)
+	case <-app.Terminating():
+		NoError(app.Err(), "application shutdown unexpectedly, quitting")
+	}
+
+	zlog.Info("waiting for app termination")
+	select {
+	case <-app.Terminated():
+	case <-time.After(30 * time.Second):
+		zlog.Error("application did not terminated within 30s, forcing exit")
 	}
 
 	return nil
 }
 
-func wasmQueryServiceServe(db *db.DB, pkg *pbsubstreams.Package, manifestPath string) error {
-	fmt.Println("Started")
+func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (server.Serveable, error) {
+	switch pkg.SinkConfig.TypeUrl {
+	case "sf.substreams.sink.kv.v1.WASMQueryService":
 
-	var config kvv1.WASMQueryService
-	s := standard.NewServer(server.NewOptions())
-	_ = s.GrpcServer()
+		wasmServ := &pbkv.WASMQueryService{}
+		if err := pkg.SinkConfig.UnmarshalTo(wasmServ); err != nil {
+			return nil, fmt.Errorf("failed to proto unmarshall: %w", err)
+		}
+		fileDesc, err := findProtoDef(pkg, wasmServ.GrpcService)
+		if err != nil {
+			return nil, fmt.Errorf("find proto file descriptor: %w", err)
+		}
 
-	fmt.Println("marshaling")
-	// Unmarshal the kvConfig
-	opts := proto.UnmarshalOptions{}
-	err := anypb.UnmarshalTo(pkg.SinkConfig, &config, opts)
-	if err != nil {
-		fmt.Println(err)
-		return fmt.Errorf("marshaling kv config: %w", err)
+		wasmEngine, err := wasm.NewEngineFromBytes(wasmServ.GetWasmQueryModule(), kvDB, zlog)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup wasm engine: %w", err)
+		}
+
+		return wasm.NewServer(wasm.NewConfig(fileDesc), wasmEngine, zlog)
+	case "sf.substreams.sink.kv.v1.GenericService":
+		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed")), nil
+	default:
+		return nil, fmt.Errorf("invalid sink_config type: %s", pkg.SinkConfig.TypeUrl)
+	}
+}
+
+func findProtoDef(pkg *pbsubstreams.Package, fqGrpcService string) (*descriptorpb.FileDescriptorProto, error) {
+	for _, f := range pkg.ProtoFiles {
+		if f.GetPackage() == fqGrpcService {
+			return f, nil
+		}
 	}
 
-	fmt.Println("getting wasm buffer")
-	// Get wasm buffer from kvConfig
-	wasmedge.SetLogErrorLevel()
-	conf := wasmedge.NewConfigure(wasmedge.WASI)
-	_ = wasmedge.NewVMWithConfig(conf)
-
-	fmt.Printf("config: %v\n", config)
-	fmt.Println("loading wasm")
-
-	// Load vm from wasm buffer
-	//err = vm.LoadWasmBuffer(config.WasmQueryModule)
-	//if err != nil {
-	//	return fmt.Errorf("loading wasm buffer: %w", err)
-	//}
-	//
-	//fmt.Println("loading manifest from file")
-	//_, err = manifest.LoadManifestFile(manifestPath)
-	//if err != nil {
-	//	return fmt.Errorf("loading manifest: %w", err)
-	//}
-
-	//protoDefinitions, err := LoadProtobufs(pkg, manifest)
-	//if err != nil {
-	//	return fmt.Errorf("error loading protobuf: %w", err)
-	//}
-	//
-	//if err := LoadSinkConfigs(pkg, manifest, protoDefinitions); err != nil {
-	//	return fmt.Errorf("error parsing sink configuration: %w", err)
-	//}
-
-	fmt.Println("Listening on :7878")
-	s.Launch(":7878")
-
-	return nil
+	return nil, fmt.Errorf("unable to find proto file descriptor with pakage %q in spkg", fqGrpcService)
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/streamingfast/substreams/manifest"
@@ -25,7 +26,7 @@ import (
 //	seen := map[string]bool{}
 //	for _, file := range systemFiles.File {
 //		pkg.ProtoFiles = append(pkg.ProtoFiles, file)
-//		seen[*file.Name] = true
+//		seen[*file.FQGRPCName] = true
 //	}
 //
 //	var importPaths []string

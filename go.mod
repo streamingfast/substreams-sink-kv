@@ -13,6 +13,8 @@ require (
 	github.com/streamingfast/logging v0.0.0-20220813175024-b4fbb0e893df
 	github.com/streamingfast/substreams v0.2.1-0.20230227214606-506bc6184f73
 	github.com/streamingfast/substreams-sink v0.0.0-20230228155421-eb5cdf2ed678
+	github.com/stretchr/testify v1.8.1
+	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.23.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -79,7 +81,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/streamingfast/dtracing v0.0.0-20210811175635-d55665d3622a // indirect
 	github.com/streamingfast/sf-tracing v0.0.0-20221104190152-7f721cb9b60c // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf // indirect
 	github.com/tikv/client-go/v2 v2.0.1-0.20220224085007-df187fa79aa1 // indirect
@@ -163,7 +164,7 @@ require (
 	google.golang.org/api v0.99.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221014173430-6e2ab493f96b // indirect
-	google.golang.org/grpc v1.50.1 // indirect
+	google.golang.org/grpc v1.50.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

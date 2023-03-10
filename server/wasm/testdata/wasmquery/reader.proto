@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package sf.reader.v1;
+
+option go_package = "sink-kv/pb/proto;pbreader";
+
+service Eth {
+  rpc Get(Request) returns (stream Response);
+}
+
+message Request {
+  string key = 1;
+}
+
+message Response {
+  string value = 1;
+}

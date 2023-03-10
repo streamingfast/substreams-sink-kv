@@ -11,7 +11,6 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/sinker"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
@@ -25,7 +24,7 @@ var runCmd = &cobra.Command{
 		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
 		* endpoint: URL to the substreams endpoint (ex: mainnet.eth.streamingfast.io:443)
   		* manifest_path: URL or local path to a 'substreams.yaml' or '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
-  		* module: Name of the output module (declared in the manifest), (ex: 'kv_out')
+  		* module: FQGRPCName of the output module (declared in the manifest), (ex: 'kv_out')
 		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
 		
 		Environment Variables:
@@ -144,10 +143,10 @@ func runE(cmd *cobra.Command, args []string) error {
 	}()
 
 	if cwListen := viper.GetString("run-listen-addr"); cwListen != "" {
-		go func() {
-			zlog.Info("starting to listen on", zap.String("addr", cwListen))
-			server.ListenConnectWeb(cwListen, kvDB, zlog, viper.GetBool("run-listen-ssl-self-signed"))
-		}()
+		//go func() {
+		//	zlog.Info("starting to listen on", zap.String("addr", cwListen))
+		//	standard.ListenConnectWeb(cwListen, kvDB, zlog, viper.GetBool("run-listen-ssl-self-signed"))
+		//}()
 	} else {
 		fmt.Println("oh shit its empty")
 	}

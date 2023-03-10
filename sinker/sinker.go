@@ -29,13 +29,13 @@ type Config struct {
 	OutputModuleName string
 	OutputModuleHash manifest.ModuleHash
 	ClientConfig     *client.SubstreamsClientConfig
-	DBLoader         db.DBLoader
+	DBLoader         db.Loader
 }
 
 type KVSinker struct {
 	*shutter.Shutter
 
-	DBLoader         db.DBLoader
+	DBLoader         db.Loader
 	Pkg              *pbsubstreams.Package
 	OutputModule     *pbsubstreams.Module
 	OutputModuleName string

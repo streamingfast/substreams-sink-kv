@@ -1,9 +1,10 @@
-package server
+package standard
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"net/http"
 
 	"github.com/bufbuild/connect-go"
@@ -13,11 +14,13 @@ import (
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1/kvv1connect"
+	sserver "github.com/streamingfast/substreams-sink-kv/server"
 )
 
-func ListenConnectWeb(addr string, dbReader db.DBReader, logger *zap.Logger, encrypted bool) error {
+var _ sserver.Serveable = (*ConnectServer)(nil)
+
+func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectServer {
 	cs := &ConnectServer{
 		DBReader: dbReader,
 		logger:   logger,
@@ -40,18 +43,27 @@ func ListenConnectWeb(addr string, dbReader db.DBReader, logger *zap.Logger, enc
 	} else {
 		opts = append(opts, server.WithPlainTextServer())
 	}
-
-	srv := connectweb.New(mappings, opts...)
-	go srv.Launch(addr)
-	<-srv.Terminated()
-
-	return srv.Err()
+	cs.srv = connectweb.New(mappings, opts...)
+	return cs
 }
 
 type ConnectServer struct {
 	kvconnect.UnimplementedKvHandler
-	DBReader db.DBReader
+	srv      *connectweb.ConnectWebServer
+	DBReader db.Reader
 	logger   *zap.Logger
+}
+
+func (cs *ConnectServer) Shutdown() {
+	cs.logger.Info("connect server received shutdown, shutting down server")
+	cs.srv.Shutdown(nil)
+}
+
+func (cs *ConnectServer) Serve(listenAddr string) error {
+	go cs.srv.Launch(listenAddr)
+	<-cs.srv.Terminated()
+
+	return cs.srv.Err()
 }
 
 func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.GetRequest]) (*connect_go.Response[kvv1.GetResponse], error) {
