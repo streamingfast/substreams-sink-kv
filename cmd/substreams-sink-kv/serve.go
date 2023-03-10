@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/spf13/pflag"
 
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -21,42 +24,27 @@ import (
 	"go.uber.org/zap"
 )
 
-// in the proto file that is given to us, the sinkConfig > grpcService will point to a proto file contained within the "REPEATED"
-// I have to go into that file, a service will be defined, and from that service there are a few different rpc messages that we will "serve"
-// I have to serve these rpc messages.
+var serveCmd = Command(serveRunE,
+	"serve <dsn> <spkg>",
+	"Launches a query server to consume connected to a sinkd kv store",
+	ExactArgs(2),
+	Flags(func(flags *pflag.FlagSet) {
+		flags.String("listen-addr", ":7878", "Listen via GRPC Connect-Web on this address")
+		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
+	}),
+	Description(`
+		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
+ 		* spkg: URL or local path to a '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
+	`),
+)
 
-var serveCmd = &cobra.Command{
-	Use:   `serve <dsn> <spkg>`,
-	Short: "Serves the contents of an spkg",
-	Args:  cobra.ExactArgs(2),
-	RunE:  serveE,
-}
-
-func init() {
-	serveCmd.Flags().String("listen-addr", ":7878", "Listen via GRPC Connect-Web on this address")
-	serveCmd.Flags().Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
-
-	rootCmd.AddCommand(serveCmd)
-}
-
-func mustGetString(cmd *cobra.Command, flagName string) string {
-	val, err := cmd.Flags().GetString(flagName)
-	if err != nil {
-		panic(fmt.Sprintf("flags: couldn't find flag %q", flagName))
-	}
-	return val
-}
-
-func mustGetBool(cmd *cobra.Command, flagName string) bool {
-	val, err := cmd.Flags().GetBool(flagName)
-	if err != nil {
-		panic(fmt.Sprintf("flags: couldn't find flag %q", flagName))
-	}
-	return val
-}
-
-func serveE(cmd *cobra.Command, args []string) error {
+func serveRunE(cmd *cobra.Command, args []string) error {
 	app := shutter.New()
+
+	ctx, cancelApp := context.WithCancel(cmd.Context())
+	app.OnTerminating(func(_ error) {
+		cancelApp()
+	})
 
 	// parse args
 	dsn := args[0]
@@ -64,26 +52,21 @@ func serveE(cmd *cobra.Command, args []string) error {
 	listenAddr := mustGetString(cmd, "listen-addr")
 	manifestReader := manifest.NewReader(manifestPath)
 
-	// get config type and check it matches either option
+	zlog.Info("reading substreams spkg", zap.String("manifest_path", manifestPath))
 	pkg, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
-	if pkg.SinkConfig == nil {
-		return fmt.Errorf("no sink config found in spkg")
-	}
 
-	// init db
 	kvDB, err := db.New(dsn, zlog, tracer)
 	if err != nil {
-		return fmt.Errorf("new psql loader: %w", err)
+		return fmt.Errorf("new kvdb: %w", err)
 	}
 
-	zlog.Info("sink to kv",
+	zlog.Info("setting up query server",
 		zap.String("dsn", dsn),
-		zap.String("manifest_path", manifestPath),
+		zap.String("listen_addr", listenAddr),
 	)
-
 	server, err := setupServer(cmd, pkg, kvDB)
 	if err != nil {
 		return fmt.Errorf("setup server: %w", err)
@@ -100,20 +83,6 @@ func serveE(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	//if sinkConfigType == "sf.substreams.sink.kv.v1.GenericService" {
-	//	go func() {
-	//		zlog.Info("starting to listen on: ", zap.String("addr", listenAddr))
-	//		ListenConnectWeb(listenAddr, kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed"))
-	//	}()
-	//} else {
-	//	go func() {
-	//		err := wasmQueryServiceServe(kvDB, pkg, manifestPath)
-	//		if err != nil {
-	//			fmt.Errorf("serving wasm query service: %w", err)
-	//		}
-	//	}()
-	//}
-
 	// Clean up and wait
 	signalHandler := derr.SetupSignalHandler(0 * time.Second)
 	zlog.Info("ready, waiting for signal to quit")
@@ -128,6 +97,7 @@ func serveE(cmd *cobra.Command, args []string) error {
 	zlog.Info("waiting for app termination")
 	select {
 	case <-app.Terminated():
+	case <-ctx.Done():
 	case <-time.After(30 * time.Second):
 		zlog.Error("application did not terminated within 30s, forcing exit")
 	}
@@ -136,6 +106,9 @@ func serveE(cmd *cobra.Command, args []string) error {
 }
 
 func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (server.Serveable, error) {
+	if pkg.SinkConfig == nil {
+		return nil, fmt.Errorf("no sink config found in spkg")
+	}
 	switch pkg.SinkConfig.TypeUrl {
 	case "sf.substreams.sink.kv.v1.WASMQueryService":
 

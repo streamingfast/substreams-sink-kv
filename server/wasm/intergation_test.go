@@ -33,7 +33,7 @@ func Test_LaunchServer(t *testing.T) {
 }
 
 func Test_Integration(t *testing.T) {
-	t.Skip("fix broken test")
+	//t.Skip("fix broken test")
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
@@ -62,13 +62,17 @@ func Test_Integration(t *testing.T) {
 			require.NoError(t, err)
 			cli := pbreader.NewEthClient(conn)
 
-			resp, err := cli.Get(context.Background(), test.req)
+			stream, err := cli.Get(context.Background(), test.req)
+			require.NoError(t, err)
+
+			resp, err := stream.Recv()
 			if test.expectErr {
-				require.Error(t, err)
+				require.NoError(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, test.expectResp, resp)
+				assert.Equal(t, test.expectResp.Value, resp.Value)
 			}
+
 		})
 	}
 

@@ -140,7 +140,7 @@ func (s *KVSinker) Run(ctx context.Context) error {
 
 	s.sink.OnTerminating(s.Shutdown)
 	s.OnTerminating(func(err error) {
-		s.logger.Info("terminating sink")
+		s.logger.Info("terminating sink", zap.Error(err))
 		s.sink.Shutdown(err)
 	})
 

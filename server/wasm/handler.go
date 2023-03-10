@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	"google.golang.org/grpc"
 )
 
 type Handler struct {
 	exportName string
 	engine     *Engine
+	logger     *zap.Logger
 }
 
-func (e *Engine) GetHandler(config *MethodConfig) (*Handler, error) {
+func (e *Engine) GetHandler(config *MethodConfig, logger *zap.Logger) (*Handler, error) {
 
 	if _, found := e.functionList[config.ExportName]; !found {
 		return nil, fmt.Errorf("unable to create handler for grpc method %q, export %q not found in wasm", config.FQGRPCName, config.ExportName)
@@ -21,13 +24,14 @@ func (e *Engine) GetHandler(config *MethodConfig) (*Handler, error) {
 	return &Handler{
 		exportName: config.ExportName,
 		engine:     e,
+		logger:     logger.With(zap.String("export_name", config.ExportName)),
 	}, nil
 }
 
 func (h *Handler) handle(_ interface{}, stream grpc.ServerStream) error {
 	t0 := time.Now()
 	defer func() {
-		fmt.Println("Timing:", time.Since(t0))
+		h.logger.Debug("finished handler", zap.Duration("elapsed", time.Since(t0)))
 	}()
 
 	m := NewPassthroughBytes()

@@ -33,7 +33,7 @@ func NewServer(config *Config, wasmEngine *Engine, logger *zap.Logger) (*Server,
 		}
 
 		for _, methodConfig := range srvConfig.Methods {
-			handler, err := wasmEngine.GetHandler(methodConfig)
+			handler, err := wasmEngine.GetHandler(methodConfig, logger)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get handler: %w", err)
 			}

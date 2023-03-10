@@ -16,7 +16,7 @@ func TestNewConfig(t *testing.T) {
 		expect    *Config
 	}{
 		{
-			protoPath: "./testdata/wasmquery/proto/reader.proto",
+			protoPath: "./testdata/wasmquery/reader.proto",
 			expect: &Config{
 				Services: []*ServiceConfig{
 					{
