@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	sink "github.com/streamingfast/substreams-sink"
@@ -63,12 +64,19 @@ func (m *MockDB) GetMany(ctx context.Context, keys []string) (values [][]byte, e
 }
 
 func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
-	for k, v := range m.KV {
+
+	var keys []string
+	for k, _ := range m.KV {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
 
-		values = append(values, &kvv1.KV{Key: k, Value: v})
+		values = append(values, &kvv1.KV{Key: k, Value: m.KV[k]})
 
 		if len(values) == limit {
 			limitReached = true
@@ -78,10 +86,30 @@ func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (val
 	if len(values) == 0 {
 		return nil, false, ErrNotFound
 	}
+
 	return values, limitReached, nil
 }
 
 func (m *MockDB) Scan(ctx context.Context, start string, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
-	//TODO implement me
-	panic("implement me")
+	var keys []string
+	for k, _ := range m.KV {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		if k >= start && k < exclusiveEnd {
+			values = append(values, &kvv1.KV{Key: k, Value: m.KV[k]})
+
+			if len(values) == limit {
+				limitReached = true
+				break
+			}
+		}
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+
+	return values, limitReached, nil
 }

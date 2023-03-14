@@ -75,8 +75,7 @@ func newEngine(dbReader db.Reader, loadCode func(vm *wasmedge.VM) error, logger 
 func registerIntrinsics(vm *wasmedge.VM, e *Engine) {
 	impobj := wasmedge.NewModule("host")
 
-	// registering getKey
-	hostgetftype := wasmedge.NewFunctionType(
+	hostGetKeyType := wasmedge.NewFunctionType(
 		[]wasmedge.ValType{
 			wasmedge.ValType_I32,
 			wasmedge.ValType_I32,
@@ -86,9 +85,13 @@ func registerIntrinsics(vm *wasmedge.VM, e *Engine) {
 			wasmedge.ValType_I32,
 		})
 
-	// registering prefixScan
-	hostprefixftype := wasmedge.NewFunctionType(
+	hostGetKeyFunc := wasmedge.NewFunction(hostGetKeyType, e.getKey, nil, 0)
+	hostGetKeyType.Release()
+	impobj.AddFunction("get_key", hostGetKeyFunc)
+
+	hostGetByPrefixType := wasmedge.NewFunctionType(
 		[]wasmedge.ValType{
+			wasmedge.ValType_I32,
 			wasmedge.ValType_I32,
 			wasmedge.ValType_I32,
 			wasmedge.ValType_I32,
@@ -97,14 +100,26 @@ func registerIntrinsics(vm *wasmedge.VM, e *Engine) {
 			wasmedge.ValType_I32,
 		})
 
-	hostgetprint := wasmedge.NewFunction(hostgetftype, e.getKey, nil, 0)
-	hostgetftype.Release()
+	hostGetByPrefixFunc := wasmedge.NewFunction(hostGetByPrefixType, e.getByPrefix, nil, 0)
+	hostGetByPrefixType.Release()
+	impobj.AddFunction("get_by_prefix", hostGetByPrefixFunc)
 
-	hostprefixprint := wasmedge.NewFunction(hostprefixftype, e.prefixScan, nil, 0)
-	hostprefixftype.Release()
+	hostScanType := wasmedge.NewFunctionType(
+		[]wasmedge.ValType{
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+		},
+		[]wasmedge.ValType{
+			wasmedge.ValType_I32,
+		})
 
-	impobj.AddFunction("get_key", hostgetprint)
-	impobj.AddFunction("prefix_scan", hostprefixprint)
+	hostScanFunc := wasmedge.NewFunction(hostScanType, e.scan, nil, 0)
+	hostScanType.Release()
+	impobj.AddFunction("scan", hostScanFunc)
 
 	// TODO: add scan, and prefix support
 	vm.RegisterModule(impobj)

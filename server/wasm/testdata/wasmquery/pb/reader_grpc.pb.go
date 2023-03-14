@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type EthClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error)
 	Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error)
+	Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error)
 }
 
 type ethClient struct {
@@ -98,12 +99,45 @@ func (x *ethPrefixClient) Recv() (*Tuples, error) {
 	return m, nil
 }
 
+func (c *ethClient) Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[2], "/sf.reader.v1.Eth/Scan", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &ethScanClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Eth_ScanClient interface {
+	Recv() (*Tuples, error)
+	grpc.ClientStream
+}
+
+type ethScanClient struct {
+	grpc.ClientStream
+}
+
+func (x *ethScanClient) Recv() (*Tuples, error) {
+	m := new(Tuples)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // EthServer is the server API for Eth service.
 // All implementations must embed UnimplementedEthServer
 // for forward compatibility
 type EthServer interface {
 	Get(*GetRequest, Eth_GetServer) error
 	Prefix(*PrefixRequest, Eth_PrefixServer) error
+	Scan(*ScanRequest, Eth_ScanServer) error
 	mustEmbedUnimplementedEthServer()
 }
 
@@ -116,6 +150,9 @@ func (UnimplementedEthServer) Get(*GetRequest, Eth_GetServer) error {
 }
 func (UnimplementedEthServer) Prefix(*PrefixRequest, Eth_PrefixServer) error {
 	return status.Errorf(codes.Unimplemented, "method Prefix not implemented")
+}
+func (UnimplementedEthServer) Scan(*ScanRequest, Eth_ScanServer) error {
+	return status.Errorf(codes.Unimplemented, "method Scan not implemented")
 }
 func (UnimplementedEthServer) mustEmbedUnimplementedEthServer() {}
 
@@ -172,6 +209,27 @@ func (x *ethPrefixServer) Send(m *Tuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Eth_Scan_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScanRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(EthServer).Scan(m, &ethScanServer{stream})
+}
+
+type Eth_ScanServer interface {
+	Send(*Tuples) error
+	grpc.ServerStream
+}
+
+type ethScanServer struct {
+	grpc.ServerStream
+}
+
+func (x *ethScanServer) Send(m *Tuples) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Eth_ServiceDesc is the grpc.ServiceDesc for Eth service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -188,6 +246,11 @@ var Eth_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Prefix",
 			Handler:       _Eth_Prefix_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Scan",
+			Handler:       _Eth_Scan_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -2,12 +2,14 @@ package wasm
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"testing"
+
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	pbreader "github.com/streamingfast/substreams-sink-kv/server/wasm/testdata/wasmquery/pb"
 	"github.com/test-go/testify/require"
-	"os"
-	"testing"
 )
 
 func Test_LaunchServer(t *testing.T) {
@@ -95,7 +97,7 @@ func Test_IntrinsicPrefix(t *testing.T) {
 	}{
 		{
 			name: "golden path",
-			req:  &pbreader.PrefixRequest{Prefix: "aa"},
+			req:  &pbreader.PrefixRequest{Prefix: "aa", Limit: 10},
 			db: map[string][]byte{
 				"aa":  []byte("john"),
 				"bb":  []byte("doe"),
@@ -143,22 +145,76 @@ func Test_IntrinsicPrefix(t *testing.T) {
 
 }
 
+func Test_IntrinsicScan(t *testing.T) {
+	endpoint := "localhost:7878"
+	db := db.NewMockDB()
+	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+
+	tests := []struct {
+		name       string
+		req        *pbreader.ScanRequest
+		db         map[string][]byte
+		expectResp *pbreader.Tuples
+		expectErr  bool
+	}{
+		{
+			name: "golden path",
+			req:  &pbreader.ScanRequest{Start: "a1", ExclusiveEnd: "a4", Limit: 10},
+			db: map[string][]byte{
+				"a1": []byte("blue"),
+				"a2": []byte("yellow"),
+				"a3": []byte("amber"),
+				"a4": []byte("green"),
+				"aa": []byte("red"),
+				"bb": []byte("black"),
+			},
+			expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{
+				{Key: "a1", Value: "blue"},
+				{Key: "a2", Value: "yellow"},
+				{Key: "a3", Value: "amber"},
+			}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			db.KV = test.db
+
+			conn, err := dgrpc.NewInternalClient(endpoint)
+			require.NoError(t, err)
+			cli := pbreader.NewEthClient(conn)
+
+			stream, err := cli.Scan(context.Background(), test.req)
+			require.NoError(t, err)
+
+			resp, err := stream.Recv()
+			if test.expectErr {
+				require.NoError(t, err)
+			} else {
+				require.NoError(t, err)
+				assertProtoEqual(t, test.expectResp, resp)
+			}
+		})
+	}
+
+}
+
 func launchWasmService(t *testing.T, endpoint, protoPath, wasmPath string, mockDB *db.MockDB) {
 	code, err := os.ReadFile(wasmPath)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%w", err))
 	}
 
 	protoFileDesc := protoFileToDescriptor(t, protoPath)
 
 	wasmEngine, err := NewEngineFromBytes(code, mockDB, zlog)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%w", err))
 	}
 
 	server, err := NewServer(NewConfig(protoFileDesc), wasmEngine, TestPassthroughCodec{}, zlog)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%w", err))
 	}
 
 	server.Serve(endpoint)

@@ -2,7 +2,7 @@
 
 
 mod externs;
-
+mod memory;
 pub mod helpers;
 pub mod pb;
 pub mod store;

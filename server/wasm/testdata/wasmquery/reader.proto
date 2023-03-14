@@ -7,6 +7,7 @@ option go_package = "sink-kv/pb/proto;pbreader";
 service Eth {
   rpc Get(GetRequest) returns (stream Tuple);
   rpc Prefix(PrefixRequest) returns (stream Tuples);
+  rpc Scan(ScanRequest) returns (stream Tuples);
 
 }
 
@@ -16,6 +17,13 @@ message GetRequest {
 
 message PrefixRequest {
   string prefix = 1;
+  int32 limit = 2;
+}
+
+message ScanRequest {
+  string start = 1;
+  string exclusive_end = 2;
+  int32 limit = 3 ;
 }
 
 message Tuples {

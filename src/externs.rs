@@ -1,14 +1,10 @@
-
-
 use {
-    crate::pb::types::{KvPairs,KvPair},
-    std::{
-        convert::TryInto,
-        slice,
+    crate::{
+        pb::types::{KvPairs,KvPair},
+        memory
     },
     prost::Message,
 };
-
 #[link(wasm_import_module = "host")]
 extern "C" {
     pub fn get_key(key_ptr: *const u8, key_len: u32, output_ptr: u32) -> u32;
@@ -30,7 +26,7 @@ pub fn kv_get_key<K: AsRef<str>>(key: K) -> Option<KvPair> {
         return if found == 1 {
             Some(KvPair{
                 key: key.to_string(),
-                value: get_output_data(output_ptr)
+                value: memory::get_output_data(output_ptr)
             })
         } else {
             None
@@ -41,25 +37,26 @@ pub fn kv_get_key<K: AsRef<str>>(key: K) -> Option<KvPair> {
 
 #[link(wasm_import_module = "host")]
 extern "C" {
-    pub fn prefix_scan(prefix_ptr: *const u8, prefix_len: u32, output_ptr: u32) -> u32;
+    pub fn get_by_prefix(prefix_ptr: *const u8, prefix_len: u32, limit: u32, output_ptr: u32) -> u32;
 }
 
-pub fn kv_scan_prefix<K: AsRef<str>>(prefix: K) -> KvPairs {
+pub fn kv_prefix<K: AsRef<str>>(prefix: K, limit: u32) -> KvPairs {
     let prefix = prefix.as_ref();
 
     unsafe {
         let prefix_bytes = prefix.as_bytes();
         let mut output_buf = Vec::with_capacity(8);
         let output_ptr = output_buf.as_mut_ptr();
-        let length = prefix_scan(
+        let length = get_by_prefix(
             prefix_bytes.as_ptr(),
             prefix_bytes.len() as u32,
+                    limit,
             output_ptr as u32,
         );
         std::mem::forget(output_ptr);
 
         return if length > 0 {
-            let v = get_output_data(output_ptr);
+            let v = memory::get_output_data(output_ptr);
             KvPairs::decode(&v[..]).expect("Failed to decode")
         } else {
             KvPairs { pairs: vec![] }
@@ -67,26 +64,34 @@ pub fn kv_scan_prefix<K: AsRef<str>>(prefix: K) -> KvPairs {
     }
 }
 
-
-
-pub fn read_u32_from_heap(output_ptr: *mut u8, len: usize) -> u32 {
-    unsafe {
-        let value_bytes = slice::from_raw_parts(output_ptr, len);
-        let value_raw_bytes: [u8; 4] = value_bytes.try_into().expect("error reading raw bytes");
-        return u32::from_le_bytes(value_raw_bytes);
-    }
+#[link(wasm_import_module = "host")]
+extern "C" {
+    pub fn scan(start_ptr: *const u8, start_len: u32,exclusively_end_ptr: *const u8, exclusively_end_len: u32, limit: u32, output_ptr: u32) -> u32;
 }
-pub fn get_output_data(output_ptr: *mut u8) -> Vec<u8> {
+pub fn kv_scan<K: AsRef<str>>(start: K, exclusively_end: K, limit: u32) -> KvPairs {
+    let start = start.as_ref();
+    let exclusively_end = exclusively_end.as_ref();
+
     unsafe {
-        let value_ptr: u32 = read_u32_from_heap(output_ptr, 4);
-        let value_len: u32 = read_u32_from_heap(output_ptr.add(4), 4);
-
-        let ret = Vec::from_raw_parts(
-            value_ptr as *mut u8,
-            value_len as usize,
-            value_len as usize,
+        let start_bytes = start.as_bytes();
+        let exclusively_end_bytes = exclusively_end.as_bytes();
+        let mut output_buf = Vec::with_capacity(8);
+        let output_ptr = output_buf.as_mut_ptr();
+        let length = scan(
+            start_bytes.as_ptr(),
+            start_bytes.len() as u32,
+            exclusively_end_bytes.as_ptr(),
+            exclusively_end_bytes.len() as u32,
+            limit,
+            output_ptr as u32,
         );
+        std::mem::forget(output_ptr);
 
-        ret
+        return if length > 0 {
+            let v = memory::get_output_data(output_ptr);
+            KvPairs::decode(&v[..]).expect("Failed to decode")
+        } else {
+            KvPairs { pairs: vec![] }
+        };
     }
 }
