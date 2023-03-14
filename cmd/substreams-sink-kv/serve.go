@@ -126,7 +126,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("failed to setup wasm engine: %w", err)
 		}
 
-		return wasm.NewServer(wasm.NewConfig(fileDesc), wasmEngine, zlog)
+		return wasm.NewServer(wasm.NewConfig(fileDesc), wasmEngine, wasm.PassthroughCodec{}, zlog)
 	case "sf.substreams.sink.kv.v1.GenericService":
 		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed")), nil
 	default:

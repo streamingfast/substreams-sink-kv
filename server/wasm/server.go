@@ -16,8 +16,8 @@ import (
 
 var _ sserver.Serveable = (*Server)(nil)
 
-func NewServer(config *Config, wasmEngine *Engine, logger *zap.Logger) (*Server, error) {
-	encoding.RegisterCodec(passthroughCodec{})
+func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap.Logger) (*Server, error) {
+	encoding.RegisterCodec(protoCodec)
 	srv := standard.NewServer(server.NewOptions())
 
 	grpcServer := srv.GrpcServer()
@@ -33,7 +33,7 @@ func NewServer(config *Config, wasmEngine *Engine, logger *zap.Logger) (*Server,
 		}
 
 		for _, methodConfig := range srvConfig.Methods {
-			handler, err := wasmEngine.GetHandler(methodConfig, logger)
+			handler, err := wasmEngine.GetHandler(methodConfig, protoCodec, logger)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get handler: %w", err)
 			}

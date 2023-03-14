@@ -2,13 +2,12 @@ package wasm
 
 import (
 	"context"
-	"os"
-	"testing"
-
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	pbreader "github.com/streamingfast/substreams-sink-kv/server/wasm/testdata/wasmquery/pb"
 	"github.com/test-go/testify/require"
+	"os"
+	"testing"
 )
 
 func Test_LaunchServer(t *testing.T) {
@@ -34,7 +33,6 @@ func Test_IntrinsicGet(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
-
 	tests := []struct {
 		name       string
 		req        *pbreader.GetRequest
@@ -42,14 +40,14 @@ func Test_IntrinsicGet(t *testing.T) {
 		expectResp *pbreader.Tuple
 		expectErr  bool
 	}{
-		//{
-		//	name: "golden path",
-		//	req:  &pbreader.GetRequest{Key: "key1"},
-		//	db: map[string][]byte{
-		//		"key1": []byte("julien"),
-		//	},
-		//	expectResp: &pbreader.Tuple{Key: "key1", Value: "julien"},
-		//},
+		{
+			name: "golden path",
+			req:  &pbreader.GetRequest{Key: "key1"},
+			db: map[string][]byte{
+				"key1": []byte("julien"),
+			},
+			expectResp: &pbreader.Tuple{Key: "key1", Value: "julien"},
+		},
 		{
 			name: "key not found",
 			req:  &pbreader.GetRequest{Key: "key2"},
@@ -95,20 +93,20 @@ func Test_IntrinsicPrefix(t *testing.T) {
 		expectResp *pbreader.Tuples
 		expectErr  bool
 	}{
-		//{
-		//	name: "golden path",
-		//	req:  &pbreader.PrefixRequest{Prefix: "aa"},
-		//	db: map[string][]byte{
-		//		"aa":  []byte("john"),
-		//		"bb":  []byte("doe"),
-		//		"aa1": []byte("coolio"),
-		//		"ac":  []byte("paul"),
-		//	},
-		//	expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{
-		//		{Key: "aa", Value: "john"},
-		//		{Key: "aa1", Value: "coolio"},
-		//	}},
-		//},
+		{
+			name: "golden path",
+			req:  &pbreader.PrefixRequest{Prefix: "aa"},
+			db: map[string][]byte{
+				"aa":  []byte("john"),
+				"bb":  []byte("doe"),
+				"aa1": []byte("coolio"),
+				"ac":  []byte("paul"),
+			},
+			expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{
+				{Key: "aa", Value: "john"},
+				{Key: "aa1", Value: "coolio"},
+			}},
+		},
 		{
 			name: "nothing found",
 			req:  &pbreader.PrefixRequest{Prefix: "zz"},
@@ -158,7 +156,7 @@ func launchWasmService(t *testing.T, endpoint, protoPath, wasmPath string, mockD
 		panic(err)
 	}
 
-	server, err := NewServer(NewConfig(protoFileDesc), wasmEngine, zlog)
+	server, err := NewServer(NewConfig(protoFileDesc), wasmEngine, TestPassthroughCodec{}, zlog)
 	if err != nil {
 		panic(err)
 	}

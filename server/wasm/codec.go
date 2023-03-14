@@ -1,30 +1,49 @@
 package wasm
 
+import "google.golang.org/grpc/encoding"
+
 // Codec
 
-type passthroughCodec struct{}
+type Codec interface {
+	encoding.Codec
 
-func (passthroughCodec) Marshal(v interface{}) ([]byte, error) {
-	return v.(*passthroughBytes).Bytes, nil
+	NewMessage() Byteable
+}
+type Byteable interface {
+	Set(in []byte)
+	Bytes() []byte
 }
 
-func (passthroughCodec) Unmarshal(data []byte, v interface{}) error {
+var _ Codec = PassthroughCodec{}
+
+type PassthroughCodec struct{}
+
+func (PassthroughCodec) Marshal(v interface{}) ([]byte, error) {
+	return v.(*passthroughBytes).bytes, nil
+}
+
+func (PassthroughCodec) Unmarshal(data []byte, v interface{}) error {
 	el := v.(*passthroughBytes)
-	el.Bytes = data
+	el.bytes = data
 	return nil
 }
 
-func (passthroughCodec) Name() string { return "proto" }
+func (PassthroughCodec) Name() string { return "proto" }
+
+func (c PassthroughCodec) NewMessage() Byteable {
+	return &passthroughBytes{}
+}
 
 // Passing bytes around
 
 type passthroughBytes struct {
-	Bytes []byte
+	bytes []byte
 }
 
-func NewPassthroughBytes() *passthroughBytes {
-	return &passthroughBytes{}
-}
 func (b *passthroughBytes) Set(in []byte) {
-	b.Bytes = in
+	b.bytes = in
+}
+
+func (b *passthroughBytes) Bytes() []byte {
+	return b.bytes
 }

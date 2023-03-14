@@ -11,7 +11,6 @@ import (
 )
 
 func TestNewEngineFromBytes(t *testing.T) {
-
 	obj := &pbkv.KVPairs{
 		Pairs: []*pbkv.KVPair{
 			{

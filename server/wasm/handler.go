@@ -12,10 +12,11 @@ import (
 type Handler struct {
 	exportName string
 	engine     *Engine
+	protoCodec Codec
 	logger     *zap.Logger
 }
 
-func (e *Engine) GetHandler(config *MethodConfig, logger *zap.Logger) (*Handler, error) {
+func (e *Engine) GetHandler(config *MethodConfig, protoCodec Codec, logger *zap.Logger) (*Handler, error) {
 
 	if _, found := e.functionList[config.ExportName]; !found {
 		return nil, fmt.Errorf("unable to create handler for grpc method %q, export %q not found in wasm", config.FQGRPCName, config.ExportName)
@@ -23,6 +24,7 @@ func (e *Engine) GetHandler(config *MethodConfig, logger *zap.Logger) (*Handler,
 
 	return &Handler{
 		exportName: config.ExportName,
+		protoCodec: protoCodec,
 		engine:     e,
 		logger:     logger.With(zap.String("export_name", config.ExportName)),
 	}, nil
@@ -35,17 +37,17 @@ func (h *Handler) handle(_ interface{}, stream grpc.ServerStream) error {
 	}()
 
 	h.logger.Debug("handling wasm query call")
-	m := NewPassthroughBytes()
+	m := h.protoCodec.NewMessage()
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
 
-	res, _, err := h.engine.bg.Execute(h.exportName, m.Bytes)
+	res, _, err := h.engine.bg.Execute(h.exportName, m.Bytes())
 	if err != nil {
 		return fmt.Errorf("executing func %q: %w", h.exportName, err)
 	}
 
-	out := NewPassthroughBytes()
+	out := h.protoCodec.NewMessage()
 	out.Set(res[0].([]byte))
 
 	if err := stream.SendMsg(out); err != nil {
