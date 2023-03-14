@@ -19,7 +19,7 @@ import (
 )
 
 var injectCmd = Command(injectRunE,
-	"inject <dsn> <spkg> <module> [<start>:<stop>]",
+	"inject <dsn> [spkg] [module] [<start>:<stop>]",
 	"Fills a KV store from a substreams output and optionally runs a server",
 	RangeArgs(1, 4),
 	Flags(func(flags *pflag.FlagSet) {
