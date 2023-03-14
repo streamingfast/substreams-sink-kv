@@ -1,6 +1,8 @@
 syntax = "proto3";
 package sf.substreams.sink.kv.v1;
 
+option go_package = "github.com/streamingfast/substreams-sink-kv/pb;pbkv";
+
 
 message Config {
   int64 start_block = 1;

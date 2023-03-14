@@ -34,6 +34,7 @@ func (h *Handler) handle(_ interface{}, stream grpc.ServerStream) error {
 		h.logger.Debug("finished handler", zap.Duration("elapsed", time.Since(t0)))
 	}()
 
+	h.logger.Debug("handling wasm query call")
 	m := NewPassthroughBytes()
 	if err := stream.RecvMsg(m); err != nil {
 		return err

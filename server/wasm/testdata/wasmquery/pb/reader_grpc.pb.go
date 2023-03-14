@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EthClient interface {
-	Get(ctx context.Context, in *Request, opts ...grpc.CallOption) (Eth_GetClient, error)
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error)
+	Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error)
 }
 
 type ethClient struct {
@@ -33,7 +34,7 @@ func NewEthClient(cc grpc.ClientConnInterface) EthClient {
 	return &ethClient{cc}
 }
 
-func (c *ethClient) Get(ctx context.Context, in *Request, opts ...grpc.CallOption) (Eth_GetClient, error) {
+func (c *ethClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[0], "/sf.reader.v1.Eth/Get", opts...)
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func (c *ethClient) Get(ctx context.Context, in *Request, opts ...grpc.CallOptio
 }
 
 type Eth_GetClient interface {
-	Recv() (*Response, error)
+	Recv() (*Tuple, error)
 	grpc.ClientStream
 }
 
@@ -57,8 +58,40 @@ type ethGetClient struct {
 	grpc.ClientStream
 }
 
-func (x *ethGetClient) Recv() (*Response, error) {
-	m := new(Response)
+func (x *ethGetClient) Recv() (*Tuple, error) {
+	m := new(Tuple)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *ethClient) Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[1], "/sf.reader.v1.Eth/Prefix", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &ethPrefixClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Eth_PrefixClient interface {
+	Recv() (*Tuples, error)
+	grpc.ClientStream
+}
+
+type ethPrefixClient struct {
+	grpc.ClientStream
+}
+
+func (x *ethPrefixClient) Recv() (*Tuples, error) {
+	m := new(Tuples)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -69,7 +102,8 @@ func (x *ethGetClient) Recv() (*Response, error) {
 // All implementations must embed UnimplementedEthServer
 // for forward compatibility
 type EthServer interface {
-	Get(*Request, Eth_GetServer) error
+	Get(*GetRequest, Eth_GetServer) error
+	Prefix(*PrefixRequest, Eth_PrefixServer) error
 	mustEmbedUnimplementedEthServer()
 }
 
@@ -77,8 +111,11 @@ type EthServer interface {
 type UnimplementedEthServer struct {
 }
 
-func (UnimplementedEthServer) Get(*Request, Eth_GetServer) error {
+func (UnimplementedEthServer) Get(*GetRequest, Eth_GetServer) error {
 	return status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedEthServer) Prefix(*PrefixRequest, Eth_PrefixServer) error {
+	return status.Errorf(codes.Unimplemented, "method Prefix not implemented")
 }
 func (UnimplementedEthServer) mustEmbedUnimplementedEthServer() {}
 
@@ -94,7 +131,7 @@ func RegisterEthServer(s grpc.ServiceRegistrar, srv EthServer) {
 }
 
 func _Eth_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Request)
+	m := new(GetRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -102,7 +139,7 @@ func _Eth_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Eth_GetServer interface {
-	Send(*Response) error
+	Send(*Tuple) error
 	grpc.ServerStream
 }
 
@@ -110,7 +147,28 @@ type ethGetServer struct {
 	grpc.ServerStream
 }
 
-func (x *ethGetServer) Send(m *Response) error {
+func (x *ethGetServer) Send(m *Tuple) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Eth_Prefix_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PrefixRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(EthServer).Prefix(m, &ethPrefixServer{stream})
+}
+
+type Eth_PrefixServer interface {
+	Send(*Tuples) error
+	grpc.ServerStream
+}
+
+type ethPrefixServer struct {
+	grpc.ServerStream
+}
+
+func (x *ethPrefixServer) Send(m *Tuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -125,6 +183,11 @@ var Eth_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Get",
 			Handler:       _Eth_Get_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Prefix",
+			Handler:       _Eth_Prefix_Handler,
 			ServerStreams: true,
 		},
 	},

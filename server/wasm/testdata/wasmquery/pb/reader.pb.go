@@ -20,7 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Request struct {
+type GetRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -28,8 +28,8 @@ type Request struct {
 	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 }
 
-func (x *Request) Reset() {
-	*x = Request{}
+func (x *GetRequest) Reset() {
+	*x = GetRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_reader_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -37,13 +37,13 @@ func (x *Request) Reset() {
 	}
 }
 
-func (x *Request) String() string {
+func (x *GetRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Request) ProtoMessage() {}
+func (*GetRequest) ProtoMessage() {}
 
-func (x *Request) ProtoReflect() protoreflect.Message {
+func (x *GetRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_reader_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,28 +55,28 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Request.ProtoReflect.Descriptor instead.
-func (*Request) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
+func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_reader_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Request) GetKey() string {
+func (x *GetRequest) GetKey() string {
 	if x != nil {
 		return x.Key
 	}
 	return ""
 }
 
-type Response struct {
+type PrefixRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
 }
 
-func (x *Response) Reset() {
-	*x = Response{}
+func (x *PrefixRequest) Reset() {
+	*x = PrefixRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_reader_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -84,13 +84,13 @@ func (x *Response) Reset() {
 	}
 }
 
-func (x *Response) String() string {
+func (x *PrefixRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Response) ProtoMessage() {}
+func (*PrefixRequest) ProtoMessage() {}
 
-func (x *Response) ProtoReflect() protoreflect.Message {
+func (x *PrefixRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_reader_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -102,12 +102,114 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Response.ProtoReflect.Descriptor instead.
-func (*Response) Descriptor() ([]byte, []int) {
+// Deprecated: Use PrefixRequest.ProtoReflect.Descriptor instead.
+func (*PrefixRequest) Descriptor() ([]byte, []int) {
 	return file_reader_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Response) GetValue() string {
+func (x *PrefixRequest) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+type Tuples struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Pairs []*Tuple `protobuf:"bytes,1,rep,name=pairs,proto3" json:"pairs,omitempty"`
+}
+
+func (x *Tuples) Reset() {
+	*x = Tuples{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_reader_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Tuples) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Tuples) ProtoMessage() {}
+
+func (x *Tuples) ProtoReflect() protoreflect.Message {
+	mi := &file_reader_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Tuples.ProtoReflect.Descriptor instead.
+func (*Tuples) Descriptor() ([]byte, []int) {
+	return file_reader_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Tuples) GetPairs() []*Tuple {
+	if x != nil {
+		return x.Pairs
+	}
+	return nil
+}
+
+type Tuple struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *Tuple) Reset() {
+	*x = Tuple{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_reader_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Tuple) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Tuple) ProtoMessage() {}
+
+func (x *Tuple) ProtoReflect() protoreflect.Message {
+	mi := &file_reader_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Tuple.ProtoReflect.Descriptor instead.
+func (*Tuple) Descriptor() ([]byte, []int) {
+	return file_reader_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Tuple) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Tuple) GetValue() string {
 	if x != nil {
 		return x.Value
 	}
@@ -118,17 +220,28 @@ var File_reader_proto protoreflect.FileDescriptor
 
 var file_reader_proto_rawDesc = []byte{
 	0x0a, 0x0c, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x0c,
-	0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x22, 0x1b, 0x0a, 0x07,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x20, 0x0a, 0x08, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32, 0x3d, 0x0a, 0x03, 0x45,
-	0x74, 0x68, 0x12, 0x36, 0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x15, 0x2e, 0x73, 0x66, 0x2e, 0x72,
-	0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x16, 0x2e, 0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x1b, 0x5a, 0x19, 0x73, 0x69,
-	0x6e, 0x6b, 0x2d, 0x6b, 0x76, 0x2f, 0x70, 0x62, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x3b, 0x70,
-	0x62, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x22, 0x1e, 0x0a, 0x0a,
+	0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65,
+	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x27, 0x0a, 0x0d,
+	0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a,
+	0x06, 0x70, 0x72, 0x65, 0x66, 0x69, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x70,
+	0x72, 0x65, 0x66, 0x69, 0x78, 0x22, 0x33, 0x0a, 0x06, 0x54, 0x75, 0x70, 0x6c, 0x65, 0x73, 0x12,
+	0x29, 0x0a, 0x05, 0x70, 0x61, 0x69, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x13,
+	0x2e, 0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x75,
+	0x70, 0x6c, 0x65, 0x52, 0x05, 0x70, 0x61, 0x69, 0x72, 0x73, 0x22, 0x2f, 0x0a, 0x05, 0x54, 0x75,
+	0x70, 0x6c, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32, 0x7c, 0x0a, 0x03, 0x45,
+	0x74, 0x68, 0x12, 0x36, 0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x18, 0x2e, 0x73, 0x66, 0x2e, 0x72,
+	0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e,
+	0x76, 0x31, 0x2e, 0x54, 0x75, 0x70, 0x6c, 0x65, 0x30, 0x01, 0x12, 0x3d, 0x0a, 0x06, 0x50, 0x72,
+	0x65, 0x66, 0x69, 0x78, 0x12, 0x1b, 0x2e, 0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72,
+	0x2e, 0x76, 0x31, 0x2e, 0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x14, 0x2e, 0x73, 0x66, 0x2e, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x2e, 0x76, 0x31,
+	0x2e, 0x54, 0x75, 0x70, 0x6c, 0x65, 0x73, 0x30, 0x01, 0x42, 0x1b, 0x5a, 0x19, 0x73, 0x69, 0x6e,
+	0x6b, 0x2d, 0x6b, 0x76, 0x2f, 0x70, 0x62, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x3b, 0x70, 0x62,
+	0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -143,19 +256,24 @@ func file_reader_proto_rawDescGZIP() []byte {
 	return file_reader_proto_rawDescData
 }
 
-var file_reader_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_reader_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_reader_proto_goTypes = []interface{}{
-	(*Request)(nil),  // 0: sf.reader.v1.Request
-	(*Response)(nil), // 1: sf.reader.v1.Response
+	(*GetRequest)(nil),    // 0: sf.reader.v1.GetRequest
+	(*PrefixRequest)(nil), // 1: sf.reader.v1.PrefixRequest
+	(*Tuples)(nil),        // 2: sf.reader.v1.Tuples
+	(*Tuple)(nil),         // 3: sf.reader.v1.Tuple
 }
 var file_reader_proto_depIdxs = []int32{
-	0, // 0: sf.reader.v1.Eth.Get:input_type -> sf.reader.v1.Request
-	1, // 1: sf.reader.v1.Eth.Get:output_type -> sf.reader.v1.Response
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3, // 0: sf.reader.v1.Tuples.pairs:type_name -> sf.reader.v1.Tuple
+	0, // 1: sf.reader.v1.Eth.Get:input_type -> sf.reader.v1.GetRequest
+	1, // 2: sf.reader.v1.Eth.Prefix:input_type -> sf.reader.v1.PrefixRequest
+	3, // 3: sf.reader.v1.Eth.Get:output_type -> sf.reader.v1.Tuple
+	2, // 4: sf.reader.v1.Eth.Prefix:output_type -> sf.reader.v1.Tuples
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_reader_proto_init() }
@@ -165,7 +283,7 @@ func file_reader_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_reader_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Request); i {
+			switch v := v.(*GetRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -177,7 +295,31 @@ func file_reader_proto_init() {
 			}
 		}
 		file_reader_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Response); i {
+			switch v := v.(*PrefixRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_reader_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Tuples); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_reader_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Tuple); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -195,7 +337,7 @@ func file_reader_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_reader_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

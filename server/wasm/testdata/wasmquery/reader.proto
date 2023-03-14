@@ -5,13 +5,24 @@ package sf.reader.v1;
 option go_package = "sink-kv/pb/proto;pbreader";
 
 service Eth {
-  rpc Get(Request) returns (stream Response);
+  rpc Get(GetRequest) returns (stream Tuple);
+  rpc Prefix(PrefixRequest) returns (stream Tuples);
+
 }
 
-message Request {
+message GetRequest {
   string key = 1;
 }
 
-message Response {
-  string value = 1;
+message PrefixRequest {
+  string prefix = 1;
+}
+
+message Tuples {
+  repeated Tuple pairs = 1;
+}
+
+message Tuple {
+  string key = 1;
+  string value = 2;
 }

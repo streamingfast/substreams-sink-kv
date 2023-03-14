@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"strings"
 
 	sink "github.com/streamingfast/substreams-sink"
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
@@ -62,8 +63,22 @@ func (m *MockDB) GetMany(ctx context.Context, keys []string) (values [][]byte, e
 }
 
 func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
-	//TODO implement me
-	panic("implement me")
+	for k, v := range m.KV {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+
+		values = append(values, &kvv1.KV{Key: k, Value: v})
+
+		if len(values) == limit {
+			limitReached = true
+			break
+		}
+	}
+	if len(values) == 0 {
+		return nil, false, ErrNotFound
+	}
+	return values, limitReached, nil
 }
 
 func (m *MockDB) Scan(ctx context.Context, start string, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
