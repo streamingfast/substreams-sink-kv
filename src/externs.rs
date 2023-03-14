@@ -1,6 +1,6 @@
 use {
     crate::{
-        pb::types::{KvPairs,KvPair},
+        pb::types::{KvPairs,KvPair, KvKeys},
         memory
     },
     prost::Message,
@@ -34,6 +34,32 @@ pub fn kv_get_key<K: AsRef<str>>(key: K) -> Option<KvPair> {
     }
 }
 
+#[link(wasm_import_module = "host")]
+extern "C" {
+    pub fn get_many_keys(keys_ptr: *const u8, keys_len: u32, output_ptr: u32) -> u32;
+}
+pub fn kv_get_many_keys(keys: Vec<String>) -> Option<KvPairs> {
+    let keys = KvKeys{ keys };
+    let keys_bytes = keys.encode_to_vec();
+
+    unsafe {
+        let mut output_buf = Vec::with_capacity(8);
+        let output_ptr = output_buf.as_mut_ptr();
+        let found = get_many_keys(
+            keys_bytes.as_ptr(),
+            keys_bytes.len() as u32,
+            output_ptr as u32,
+        );
+        std::mem::forget(output_ptr);
+
+        return if found > 0 {
+            let v = memory::get_output_data(output_ptr);
+            Some(KvPairs::decode(&v[..]).expect("Failed to decode"))
+        } else {
+            None
+        };
+    }
+}
 
 #[link(wasm_import_module = "host")]
 extern "C" {

@@ -89,6 +89,20 @@ func registerIntrinsics(vm *wasmedge.VM, e *Engine) {
 	hostGetKeyType.Release()
 	impobj.AddFunction("get_key", hostGetKeyFunc)
 
+	hostGetManyKeysType := wasmedge.NewFunctionType(
+		[]wasmedge.ValType{
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+			wasmedge.ValType_I32,
+		},
+		[]wasmedge.ValType{
+			wasmedge.ValType_I32,
+		})
+
+	hostGetMenyKeysFunc := wasmedge.NewFunction(hostGetManyKeysType, e.getManyKeys, nil, 0)
+	hostGetManyKeysType.Release()
+	impobj.AddFunction("get_many_keys", hostGetMenyKeysFunc)
+
 	hostGetByPrefixType := wasmedge.NewFunctionType(
 		[]wasmedge.ValType{
 			wasmedge.ValType_I32,

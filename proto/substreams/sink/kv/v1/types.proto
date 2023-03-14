@@ -12,3 +12,7 @@ message KVPair {
   string key = 1;
   bytes value = 2;
 }
+
+message KVKeys {
+  repeated string keys = 1;
+}

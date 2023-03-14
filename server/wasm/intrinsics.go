@@ -14,7 +14,6 @@ import (
 )
 
 func (e *Engine) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
-	// As in: https://github.com/second-state/WasmEdge-go-examples/blob/master/go_HostFunc/hostfunc.go
 	mem := callframe.GetMemoryByIndex(0)
 
 	keyPtr := params[0].(int32)
@@ -43,6 +42,58 @@ func (e *Engine) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params 
 	data, _ = mem.GetData(uint(outputPtr), uint(8))
 	binary.LittleEndian.PutUint32(data[0:4], uint32(valuePtr))
 	binary.LittleEndian.PutUint32(data[4:], uint32(len(val)))
+
+	return []interface{}{1}, wasmedge.Result_Success
+}
+
+func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
+	mem := callframe.GetMemoryByIndex(0)
+
+	keyPtr := params[0].(int32)
+	keySize := params[1].(int32)
+	data, _ := mem.GetData(uint(keyPtr), uint(keySize))
+	key := make([]byte, keySize)
+
+	copy(key, data)
+
+	keys := &pbkv.KVKeys{}
+	if err := proto.Unmarshal(data, keys); err != nil {
+		e.logger.Warn("failed to proto unmarhal proto keys", zap.Error(err))
+		return nil, wasmedge.Result_Fail
+
+	}
+
+	// TODO: ctx is probably incorrect
+	values, err := e.kv.GetMany(context.Background(), keys.Keys)
+	if err != nil {
+		if err == db.ErrNotFound {
+			return []interface{}{int32(0)}, wasmedge.Result_Success
+		}
+		e.logger.Warn("get key failed", zap.String("key", string(key)), zap.Error(err))
+		return []interface{}{int32(0)}, wasmedge.Result_Fail
+	}
+	e.logger.Debug("kv database prefix",
+		zap.Strings("keys", keys.Keys),
+		zap.Int("resp", len(values)),
+	)
+	out := &pbkv.KVPairs{}
+	for idx, value := range values {
+		out.Pairs = append(out.Pairs, &pbkv.KVPair{Key: keys.Keys[idx], Value: value})
+	}
+	outBytes, err := proto.Marshal(out)
+	if err != nil {
+		e.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
+		return nil, wasmedge.Result_Fail
+	}
+
+	protoPtr := e.allocate(int32(len(outBytes)))
+	data, _ = mem.GetData(uint(protoPtr), uint(len(outBytes)))
+	copy(data, outBytes)
+
+	outputPtr := params[2].(int32)
+	data, _ = mem.GetData(uint(outputPtr), uint(8))
+	binary.LittleEndian.PutUint32(data[0:4], uint32(protoPtr))
+	binary.LittleEndian.PutUint32(data[4:], uint32(len(outBytes)))
 
 	return []interface{}{1}, wasmedge.Result_Success
 }

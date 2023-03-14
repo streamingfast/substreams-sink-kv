@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EthClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error)
+	GetMany(ctx context.Context, in *GetManyRequest, opts ...grpc.CallOption) (Eth_GetManyClient, error)
 	Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error)
 	Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error)
 }
@@ -67,8 +68,40 @@ func (x *ethGetClient) Recv() (*Tuple, error) {
 	return m, nil
 }
 
+func (c *ethClient) GetMany(ctx context.Context, in *GetManyRequest, opts ...grpc.CallOption) (Eth_GetManyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[1], "/sf.reader.v1.Eth/GetMany", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &ethGetManyClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Eth_GetManyClient interface {
+	Recv() (*OptionalTuples, error)
+	grpc.ClientStream
+}
+
+type ethGetManyClient struct {
+	grpc.ClientStream
+}
+
+func (x *ethGetManyClient) Recv() (*OptionalTuples, error) {
+	m := new(OptionalTuples)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *ethClient) Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[1], "/sf.reader.v1.Eth/Prefix", opts...)
+	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[2], "/sf.reader.v1.Eth/Prefix", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +133,7 @@ func (x *ethPrefixClient) Recv() (*Tuples, error) {
 }
 
 func (c *ethClient) Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[2], "/sf.reader.v1.Eth/Scan", opts...)
+	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[3], "/sf.reader.v1.Eth/Scan", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +169,7 @@ func (x *ethScanClient) Recv() (*Tuples, error) {
 // for forward compatibility
 type EthServer interface {
 	Get(*GetRequest, Eth_GetServer) error
+	GetMany(*GetManyRequest, Eth_GetManyServer) error
 	Prefix(*PrefixRequest, Eth_PrefixServer) error
 	Scan(*ScanRequest, Eth_ScanServer) error
 	mustEmbedUnimplementedEthServer()
@@ -147,6 +181,9 @@ type UnimplementedEthServer struct {
 
 func (UnimplementedEthServer) Get(*GetRequest, Eth_GetServer) error {
 	return status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedEthServer) GetMany(*GetManyRequest, Eth_GetManyServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetMany not implemented")
 }
 func (UnimplementedEthServer) Prefix(*PrefixRequest, Eth_PrefixServer) error {
 	return status.Errorf(codes.Unimplemented, "method Prefix not implemented")
@@ -185,6 +222,27 @@ type ethGetServer struct {
 }
 
 func (x *ethGetServer) Send(m *Tuple) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Eth_GetMany_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetManyRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(EthServer).GetMany(m, &ethGetManyServer{stream})
+}
+
+type Eth_GetManyServer interface {
+	Send(*OptionalTuples) error
+	grpc.ServerStream
+}
+
+type ethGetManyServer struct {
+	grpc.ServerStream
+}
+
+func (x *ethGetManyServer) Send(m *OptionalTuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -241,6 +299,11 @@ var Eth_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Get",
 			Handler:       _Eth_Get_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetMany",
+			Handler:       _Eth_GetMany_Handler,
 			ServerStreams: true,
 		},
 		{

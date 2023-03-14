@@ -83,6 +83,65 @@ func Test_IntrinsicGet(t *testing.T) {
 	}
 }
 
+func Test_IntrinsicGetMany(t *testing.T) {
+	endpoint := "localhost:7878"
+	db := db.NewMockDB()
+	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	tests := []struct {
+		name       string
+		req        *pbreader.GetManyRequest
+		db         map[string][]byte
+		expectResp *pbreader.OptionalTuples
+		expectErr  bool
+	}{
+		{
+			name: "golden path",
+			req:  &pbreader.GetManyRequest{Keys: []string{"key1", "key3"}},
+			db: map[string][]byte{
+				"key1": []byte("red"),
+				"key2": []byte("black"),
+				"key3": []byte("green"),
+			},
+			expectResp: &pbreader.OptionalTuples{Pairs: []*pbreader.Tuple{
+				{Key: "key1", Value: "red"},
+				{Key: "key3", Value: "green"},
+			}},
+		},
+		{
+			name: "Not Found",
+			req:  &pbreader.GetManyRequest{Keys: []string{"key1", "key4"}},
+			db: map[string][]byte{
+				"key1": []byte("red"),
+				"key2": []byte("black"),
+				"key3": []byte("green"),
+			},
+			expectResp: &pbreader.OptionalTuples{Pairs: []*pbreader.Tuple{}, Error: "Not Found"},
+		},
+	}
+
+	conn, err := dgrpc.NewInternalClient(endpoint)
+	require.NoError(t, err)
+	cli := pbreader.NewEthClient(conn)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			db.KV = test.db
+
+			stream, err := cli.GetMany(context.Background(), test.req)
+			require.NoError(t, err)
+
+			resp, err := stream.Recv()
+			if test.expectErr {
+				require.NoError(t, err)
+			} else {
+				require.NoError(t, err)
+				assertProtoEqual(t, test.expectResp, resp)
+			}
+
+		})
+	}
+}
+
 func Test_IntrinsicPrefix(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
