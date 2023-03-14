@@ -3,6 +3,7 @@ mod pb;
 use std::slice;
 use std::str;
 use std::convert::TryInto;
+use std::path::Prefix;
 #[allow(unused_imports)]
 use wasmedge_bindgen::*;
 use wasmedge_bindgen_macro::*;
@@ -30,6 +31,48 @@ pub fn sf_reader_v1_eth_get(v: Vec<u8>) -> Result<Vec<u8>, String> {
     }.encode_to_vec());
 }
 
+#[wasmedge_bindgen]
+pub fn sf_reader_v1_eth_scan(v: Vec<u8>) -> Result<Vec<u8>, String> {
+    let req = Request::decode(&v[..]).expect("Failed to decode");
+
+    let optValues = kv_scan_prefix(req.key);
+
+    if optValues.is_none() {
+        return Ok(Response{value: String::from("nothing found")}.encode_to_vec())
+    }
+
+    // Get output
+    // let mut outputs = <Vec<u8>>
+    // for value in optValues {
+    //     let value = value.unwrap();
+    //     let output = str::from_utf
+    // }
+    //
+    // let value = optValue.unwrap();
+    // let output = str::from_utf8(&*value).unwrap();
+    //
+    // return Ok(Responses{
+    //     value: output.to_string(),
+    // }.encode_to_vec());
+}
+
+#[link(wasm_import_module = "host")]
+extern "C" {
+    pub fn prefix_scan(prefix: *const String, output_buf: u32) -> u32;
+}
+pub fn kv_scan_prefix<K: AsRef<str>>(prefix: String) -> Option<Vec<u8>> {
+    let key = key.as_ref();
+
+    unsafe {
+        let mut output_buf = Vec::with_capacity(20);
+        let output_ptr = output_buf.as_mut_ptr();
+        let found = prefix_scan(
+            prefix.into_string(),
+            output_ptr as u32,
+        );
+        std::mem::forget(output_ptr);
+    }
+}
 
 #[link(wasm_import_module = "host")]
 extern "C" {
