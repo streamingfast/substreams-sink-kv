@@ -23,7 +23,6 @@ main() {
     rm -rf badger_data.db
     echo ""
   fi
-
   wasmfile="./blockmeta_wasm_query/blockmeta_wasm_query.wasm"
   if [[ ! -f "$wasmfile" ]]; then
     echo "$wasmfile does not exists, will force a build"
@@ -46,6 +45,7 @@ main() {
     ${dsn} \
     "substreams.yaml" \
     "$@"
+
 }
 
 usage_error() {

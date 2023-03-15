@@ -1,99 +1,87 @@
 # Substreams key-value service Sink
 
-A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-targets) to pipe data from a [Substreams](https://substreams.streamingfast.io) endpoint into a key-value store and serve queries through [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible).
+A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-targets) to pipe data from a [Substreams](https://substreams.streamingfast.io) endpoint into a key-value store and serve queries through either:
+- [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible) via the `GenericService` 
+- a User defined WASM query iva the `WASMQueryService`
 
 ## Install
 
+*WasmEdge*
+Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
+```bash
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
+```
+
+*substreams-sink-kv*
 Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
 ```
 
-## Run
+## Running
+
+`substreams-sink-kv` offers two mode of operations:
+    - `inject`: Runs a substreams and pipes the data into a key-value store
+    - `serve`: Serves data through `GenericService` or `WASMQueryService`
+
+You can run `substreams-sink-kv` solely in `inject` or `serve` mode or both together
 
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
 ```bash
-export PACKAGE=https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg
+# Inject Mode
+substreams-sink-kv inject -e "mainnet.eth.streamingfast.io:443" <kv_dsn> <substreams_spkg_path> <kv_out>
 
-substreams-sink-kv run "badger3://$(pwd)/badger_data.db" mainnet.eth.streamingfast.io:443 $PACKAGE kv_out
+# Serve Mode
+substreams-sink-kv serve <kv_dsn> <substreams_spkg_path> --listen-addr=":9000"
+
+# Inject and Serve Mode
+substreams-sink-kv inject -e "mainnet.eth.streamingfast.io:443" <kv_dsn> <substreams_spkg_path> <kv_out> --listen-addr=":9000"
 ```
 
-## Integrate
+## Query Service
 
-Create a [Substreams `map` module](https://substreams.streamingfast.io) with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto):
+The type of service (`GenericService` or `WASMQueryService`) to use when serving data is defined in the `sink` block of your substreams manifest. 
 
 ```yaml
-modules:
-  - name: kv_out
-    kind: map
-    inputs:
-      - store: your_store
-    output:
-      type: proto:substreams.kv.v1.KVOperations
-```
+specVersion: v0.1.0
+package:
+  name: "your_substreams_to_sink"
+  version: v0.0.1
 
-**Cargo.toml** (see [crate](https://crates.io/crates/substreams-sink-kv))
-
-```toml
-[dependencies]
 ...
-substreams-sink-kv = "0.1.1"
+
+sink:
+  module: kv_out
+  type: sf.substreams.sink.kv.v1.WASMQueryService
+  config:
+    wasmQueryModule: "@@./blockmeta_wasm_query/blockmeta_wasm_query.wasm"
+    grpcService: "eth.service.v1.Blockmeta"
 ```
 
-**`lib.rs`**
+breaking down the `sink` block we get the following
+- `module`: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)  
+  - `type`: Support to types currently:
+  * [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto) 
+  * [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
+- `config`: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
-```rust
-use substreams::proto;
-use substreams::store::{self, DeltaProto};
-use substreams_sink_kv::pb::kv::KvOperations;
-
-use crate::pb::block_meta::BlockMeta;
-
-pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaProto<BlockMeta>>) {
-    use substreams::pb::substreams::store_delta::Operation;
-
-    for delta in deltas.deltas {
-        match delta.operation {
-            Operation::Create | Operation::Update => {
-                let val = proto::encode(&delta.new_value).unwrap();
-                ops.push_new(delta.key, val, delta.ordinal);
-            }
-            Operation::Delete => ops.push_delete(&delta.key, delta.ordinal),
-            x => panic!("unsupported opeation {:?}", x),
-        }
-    }
-}
-```
-
-More details here: https://github.com/streamingfast/substreams-eth-block-meta/blob/master/src/kv_out.rs
+> **_NOTE:_**  the `@@` notion will read the path and inject the content of the file in bytes, while the `@` notion will dump the file content in ascii 
 
 
-## Query
+### GenericService
 
-```bash
-grpcurl --plaintext -d '{"key":"month:last:201511"}' localhost:8000 \ 
-    sf.substreams.sink.kv.v1.Kv/Get
-grpcurl --plaintext -d '{"keys":["day:first:20151201","day:first:20151202"]}' localhost:8000 \ 
-    sf.substreams.sink.kv.v1.Kv/GetMany
-grpcurl --plaintext -d '{"prefix": "day:first:201511", "limit":31}' localhost:8000 \
-    sf.substreams.sink.kv.v1.Kv/GetByPrefix
-grpcurl --plaintext -d '{"begin": "day:first:201501", "exclusive_end": "day:first:2016", "limit":400}' localhost:8000 \
-    sf.substreams.sink.kv.v1.Kv/Scan
-```
+The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto)
 
-Sample browser interface:
+### WASMQueryService 
 
-```bash
-# in a first tab
-./devel/local/start.sh
+The wasm query service is a user-defined API that is backed by WASM code, which has access to underlying key-value store. You can find a detailed example with documentation [here](./devel/local/README.md) 
 
-# in a second tab
-cd connect-web-example
-npm run dev
-```
 
+## Resources
+
+You can view a sample implementation of a output module here:  https://github.com/streamingfast/substreams-eth-block-meta/blob/master/src/kv_out.rs
 
 ## Contributing
 
