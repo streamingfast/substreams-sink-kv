@@ -28,8 +28,6 @@ func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap
 			ServiceName: srvConfig.FQGRPCName,
 			HandlerType: wasmEngine,
 			Methods:     []grpc.MethodDesc{},
-			//TODO: is this usefull?
-			//Metadata: "sf/mycustomer/v1/eth.proto",
 		}
 
 		for _, methodConfig := range srvConfig.Methods {

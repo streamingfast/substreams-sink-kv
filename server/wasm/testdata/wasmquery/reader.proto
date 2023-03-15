@@ -1,30 +1,30 @@
 syntax = "proto3";
 
-package sf.reader.v1;
+package sf.test.v1;
 
-option go_package = "sink-kv/pb/proto;pbreader";
+option go_package = "sink-kv/pb/proto;pbtest";
 
-service Eth {
-  rpc Get(GetRequest) returns (stream Tuple);
-  rpc GetMany(GetManyRequest) returns (stream OptionalTuples);
-  rpc Prefix(PrefixRequest) returns (stream Tuples);
-  rpc Scan(ScanRequest) returns (stream Tuples);
+service TestService {
+  rpc TestGet(GetTestRequest) returns (stream Tuple);
+  rpc TestGetMany(TestGetManyRequest) returns (stream OptionalTuples);
+  rpc TestPrefix(TestPrefixRequest) returns (stream Tuples);
+  rpc TestScan(TestScanRequest) returns (stream Tuples);
 }
 
-message GetRequest {
+message GetTestRequest {
   string key = 1;
 }
 
-message GetManyRequest {
+message TestGetManyRequest {
   repeated string keys = 1;
 }
 
-message PrefixRequest {
+message TestPrefixRequest {
   string prefix = 1;
   int32 limit = 2;
 }
 
-message ScanRequest {
+message TestScanRequest {
   string start = 1;
   string exclusive_end = 2;
   int32 limit = 3 ;

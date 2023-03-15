@@ -3,14 +3,14 @@ use std::str;
 #[allow(unused_imports)]
 use wasmedge_bindgen::*;
 use wasmedge_bindgen_macro::*;
-use crate::pb::reader::{GetRequest, Tuple, PrefixRequest, Tuples, OptionalTuples, ScanRequest, GetManyRequest};
+use crate::pb::test::{GetTestRequest, TestPrefixRequest, TestScanRequest, TestGetManyRequest, Tuple, Tuples, OptionalTuples};
 use prost::Message;
 use substreams_sink_kv::pb::types::KvPair;
 use substreams_sink_kv::prelude::*;
 
 #[wasmedge_bindgen]
-pub fn sf_reader_v1_eth_get(v: Vec<u8>) -> Result<Vec<u8>, String> {
-    let req = GetRequest::decode(&v[..]).expect("Failed to decode");
+pub fn sf_test_v1_testservice_testget(v: Vec<u8>) -> Result<Vec<u8>, String> {
+    let req = GetTestRequest::decode(&v[..]).expect("Failed to decode");
     let store = Store::new();
 
     let optValue = store.get(&req.key);
@@ -24,8 +24,8 @@ pub fn sf_reader_v1_eth_get(v: Vec<u8>) -> Result<Vec<u8>, String> {
 }
 
 #[wasmedge_bindgen]
-pub fn sf_reader_v1_eth_getmany(v: Vec<u8>) -> Result<Vec<u8>, String> {
-    let req = GetManyRequest::decode(&v[..]).expect("Failed to decode");
+pub fn sf_test_v1_testservice_testgetmany(v: Vec<u8>) -> Result<Vec<u8>, String> {
+    let req = TestGetManyRequest::decode(&v[..]).expect("Failed to decode");
     let store = Store::new();
 
     let mut keys: Vec<String> = vec![];
@@ -49,8 +49,8 @@ pub fn sf_reader_v1_eth_getmany(v: Vec<u8>) -> Result<Vec<u8>, String> {
 
 
 #[wasmedge_bindgen]
-pub fn sf_reader_v1_eth_prefix(v: Vec<u8>) -> Result<Vec<u8>, String> {
-    let req = PrefixRequest::decode(&v[..]).expect("Failed to decode");
+pub fn sf_test_v1_testservice_testprefix(v: Vec<u8>) -> Result<Vec<u8>, String> {
+    let req = TestPrefixRequest::decode(&v[..]).expect("Failed to decode");
     let store = Store::new();
 
     let kv_pairs = store.prefix(&req.prefix ,req.limit as u32);
@@ -63,8 +63,8 @@ pub fn sf_reader_v1_eth_prefix(v: Vec<u8>) -> Result<Vec<u8>, String> {
 }
 
 #[wasmedge_bindgen]
-pub fn sf_reader_v1_eth_scan(v: Vec<u8>) -> Result<Vec<u8>, String> {
-    let req = ScanRequest::decode(&v[..]).expect("Failed to decode");
+pub fn sf_test_v1_testservice_testscan(v: Vec<u8>) -> Result<Vec<u8>, String> {
+    let req = TestScanRequest::decode(&v[..]).expect("Failed to decode");
     let store = Store::new();
 
     let kv_pairs = store.scan(&req.start,&req.exclusive_end, req.limit as u32);

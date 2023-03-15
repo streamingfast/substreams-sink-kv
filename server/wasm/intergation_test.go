@@ -8,7 +8,7 @@ import (
 
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbreader "github.com/streamingfast/substreams-sink-kv/server/wasm/testdata/wasmquery/pb"
+	pbtest "github.com/streamingfast/substreams-sink-kv/server/wasm/testdata/wasmquery/pb"
 	"github.com/test-go/testify/require"
 )
 
@@ -37,38 +37,38 @@ func Test_IntrinsicGet(t *testing.T) {
 	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
 	tests := []struct {
 		name       string
-		req        *pbreader.GetRequest
+		req        *pbtest.GetTestRequest
 		db         map[string][]byte
-		expectResp *pbreader.Tuple
+		expectResp *pbtest.Tuple
 		expectErr  bool
 	}{
 		{
 			name: "golden path",
-			req:  &pbreader.GetRequest{Key: "key1"},
+			req:  &pbtest.GetTestRequest{Key: "key1"},
 			db: map[string][]byte{
 				"key1": []byte("julien"),
 			},
-			expectResp: &pbreader.Tuple{Key: "key1", Value: "julien"},
+			expectResp: &pbtest.Tuple{Key: "key1", Value: "julien"},
 		},
 		{
 			name: "key not found",
-			req:  &pbreader.GetRequest{Key: "key2"},
+			req:  &pbtest.GetTestRequest{Key: "key2"},
 			db: map[string][]byte{
 				"key1": []byte("julien"),
 			},
-			expectResp: &pbreader.Tuple{Key: "key2", Value: "not found"},
+			expectResp: &pbtest.Tuple{Key: "key2", Value: "not found"},
 		},
 	}
 
 	conn, err := dgrpc.NewInternalClient(endpoint)
 	require.NoError(t, err)
-	cli := pbreader.NewEthClient(conn)
+	cli := pbtest.NewTestServiceClient(conn)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			db.KV = test.db
 
-			stream, err := cli.Get(context.Background(), test.req)
+			stream, err := cli.TestGet(context.Background(), test.req)
 			require.NoError(t, err)
 
 			resp, err := stream.Recv()
@@ -89,45 +89,45 @@ func Test_IntrinsicGetMany(t *testing.T) {
 	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
 	tests := []struct {
 		name       string
-		req        *pbreader.GetManyRequest
+		req        *pbtest.TestGetManyRequest
 		db         map[string][]byte
-		expectResp *pbreader.OptionalTuples
+		expectResp *pbtest.OptionalTuples
 		expectErr  bool
 	}{
 		{
 			name: "golden path",
-			req:  &pbreader.GetManyRequest{Keys: []string{"key1", "key3"}},
+			req:  &pbtest.TestGetManyRequest{Keys: []string{"key1", "key3"}},
 			db: map[string][]byte{
 				"key1": []byte("red"),
 				"key2": []byte("black"),
 				"key3": []byte("green"),
 			},
-			expectResp: &pbreader.OptionalTuples{Pairs: []*pbreader.Tuple{
+			expectResp: &pbtest.OptionalTuples{Pairs: []*pbtest.Tuple{
 				{Key: "key1", Value: "red"},
 				{Key: "key3", Value: "green"},
 			}},
 		},
 		{
 			name: "Not Found",
-			req:  &pbreader.GetManyRequest{Keys: []string{"key1", "key4"}},
+			req:  &pbtest.TestGetManyRequest{Keys: []string{"key1", "key4"}},
 			db: map[string][]byte{
 				"key1": []byte("red"),
 				"key2": []byte("black"),
 				"key3": []byte("green"),
 			},
-			expectResp: &pbreader.OptionalTuples{Pairs: []*pbreader.Tuple{}, Error: "Not Found"},
+			expectResp: &pbtest.OptionalTuples{Pairs: []*pbtest.Tuple{}, Error: "Not Found"},
 		},
 	}
 
 	conn, err := dgrpc.NewInternalClient(endpoint)
 	require.NoError(t, err)
-	cli := pbreader.NewEthClient(conn)
+	cli := pbtest.NewTestServiceClient(conn)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			db.KV = test.db
 
-			stream, err := cli.GetMany(context.Background(), test.req)
+			stream, err := cli.TestGetMany(context.Background(), test.req)
 			require.NoError(t, err)
 
 			resp, err := stream.Recv()
@@ -149,35 +149,35 @@ func Test_IntrinsicPrefix(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		req        *pbreader.PrefixRequest
+		req        *pbtest.TestPrefixRequest
 		db         map[string][]byte
-		expectResp *pbreader.Tuples
+		expectResp *pbtest.Tuples
 		expectErr  bool
 	}{
 		{
 			name: "golden path",
-			req:  &pbreader.PrefixRequest{Prefix: "aa", Limit: 10},
+			req:  &pbtest.TestPrefixRequest{Prefix: "aa", Limit: 10},
 			db: map[string][]byte{
 				"aa":  []byte("john"),
 				"bb":  []byte("doe"),
 				"aa1": []byte("coolio"),
 				"ac":  []byte("paul"),
 			},
-			expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{
+			expectResp: &pbtest.Tuples{Pairs: []*pbtest.Tuple{
 				{Key: "aa", Value: "john"},
 				{Key: "aa1", Value: "coolio"},
 			}},
 		},
 		{
 			name: "nothing found",
-			req:  &pbreader.PrefixRequest{Prefix: "zz"},
+			req:  &pbtest.TestPrefixRequest{Prefix: "zz"},
 			db: map[string][]byte{
 				"aa":  []byte("john"),
 				"bb":  []byte("doe"),
 				"aa1": []byte("coolio"),
 				"ac":  []byte("paul"),
 			},
-			expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{}},
+			expectResp: &pbtest.Tuples{Pairs: []*pbtest.Tuple{}},
 		},
 	}
 
@@ -187,9 +187,9 @@ func Test_IntrinsicPrefix(t *testing.T) {
 
 			conn, err := dgrpc.NewInternalClient(endpoint)
 			require.NoError(t, err)
-			cli := pbreader.NewEthClient(conn)
+			cli := pbtest.NewTestServiceClient(conn)
 
-			stream, err := cli.Prefix(context.Background(), test.req)
+			stream, err := cli.TestPrefix(context.Background(), test.req)
 			require.NoError(t, err)
 
 			resp, err := stream.Recv()
@@ -211,14 +211,14 @@ func Test_IntrinsicScan(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		req        *pbreader.ScanRequest
+		req        *pbtest.TestScanRequest
 		db         map[string][]byte
-		expectResp *pbreader.Tuples
+		expectResp *pbtest.Tuples
 		expectErr  bool
 	}{
 		{
 			name: "golden path",
-			req:  &pbreader.ScanRequest{Start: "a1", ExclusiveEnd: "a4", Limit: 10},
+			req:  &pbtest.TestScanRequest{Start: "a1", ExclusiveEnd: "a4", Limit: 10},
 			db: map[string][]byte{
 				"a1": []byte("blue"),
 				"a2": []byte("yellow"),
@@ -227,7 +227,7 @@ func Test_IntrinsicScan(t *testing.T) {
 				"aa": []byte("red"),
 				"bb": []byte("black"),
 			},
-			expectResp: &pbreader.Tuples{Pairs: []*pbreader.Tuple{
+			expectResp: &pbtest.Tuples{Pairs: []*pbtest.Tuple{
 				{Key: "a1", Value: "blue"},
 				{Key: "a2", Value: "yellow"},
 				{Key: "a3", Value: "amber"},
@@ -241,9 +241,9 @@ func Test_IntrinsicScan(t *testing.T) {
 
 			conn, err := dgrpc.NewInternalClient(endpoint)
 			require.NoError(t, err)
-			cli := pbreader.NewEthClient(conn)
+			cli := pbtest.NewTestServiceClient(conn)
 
-			stream, err := cli.Scan(context.Background(), test.req)
+			stream, err := cli.TestScan(context.Background(), test.req)
 			require.NoError(t, err)
 
 			resp, err := stream.Recv()

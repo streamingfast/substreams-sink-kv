@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: reader.proto
 
-package pbreader
+package pbtest
 
 import (
 	context "context"
@@ -18,30 +18,30 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// EthClient is the client API for Eth service.
+// TestServiceClient is the client API for TestService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type EthClient interface {
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error)
-	GetMany(ctx context.Context, in *GetManyRequest, opts ...grpc.CallOption) (Eth_GetManyClient, error)
-	Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error)
-	Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error)
+type TestServiceClient interface {
+	TestGet(ctx context.Context, in *GetTestRequest, opts ...grpc.CallOption) (TestService_TestGetClient, error)
+	TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (TestService_TestGetManyClient, error)
+	TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (TestService_TestPrefixClient, error)
+	TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (TestService_TestScanClient, error)
 }
 
-type ethClient struct {
+type testServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewEthClient(cc grpc.ClientConnInterface) EthClient {
-	return &ethClient{cc}
+func NewTestServiceClient(cc grpc.ClientConnInterface) TestServiceClient {
+	return &testServiceClient{cc}
 }
 
-func (c *ethClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (Eth_GetClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[0], "/sf.reader.v1.Eth/Get", opts...)
+func (c *testServiceClient) TestGet(ctx context.Context, in *GetTestRequest, opts ...grpc.CallOption) (TestService_TestGetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[0], "/sf.test.v1.TestService/TestGet", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ethGetClient{stream}
+	x := &testServiceTestGetClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -51,16 +51,16 @@ func (c *ethClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOp
 	return x, nil
 }
 
-type Eth_GetClient interface {
+type TestService_TestGetClient interface {
 	Recv() (*Tuple, error)
 	grpc.ClientStream
 }
 
-type ethGetClient struct {
+type testServiceTestGetClient struct {
 	grpc.ClientStream
 }
 
-func (x *ethGetClient) Recv() (*Tuple, error) {
+func (x *testServiceTestGetClient) Recv() (*Tuple, error) {
 	m := new(Tuple)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -68,12 +68,12 @@ func (x *ethGetClient) Recv() (*Tuple, error) {
 	return m, nil
 }
 
-func (c *ethClient) GetMany(ctx context.Context, in *GetManyRequest, opts ...grpc.CallOption) (Eth_GetManyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[1], "/sf.reader.v1.Eth/GetMany", opts...)
+func (c *testServiceClient) TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (TestService_TestGetManyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[1], "/sf.test.v1.TestService/TestGetMany", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ethGetManyClient{stream}
+	x := &testServiceTestGetManyClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -83,16 +83,16 @@ func (c *ethClient) GetMany(ctx context.Context, in *GetManyRequest, opts ...grp
 	return x, nil
 }
 
-type Eth_GetManyClient interface {
+type TestService_TestGetManyClient interface {
 	Recv() (*OptionalTuples, error)
 	grpc.ClientStream
 }
 
-type ethGetManyClient struct {
+type testServiceTestGetManyClient struct {
 	grpc.ClientStream
 }
 
-func (x *ethGetManyClient) Recv() (*OptionalTuples, error) {
+func (x *testServiceTestGetManyClient) Recv() (*OptionalTuples, error) {
 	m := new(OptionalTuples)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -100,12 +100,12 @@ func (x *ethGetManyClient) Recv() (*OptionalTuples, error) {
 	return m, nil
 }
 
-func (c *ethClient) Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.CallOption) (Eth_PrefixClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[2], "/sf.reader.v1.Eth/Prefix", opts...)
+func (c *testServiceClient) TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (TestService_TestPrefixClient, error) {
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[2], "/sf.test.v1.TestService/TestPrefix", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ethPrefixClient{stream}
+	x := &testServiceTestPrefixClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -115,16 +115,16 @@ func (c *ethClient) Prefix(ctx context.Context, in *PrefixRequest, opts ...grpc.
 	return x, nil
 }
 
-type Eth_PrefixClient interface {
+type TestService_TestPrefixClient interface {
 	Recv() (*Tuples, error)
 	grpc.ClientStream
 }
 
-type ethPrefixClient struct {
+type testServiceTestPrefixClient struct {
 	grpc.ClientStream
 }
 
-func (x *ethPrefixClient) Recv() (*Tuples, error) {
+func (x *testServiceTestPrefixClient) Recv() (*Tuples, error) {
 	m := new(Tuples)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -132,12 +132,12 @@ func (x *ethPrefixClient) Recv() (*Tuples, error) {
 	return m, nil
 }
 
-func (c *ethClient) Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (Eth_ScanClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Eth_ServiceDesc.Streams[3], "/sf.reader.v1.Eth/Scan", opts...)
+func (c *testServiceClient) TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (TestService_TestScanClient, error) {
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[3], "/sf.test.v1.TestService/TestScan", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ethScanClient{stream}
+	x := &testServiceTestScanClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -147,16 +147,16 @@ func (c *ethClient) Scan(ctx context.Context, in *ScanRequest, opts ...grpc.Call
 	return x, nil
 }
 
-type Eth_ScanClient interface {
+type TestService_TestScanClient interface {
 	Recv() (*Tuples, error)
 	grpc.ClientStream
 }
 
-type ethScanClient struct {
+type testServiceTestScanClient struct {
 	grpc.ClientStream
 }
 
-func (x *ethScanClient) Recv() (*Tuples, error) {
+func (x *testServiceTestScanClient) Recv() (*Tuples, error) {
 	m := new(Tuples)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -164,156 +164,156 @@ func (x *ethScanClient) Recv() (*Tuples, error) {
 	return m, nil
 }
 
-// EthServer is the server API for Eth service.
-// All implementations must embed UnimplementedEthServer
+// TestServiceServer is the server API for TestService service.
+// All implementations must embed UnimplementedTestServiceServer
 // for forward compatibility
-type EthServer interface {
-	Get(*GetRequest, Eth_GetServer) error
-	GetMany(*GetManyRequest, Eth_GetManyServer) error
-	Prefix(*PrefixRequest, Eth_PrefixServer) error
-	Scan(*ScanRequest, Eth_ScanServer) error
-	mustEmbedUnimplementedEthServer()
+type TestServiceServer interface {
+	TestGet(*GetTestRequest, TestService_TestGetServer) error
+	TestGetMany(*TestGetManyRequest, TestService_TestGetManyServer) error
+	TestPrefix(*TestPrefixRequest, TestService_TestPrefixServer) error
+	TestScan(*TestScanRequest, TestService_TestScanServer) error
+	mustEmbedUnimplementedTestServiceServer()
 }
 
-// UnimplementedEthServer must be embedded to have forward compatible implementations.
-type UnimplementedEthServer struct {
+// UnimplementedTestServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedTestServiceServer struct {
 }
 
-func (UnimplementedEthServer) Get(*GetRequest, Eth_GetServer) error {
-	return status.Errorf(codes.Unimplemented, "method Get not implemented")
+func (UnimplementedTestServiceServer) TestGet(*GetTestRequest, TestService_TestGetServer) error {
+	return status.Errorf(codes.Unimplemented, "method TestGet not implemented")
 }
-func (UnimplementedEthServer) GetMany(*GetManyRequest, Eth_GetManyServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetMany not implemented")
+func (UnimplementedTestServiceServer) TestGetMany(*TestGetManyRequest, TestService_TestGetManyServer) error {
+	return status.Errorf(codes.Unimplemented, "method TestGetMany not implemented")
 }
-func (UnimplementedEthServer) Prefix(*PrefixRequest, Eth_PrefixServer) error {
-	return status.Errorf(codes.Unimplemented, "method Prefix not implemented")
+func (UnimplementedTestServiceServer) TestPrefix(*TestPrefixRequest, TestService_TestPrefixServer) error {
+	return status.Errorf(codes.Unimplemented, "method TestPrefix not implemented")
 }
-func (UnimplementedEthServer) Scan(*ScanRequest, Eth_ScanServer) error {
-	return status.Errorf(codes.Unimplemented, "method Scan not implemented")
+func (UnimplementedTestServiceServer) TestScan(*TestScanRequest, TestService_TestScanServer) error {
+	return status.Errorf(codes.Unimplemented, "method TestScan not implemented")
 }
-func (UnimplementedEthServer) mustEmbedUnimplementedEthServer() {}
+func (UnimplementedTestServiceServer) mustEmbedUnimplementedTestServiceServer() {}
 
-// UnsafeEthServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to EthServer will
+// UnsafeTestServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to TestServiceServer will
 // result in compilation errors.
-type UnsafeEthServer interface {
-	mustEmbedUnimplementedEthServer()
+type UnsafeTestServiceServer interface {
+	mustEmbedUnimplementedTestServiceServer()
 }
 
-func RegisterEthServer(s grpc.ServiceRegistrar, srv EthServer) {
-	s.RegisterService(&Eth_ServiceDesc, srv)
+func RegisterTestServiceServer(s grpc.ServiceRegistrar, srv TestServiceServer) {
+	s.RegisterService(&TestService_ServiceDesc, srv)
 }
 
-func _Eth_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetRequest)
+func _TestService_TestGet_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetTestRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EthServer).Get(m, &ethGetServer{stream})
+	return srv.(TestServiceServer).TestGet(m, &testServiceTestGetServer{stream})
 }
 
-type Eth_GetServer interface {
+type TestService_TestGetServer interface {
 	Send(*Tuple) error
 	grpc.ServerStream
 }
 
-type ethGetServer struct {
+type testServiceTestGetServer struct {
 	grpc.ServerStream
 }
 
-func (x *ethGetServer) Send(m *Tuple) error {
+func (x *testServiceTestGetServer) Send(m *Tuple) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Eth_GetMany_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetManyRequest)
+func _TestService_TestGetMany_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(TestGetManyRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EthServer).GetMany(m, &ethGetManyServer{stream})
+	return srv.(TestServiceServer).TestGetMany(m, &testServiceTestGetManyServer{stream})
 }
 
-type Eth_GetManyServer interface {
+type TestService_TestGetManyServer interface {
 	Send(*OptionalTuples) error
 	grpc.ServerStream
 }
 
-type ethGetManyServer struct {
+type testServiceTestGetManyServer struct {
 	grpc.ServerStream
 }
 
-func (x *ethGetManyServer) Send(m *OptionalTuples) error {
+func (x *testServiceTestGetManyServer) Send(m *OptionalTuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Eth_Prefix_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(PrefixRequest)
+func _TestService_TestPrefix_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(TestPrefixRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EthServer).Prefix(m, &ethPrefixServer{stream})
+	return srv.(TestServiceServer).TestPrefix(m, &testServiceTestPrefixServer{stream})
 }
 
-type Eth_PrefixServer interface {
+type TestService_TestPrefixServer interface {
 	Send(*Tuples) error
 	grpc.ServerStream
 }
 
-type ethPrefixServer struct {
+type testServiceTestPrefixServer struct {
 	grpc.ServerStream
 }
 
-func (x *ethPrefixServer) Send(m *Tuples) error {
+func (x *testServiceTestPrefixServer) Send(m *Tuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Eth_Scan_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ScanRequest)
+func _TestService_TestScan_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(TestScanRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EthServer).Scan(m, &ethScanServer{stream})
+	return srv.(TestServiceServer).TestScan(m, &testServiceTestScanServer{stream})
 }
 
-type Eth_ScanServer interface {
+type TestService_TestScanServer interface {
 	Send(*Tuples) error
 	grpc.ServerStream
 }
 
-type ethScanServer struct {
+type testServiceTestScanServer struct {
 	grpc.ServerStream
 }
 
-func (x *ethScanServer) Send(m *Tuples) error {
+func (x *testServiceTestScanServer) Send(m *Tuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-// Eth_ServiceDesc is the grpc.ServiceDesc for Eth service.
+// TestService_ServiceDesc is the grpc.ServiceDesc for TestService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Eth_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "sf.reader.v1.Eth",
-	HandlerType: (*EthServer)(nil),
+var TestService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "sf.test.v1.TestService",
+	HandlerType: (*TestServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Get",
-			Handler:       _Eth_Get_Handler,
+			StreamName:    "TestGet",
+			Handler:       _TestService_TestGet_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetMany",
-			Handler:       _Eth_GetMany_Handler,
+			StreamName:    "TestGetMany",
+			Handler:       _TestService_TestGetMany_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "Prefix",
-			Handler:       _Eth_Prefix_Handler,
+			StreamName:    "TestPrefix",
+			Handler:       _TestService_TestPrefix_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "Scan",
-			Handler:       _Eth_Scan_Handler,
+			StreamName:    "TestScan",
+			Handler:       _TestService_TestScan_Handler,
 			ServerStreams: true,
 		},
 	},
