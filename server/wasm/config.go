@@ -8,12 +8,8 @@ import (
 )
 
 type Config struct {
-	Services []*ServiceConfig
-}
-
-type ServiceConfig struct {
-	FQGRPCName string
-	Methods    []*MethodConfig
+	FQGRPCServiceName string
+	Methods           []*MethodConfig
 }
 
 type MethodConfig struct {
@@ -22,23 +18,26 @@ type MethodConfig struct {
 	ExportName string // will match the name of the function in the wasm code
 }
 
-func NewConfig(protoFile *descriptorpb.FileDescriptorProto) *Config {
-	c := &Config{}
+func NewConfig(protoFile *descriptorpb.FileDescriptorProto, fqGRPCService string) (*Config, error) {
 	for _, srv := range protoFile.Service {
-		s := &ServiceConfig{
-			FQGRPCName: fmt.Sprintf("%s.%s", protoFile.GetPackage(), srv.GetName()),
+		servName := fmt.Sprintf("%s.%s", protoFile.GetPackage(), srv.GetName())
+		if servName != fqGRPCService {
+			continue
+		}
+		c := &Config{
+			FQGRPCServiceName: servName,
 		}
 		for _, mth := range srv.Method {
-			fqGRPC := fmt.Sprintf("%s.%s", s.FQGRPCName, mth.GetName())
-			s.Methods = append(s.Methods, &MethodConfig{
+			fqGRPC := fmt.Sprintf("%s.%s", c.FQGRPCServiceName, mth.GetName())
+			c.Methods = append(c.Methods, &MethodConfig{
 				Name:       mth.GetName(),
 				FQGRPCName: fqGRPC,
 				ExportName: exportNameFromFQGrpcMethod(fqGRPC),
 			})
 		}
-		c.Services = append(c.Services, s)
+		return c, nil
 	}
-	return c
+	return nil, fmt.Errorf("unable to find grpc service %q in proto file", fqGRPCService)
 }
 
 func exportNameFromFQGrpcMethod(fqGRPCMethod string) string {

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package eth.service.v1;
+
+service Blockmeta {
+  rpc GetMonth(GetMonthRequest) returns (stream MonthResponse);
+//  rpc GetYear(GetYearRequest) returns (stream YearReponse);
+}
+
+message GetMonthRequest {
+  string year = 1;
+  string month = 2;
+}
+
+message GetYearRequest {
+  string year = 1;
+}
+
+message MonthResponse {
+  optional Error error = 1;
+  optional Month month = 2;
+}
+
+message YearReponse {
+  optional Error error = 1;
+  optional Year year = 2;
+}
+message Month {
+  string year = 1;
+  string month = 2;
+  Block first_block = 3;
+  Block last_block = 4;
+}
+
+message Year {
+  repeated Month months = 1;
+}
+
+message Block {
+    uint64 number = 1;
+    string hash =  2;
+    string parent_hash = 3;
+    string timestamp = 4;
+}
+
+
+message Error {
+  uint64 code = 1;
+  string message = 2;
+}

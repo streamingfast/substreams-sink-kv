@@ -12,32 +12,58 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	tests := []struct {
-		protoPath string
-		expect    *Config
+		protoPath   string
+		fqService   string
+		expect      *Config
+		expectError bool
 	}{
 		{
-			protoPath: "./testdata/wasmquery/reader.proto",
+			protoPath: "./testdata/wasmquery/test.proto",
+			fqService: "sf.test.v1.TestService",
 			expect: &Config{
-				Services: []*ServiceConfig{
+				FQGRPCServiceName: "sf.test.v1.TestService",
+				Methods: []*MethodConfig{
 					{
-						FQGRPCName: "sf.reader.v1.Eth",
-						Methods: []*MethodConfig{
-							{
-								Name:       "Get",
-								FQGRPCName: "sf.reader.v1.Eth.Get",
-								ExportName: "sf_reader_v1_eth_get",
-							},
-						},
+						Name:       "TestGet",
+						FQGRPCName: "sf.test.v1.TestService.TestGet",
+						ExportName: "sf_test_v1_testservice_testget",
+					},
+					{
+						Name:       "TestGetMany",
+						FQGRPCName: "sf.test.v1.TestService.TestGetMany",
+						ExportName: "sf_test_v1_testservice_testgetmany",
+					},
+					{
+						Name:       "TestPrefix",
+						FQGRPCName: "sf.test.v1.TestService.TestPrefix",
+						ExportName: "sf_test_v1_testservice_testprefix",
+					},
+					{
+						Name:       "TestScan",
+						FQGRPCName: "sf.test.v1.TestService.TestScan",
+						ExportName: "sf_test_v1_testservice_testscan",
 					},
 				},
 			},
+		},
+		{
+			protoPath:   "./testdata/wasmquery/test.proto",
+			fqService:   "sf.reader.v1.Unknown",
+			expectError: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.protoPath, func(t *testing.T) {
 			filedesc := protoFileToDescriptor(t, test.protoPath)
-			assert.Equal(t, test.expect, NewConfig(filedesc))
+			config, err := NewConfig(filedesc, test.fqService)
+			if test.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, test.expect, config)
+			}
+
 		})
 	}
 }

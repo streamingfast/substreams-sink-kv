@@ -23,27 +23,25 @@ func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap
 	grpcServer := srv.GrpcServer()
 
 	var v interface{}
-	for _, srvConfig := range config.Services {
-		grpcService := &grpc.ServiceDesc{
-			ServiceName: srvConfig.FQGRPCName,
-			HandlerType: wasmEngine,
-			Methods:     []grpc.MethodDesc{},
-		}
-
-		for _, methodConfig := range srvConfig.Methods {
-			handler, err := wasmEngine.GetHandler(methodConfig, protoCodec, logger)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get handler: %w", err)
-			}
-			grpcService.Streams = append(grpcService.Streams, grpc.StreamDesc{
-				StreamName:    methodConfig.Name,
-				Handler:       handler.handle,
-				ServerStreams: true,
-			})
-		}
-
-		grpcServer.RegisterService(grpcService, v)
+	grpcService := &grpc.ServiceDesc{
+		ServiceName: config.FQGRPCServiceName,
+		HandlerType: wasmEngine,
+		Methods:     []grpc.MethodDesc{},
 	}
+
+	for _, methodConfig := range config.Methods {
+		handler, err := wasmEngine.GetHandler(methodConfig, protoCodec, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get handler: %w", err)
+		}
+		grpcService.Streams = append(grpcService.Streams, grpc.StreamDesc{
+			StreamName:    methodConfig.Name,
+			Handler:       handler.handle,
+			ServerStreams: true,
+		})
+	}
+
+	grpcServer.RegisterService(grpcService, v)
 
 	s := &Server{
 		logger: logger,

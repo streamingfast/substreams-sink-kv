@@ -4,14 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/pflag"
-
-	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
-	"google.golang.org/protobuf/types/descriptorpb"
-
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
@@ -21,12 +17,14 @@ import (
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
 	"github.com/streamingfast/substreams-sink-kv/server/wasm"
 	"github.com/streamingfast/substreams/manifest"
+	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 var serveCmd = Command(serveRunE,
 	"serve <dsn> <spkg>",
-	"Launches a query server to consume connected to a sinkd kv store",
+	"Launches a query server connected to a key-value store",
 	ExactArgs(2),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.String("listen-addr", ":7878", "Listen via GRPC Connect-Web on this address")
@@ -116,9 +114,14 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 		if err := pkg.SinkConfig.UnmarshalTo(wasmServ); err != nil {
 			return nil, fmt.Errorf("failed to proto unmarshall: %w", err)
 		}
-		fileDesc, err := findProtoDef(pkg, wasmServ.GrpcService)
+		fileDesc, err := findProtoDefWithGRPCService(pkg, wasmServ.GrpcService)
 		if err != nil {
 			return nil, fmt.Errorf("find proto file descriptor: %w", err)
+		}
+
+		config, err := wasm.NewConfig(fileDesc, wasmServ.GrpcService)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
 		}
 
 		wasmEngine, err := wasm.NewEngineFromBytes(wasmServ.GetWasmQueryModule(), kvDB, zlog)
@@ -126,7 +129,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("failed to setup wasm engine: %w", err)
 		}
 
-		return wasm.NewServer(wasm.NewConfig(fileDesc), wasmEngine, wasm.PassthroughCodec{}, zlog)
+		return wasm.NewServer(config, wasmEngine, wasm.PassthroughCodec{}, zlog)
 	case "sf.substreams.sink.kv.v1.GenericService":
 		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed")), nil
 	default:
@@ -134,10 +137,13 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 	}
 }
 
-func findProtoDef(pkg *pbsubstreams.Package, fqGrpcService string) (*descriptorpb.FileDescriptorProto, error) {
+func findProtoDefWithGRPCService(pkg *pbsubstreams.Package, fqGrpcService string) (*descriptorpb.FileDescriptorProto, error) {
 	for _, f := range pkg.ProtoFiles {
-		if f.GetPackage() == fqGrpcService {
-			return f, nil
+		for _, srv := range f.Service {
+			servName := fmt.Sprintf("%s.%s", f.GetPackage(), srv.GetName())
+			if servName == fqGrpcService {
+				return f, nil
+			}
 		}
 	}
 

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: reader.proto
+// source: test.proto
 
 package pbtest
 
@@ -317,5 +317,5 @@ var TestService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "reader.proto",
+	Metadata: "test.proto",
 }

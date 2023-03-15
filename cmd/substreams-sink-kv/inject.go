@@ -19,7 +19,7 @@ import (
 )
 
 var injectCmd = Command(injectRunE,
-	"inject <dsn> [spkg] [module] [<start>:<stop>]",
+	"inject <dsn> <spkg> [<start>:<stop>]",
 	"Fills a KV store from a substreams output and optionally runs a server",
 	RangeArgs(1, 4),
 	Flags(func(flags *pflag.FlagSet) {
@@ -48,14 +48,18 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	app := shutter.New()
 	ctx := cmd.Context()
 
-	dsn, manifestPath, outputModuleName, blockRange := parseArgs(cmd, args)
+	dsn := args[0]
+	manifestPath := args[1]
+	blockRange := ""
+	if len(args) > 2 {
+		blockRange = args[3]
+	}
 	endpoint := viper.GetString("inject-endpoint")
 
 	zlog.Info("running injector",
 		zap.String("dsn", dsn),
 		zap.String("endpoint", endpoint),
 		zap.String("manifest_path", manifestPath),
-		zap.String("output_module_name", outputModuleName),
 		zap.String("block_range", blockRange),
 	)
 
@@ -74,6 +78,11 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("create substreams moduel graph: %w", err)
 	}
+
+	if pkg.SinkModule == "" {
+		return fmt.Errorf("sink module is required in sink config")
+	}
+	outputModuleName := pkg.SinkModule
 
 	zlog.Info("validating output store", zap.String("output_store", outputModuleName))
 	module, err := graph.Module(outputModuleName)

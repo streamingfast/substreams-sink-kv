@@ -7,3 +7,5 @@
 .idea
 *target*
 *.db
+*.wasm
+*.spkg

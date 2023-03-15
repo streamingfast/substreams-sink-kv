@@ -17,7 +17,14 @@ func Test_LaunchServer(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	db.KV["key1"] = []byte("value1")
-	launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	launchWasmService(
+		t,
+		endpoint,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+		db,
+	)
 
 	// runt test
 	// then, in a tab, run:
@@ -34,7 +41,15 @@ func Test_LaunchServer(t *testing.T) {
 func Test_IntrinsicGet(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
-	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	go launchWasmService(
+		t,
+		endpoint,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+		db,
+	)
+
 	tests := []struct {
 		name       string
 		req        *pbtest.GetTestRequest
@@ -86,7 +101,16 @@ func Test_IntrinsicGet(t *testing.T) {
 func Test_IntrinsicGetMany(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
-	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	go launchWasmService(
+		t,
+		endpoint,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+
+		db,
+	)
+
 	tests := []struct {
 		name       string
 		req        *pbtest.TestGetManyRequest
@@ -145,7 +169,15 @@ func Test_IntrinsicGetMany(t *testing.T) {
 func Test_IntrinsicPrefix(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
-	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	go launchWasmService(
+		t,
+		endpoint,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+
+		db,
+	)
 
 	tests := []struct {
 		name       string
@@ -207,7 +239,14 @@ func Test_IntrinsicPrefix(t *testing.T) {
 func Test_IntrinsicScan(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
-	go launchWasmService(t, endpoint, "./testdata/wasmquery/reader.proto", "./testdata/wasmquery/wasm_query.wasm", db)
+	go launchWasmService(
+		t,
+		endpoint,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+		db,
+	)
 
 	tests := []struct {
 		name       string
@@ -232,6 +271,19 @@ func Test_IntrinsicScan(t *testing.T) {
 				{Key: "a2", Value: "yellow"},
 				{Key: "a3", Value: "amber"},
 			}},
+		},
+		{
+			name: "nothing found",
+			req:  &pbtest.TestScanRequest{Start: "c1", ExclusiveEnd: "c8", Limit: 10},
+			db: map[string][]byte{
+				"a1": []byte("blue"),
+				"a2": []byte("yellow"),
+				"a3": []byte("amber"),
+				"a4": []byte("green"),
+				"aa": []byte("red"),
+				"bb": []byte("black"),
+			},
+			expectResp: &pbtest.Tuples{Pairs: []*pbtest.Tuple{}},
 		},
 	}
 
@@ -258,7 +310,7 @@ func Test_IntrinsicScan(t *testing.T) {
 
 }
 
-func launchWasmService(t *testing.T, endpoint, protoPath, wasmPath string, mockDB *db.MockDB) {
+func launchWasmService(t *testing.T, endpoint, protoPath, wasmPath, fqServiceName string, mockDB *db.MockDB) {
 	code, err := os.ReadFile(wasmPath)
 	if err != nil {
 		panic(fmt.Errorf("%w", err))
@@ -271,7 +323,11 @@ func launchWasmService(t *testing.T, endpoint, protoPath, wasmPath string, mockD
 		panic(fmt.Errorf("%w", err))
 	}
 
-	server, err := NewServer(NewConfig(protoFileDesc), wasmEngine, TestPassthroughCodec{}, zlog)
+	config, err := NewConfig(protoFileDesc, fqServiceName)
+	if err != nil {
+		panic(fmt.Errorf("%w", err))
+	}
+	server, err := NewServer(config, wasmEngine, TestPassthroughCodec{}, zlog)
 	if err != nil {
 		panic(fmt.Errorf("%w", err))
 	}
