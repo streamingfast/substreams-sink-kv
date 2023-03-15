@@ -471,7 +471,9 @@ dependencies = [
 
 [[package]]
 name = "substreams-sink-kv"
-version = "0.1.1"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb094d448e58a7e5ab84dac61bd8e6dcb71ddf2021bc09ba8cde73b20669872d"
 dependencies = [
  "base64",
  "prost",
