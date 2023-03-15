@@ -2,10 +2,9 @@
 
 A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-targets) to pipe data from a [Substreams](https://substreams.streamingfast.io) endpoint into a key-value store and serve queries through either:
 - [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible) via the `GenericService` 
-- a User defined WASM query iva the `WASMQueryService`
+- a User defined WASM query service
 
 ## Install
-
 *WasmEdge*
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
 ```bash
@@ -22,10 +21,10 @@ go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
 ## Running
 
 `substreams-sink-kv` offers two mode of operations:
-    - `inject`: Runs a substreams and pipes the data into a key-value store
-    - `serve`: Serves data through `GenericService` or `WASMQueryService`
+- `inject`: Runs a substreams and pipes the data into a key-value store
+- `serve`: Serves data through a query service: `GenericService` or `WASMQueryService`
 
-You can run `substreams-sink-kv` solely in `inject` or `serve` mode or both together
+You can run `substreams-sink-kv` solely in `inject` or `serve` mode or both.
 
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
@@ -42,7 +41,11 @@ substreams-sink-kv inject -e "mainnet.eth.streamingfast.io:443" <kv_dsn> <substr
 
 ## Query Service
 
-The type of service (`GenericService` or `WASMQueryService`) to use when serving data is defined in the `sink` block of your substreams manifest. 
+The Query Service is an API that allows you to consume data from your sinked key-value. There are 2 types of Query Services:
+- Generic Service
+- Wasm Query Service
+
+the `sink` block of your substreams manifest defines and configures which one to use 
 
 ```yaml
 specVersion: v0.1.0
@@ -60,11 +63,12 @@ sink:
     grpcService: "eth.service.v1.Blockmeta"
 ```
 
-breaking down the `sink` block we get the following
+breaking down the `sink` block we get the following:
+
 - `module`: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)  
-  - `type`: Support to types currently:
-  * [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto) 
-  * [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
+- `type`: Support to types currently:
+  - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto) 
+  - [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
 - `config`: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
 > **_NOTE:_**  the `@@` notion will read the path and inject the content of the file in bytes, while the `@` notion will dump the file content in ascii 
@@ -72,11 +76,11 @@ breaking down the `sink` block we get the following
 
 ### GenericService
 
-The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto)
+The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto). You can find a detailed example with documentation [here](./examples/generic-service) 
 
 ### WASMQueryService 
 
-The wasm query service is a user-defined API that is backed by WASM code, which has access to underlying key-value store. You can find a detailed example with documentation [here](./devel/local/README.md) 
+The wasm query service is a user-defined API that is backed by WASM code, which has access to underlying key-value store. You can find a detailed example with documentation [here](./examples/wasm-query-service) 
 
 
 ## Resources
