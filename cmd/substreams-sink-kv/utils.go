@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/spf13/viper"
 
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
@@ -70,4 +72,20 @@ func readAPIToken() string {
 	}
 
 	return os.Getenv("SF_API_TOKEN")
+}
+
+func mustGetString(cmd *cobra.Command, flagName string) string {
+	val, err := cmd.Flags().GetString(flagName)
+	if err != nil {
+		panic(fmt.Sprintf("flags: couldn't find flag %q", flagName))
+	}
+	return val
+}
+
+func mustGetBool(cmd *cobra.Command, flagName string) bool {
+	val, err := cmd.Flags().GetBool(flagName)
+	if err != nil {
+		panic(fmt.Sprintf("flags: couldn't find flag %q", flagName))
+	}
+	return val
 }

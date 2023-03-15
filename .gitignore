@@ -4,3 +4,8 @@
 /dist
 /build
 .DS_Store
+.idea
+*target*
+*.db
+*.wasm
+*.spkg

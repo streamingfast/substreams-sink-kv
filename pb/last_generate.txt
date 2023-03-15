@@ -1,0 +1,2 @@
+generate.sh - Tue 14 Mar 2023 18:16:23 EDT - julien
+streamingfast/proto revision: 876c4c263a3f5dc92488367e50112c04b0a20338

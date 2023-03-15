@@ -29,13 +29,13 @@ type Config struct {
 	OutputModuleName string
 	OutputModuleHash manifest.ModuleHash
 	ClientConfig     *client.SubstreamsClientConfig
-	DBLoader         db.DBLoader
+	DBLoader         db.Loader
 }
 
 type KVSinker struct {
 	*shutter.Shutter
 
-	DBLoader         db.DBLoader
+	DBLoader         db.Loader
 	Pkg              *pbsubstreams.Package
 	OutputModule     *pbsubstreams.Module
 	OutputModuleName string
@@ -140,7 +140,7 @@ func (s *KVSinker) Run(ctx context.Context) error {
 
 	s.sink.OnTerminating(s.Shutdown)
 	s.OnTerminating(func(err error) {
-		s.logger.Info("terminating sink")
+		s.logger.Info("terminating sink", zap.Error(err))
 		s.sink.Shutdown(err)
 	})
 

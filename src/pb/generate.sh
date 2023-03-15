@@ -30,6 +30,7 @@ function main() {
 
   echo "Generating proto files"
   generate "substreams/sink/kv/v1/kv.proto"
+  generate "substreams/sink/kv/v1/types.proto"
   echo "Successfully generated proto files"
 
   echo "generate.sh - $(date) - $(whoami)" > "$GEN_FILE"

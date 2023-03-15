@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package sf.test.v1;
+
+option go_package = "sink-kv/pb/proto;pbtest";
+
+service TestService {
+  rpc TestGet(GetTestRequest) returns (stream Tuple);
+  rpc TestGetMany(TestGetManyRequest) returns (stream OptionalTuples);
+  rpc TestPrefix(TestPrefixRequest) returns (stream Tuples);
+  rpc TestScan(TestScanRequest) returns (stream Tuples);
+}
+
+message GetTestRequest {
+  string key = 1;
+}
+
+message TestGetManyRequest {
+  repeated string keys = 1;
+}
+
+message TestPrefixRequest {
+  string prefix = 1;
+  int32 limit = 2;
+}
+
+message TestScanRequest {
+  string start = 1;
+  string exclusive_end = 2;
+  int32 limit = 3 ;
+}
+
+message Tuples {
+  repeated Tuple pairs = 1;
+}
+
+message OptionalTuples {
+  string error = 1;
+  repeated Tuple pairs = 2;
+}
+
+message Tuple {
+  string key = 1;
+  string value = 2;
+}

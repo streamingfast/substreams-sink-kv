@@ -11,5 +11,8 @@ package:
 protobuf:
   files:
     - substreams/sink/kv/v1/kv.proto
+    - substreams/sink/kv/v1/read.proto
+    - substreams/sink/kv/v1/services.proto
+    - substreams/sink/kv/v1/types.proto
   importPaths:
     - ./proto

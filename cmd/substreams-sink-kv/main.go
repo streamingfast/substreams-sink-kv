@@ -2,25 +2,29 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"runtime/debug"
 	"strings"
-	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	. "github.com/streamingfast/cli"
-	"github.com/streamingfast/dmetrics"
 	_ "github.com/streamingfast/kvdb/store/badger"
 	_ "github.com/streamingfast/kvdb/store/badger3"
+	_ "github.com/streamingfast/kvdb/store/bigkv"
+	_ "github.com/streamingfast/kvdb/store/netkv"
+	_ "github.com/streamingfast/kvdb/store/tikv"
 	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
 )
 
+// Commit sha1 value, injected via go build `ldflags` at build time
+var commit = ""
+
 // Version value, injected via go build `ldflags` at build time
 var version = "dev"
+
+// Date value, injected via go build `ldflags` at build time
+var date = ""
 
 var zlog, tracer = logging.RootLogger("sink-kv", "github.com/streamingfast/substreams-sink-kv/cmd/substreams-sink-kv")
 
@@ -30,10 +34,11 @@ func init() {
 
 func main() {
 	Run("substreams-sink-kv", "Substreams KV Sink",
-		SinkRunCmd,
-
 		ConfigureViper("SINK"),
 		ConfigureVersion(),
+
+		injectCmd,
+		serveCmd,
 
 		PersistentFlags(
 			func(flags *pflag.FlagSet) {
@@ -43,27 +48,11 @@ func main() {
 			},
 		),
 		AfterAllHook(func(cmd *cobra.Command) {
-			cmd.PersistentPreRun = func(_ *cobra.Command, _ []string) {
-				delay := viper.GetDuration("global-delay-before-start")
-				if delay > 0 {
-					zlog.Info("sleeping to respect delay before start setting", zap.Duration("delay", delay))
-					time.Sleep(delay)
+			cmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+				if err := setupCmd(cmd); err != nil {
+					return err
 				}
-
-				if v := viper.GetString("global-metrics-listen-addr"); v != "" {
-					zlog.Info("starting prometheus metrics server", zap.String("listen_addr", v))
-					go dmetrics.Serve(v)
-				}
-
-				if v := viper.GetString("global-pprof-listen-addr"); v != "" {
-					go func() {
-						zlog.Info("starting pprof server", zap.String("listen_addr", v))
-						err := http.ListenAndServe(v, nil)
-						if err != nil {
-							zlog.Debug("unable to start profiling server", zap.Error(err), zap.String("listen_addr", v))
-						}
-					}()
-				}
+				return nil
 			}
 		}),
 	)
