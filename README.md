@@ -65,11 +65,11 @@ sink:
 
 breaking down the `sink` block we get the following:
 
-- *module*: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)  
-- *type*: Support to types currently:
+- **module**: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)  
+- **type**: Support to types currently:
   - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto) 
   - [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
-- *config*: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
+- **config**: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
 > **_NOTE:_**  the `@@` notion will read the path and inject the content of the file in bytes, while the `@` notion will dump the file content in ascii 
 
