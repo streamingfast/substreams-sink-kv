@@ -15,7 +15,7 @@ import (
 var zlog, _ = logging.PackageLogger("sink-kv", "github.com/streamingfast/substreams-sink-kv/server/wasm.test")
 
 func init() {
-	logging.InstantiateLoggers(logging.WithDefaultLevel(zapcore.DebugLevel))
+	logging.InstantiateLoggers(logging.WithDefaultLevel(zapcore.InfoLevel))
 }
 
 func assertProtoEqual(t *testing.T, expected proto.Message, actual proto.Message) {

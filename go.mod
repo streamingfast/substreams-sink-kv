@@ -11,7 +11,7 @@ require (
 	github.com/streamingfast/derr v0.0.0-20221125175206-82e01d420d45
 	github.com/streamingfast/kvdb v0.1.1-0.20230106211814-335aada11ecd
 	github.com/streamingfast/logging v0.0.0-20220813175024-b4fbb0e893df
-	github.com/streamingfast/substreams v0.2.1-0.20230227214606-506bc6184f73
+	github.com/streamingfast/substreams v1.0.1-0.20230313192236-810f11eea539
 	github.com/streamingfast/substreams-sink v0.0.0-20230228155421-eb5cdf2ed678
 	github.com/stretchr/testify v1.8.1
 	github.com/test-go/testify v1.1.4
@@ -167,6 +167,3 @@ require (
 	google.golang.org/grpc v1.50.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-//replace github.com/streamingfast/substreams => /Users/emiliocramer/developer/StreamingFast/src/substreams
-//replace github.com/streamingfast/substreams-sink => github.com/streamingfast/bstream v0.0.2-0.20221117104246-5660c4ba5e8c

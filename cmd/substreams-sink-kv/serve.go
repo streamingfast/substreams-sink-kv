@@ -48,9 +48,14 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	dsn := args[0]
 	manifestPath := args[1]
 	listenAddr := mustGetString(cmd, "listen-addr")
-	manifestReader := manifest.NewReader(manifestPath)
 
-	zlog.Info("reading substreams spkg", zap.String("manifest_path", manifestPath))
+	zlog.Info("serve substreams-sink-kv",
+		zap.String("dsn", dsn),
+		zap.String("manifest_path", manifestPath),
+		zap.String("listen_addr", listenAddr),
+	)
+
+	manifestReader := manifest.NewReader(manifestPath)
 	pkg, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
@@ -131,7 +136,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 
 		return wasm.NewServer(config, wasmEngine, wasm.PassthroughCodec{}, zlog)
 	case "sf.substreams.sink.kv.v1.GenericService":
-		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "run-listen-ssl-self-signed")), nil
+		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "listen-ssl-self-signed")), nil
 	default:
 		return nil, fmt.Errorf("invalid sink_config type: %s", pkg.SinkConfig.TypeUrl)
 	}
