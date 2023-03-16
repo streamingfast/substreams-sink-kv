@@ -56,7 +56,7 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
                 ops.push_new(delta.key, val, delta.ordinal);
             }
             Operation::Delete => ops.push_delete(&delta.key, delta.ordinal),
-            x => panic!("unsupported opeation {:?}", x),
+            x => panic!("unsupported operation {:?}", x),
         }
     }
 }
@@ -72,15 +72,17 @@ Before we run the `substreams-sink-kv` we need to build the WASM query service
 
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
-You can run the `substreams-sink-kv` inject mode with the `inject.sh` script.
+You can run the `substreams-sink-kv` inject mode.
 
 ```bash
- ./inject.sh
+  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+  substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
+> **Note** You can also use the `inject.sh` scripts which contains the call above
 
 The `inject` mode is running the [`block-meta` substream](https://github.com/streamingfast/substreams-eth-block-meta) and applying the `KVOperation` to a local `badger -b` that is located here `./badger_data.db`. 
 
-After a few minutes of sinking your local `badger-db` should contains keys. You can close the `inject` process.
+After a few minutes of sinking your local `badger-db` should contain keys. You can close the `inject` process.
 
 We can introspect the store with our [`kvdb` CLI](https://github.com/streamingfast/kvdb)
 
@@ -108,12 +110,9 @@ The wasm query service, is a user defined service that exposes a consumable gRPC
 
 - The `.proto` that finds the gRPC api found  [here](./blockmeta_wasm_query/proto/service.proto)
 ```protobuf
-...
 service Blockmeta {
   rpc GetMonth(GetMonthRequest) returns (stream MonthResponse);
-//  rpc GetYear(GetYearRequest) returns (stream YearReponse);
 }
-...
 ```
 
 - The `WASM` code that is executed when the gRPC API is called. The full implementation is [here](./blockmeta_wasm_query/src/lib.rs)
@@ -123,7 +122,15 @@ The important things to note are:
 1) For every `method` in the defined gRPC service (i.e. `GetMonth`) there needs to be a matching `WASM` query function where the name is the fully qualified gRPC method name sanitized ( lowercase and periods replaced by underscores). For example `eth.service.v1.blockmeta.GetMonth` execute this WASM function `eth_service_v1_blockmeta_getmonth`
 2) the WASM function has access to the underlying key-value store and can perform common key-value operation `get`, `getMany`, `prefix`, `scan`
 
-Launching the `substreams-sink-kv serve` via the `./serve.sh` script will essentially start a gRPC service that exposes the defined `.proto` service backed by the `WASM` code you wrote.
+Launch the `substreams-sink-kv` in serve mode. This will essentially start a gRPC service that exposes the defined `.proto` service backed by the `WASM` code you wrote.
+
+```bash
+  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+  substreams-sink-kv serve "badger3://$(pwd)/badger_data.db" substreams.yaml
+```
+
+> **Note** You can also use the `serve.sh` scripts which contains the call above
+
 
 ```bash
  ./serve.sh
@@ -132,7 +139,7 @@ Launching the `substreams-sink-kv serve` via the `./serve.sh` script will essent
 In a separate terminal you can run the following command, to consume your gRPC API
 
 ```bash
-  grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019","month":"05"}' localhost:7878 eth.service.v1.Blockmeta.GetMonth
+  grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019","month":"05"}' localhost:7878 eth.service.v1.BlockMeta.GetMonth
 ```
 
 You should get the following output: 
@@ -158,4 +165,8 @@ You should get the following output:
 }
 ```
 
+Other examples
 
+```bash
+  grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019"}' localhost:7878 eth.service.v1.BlockMeta.GetYear
+```

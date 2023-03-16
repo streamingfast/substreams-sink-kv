@@ -79,11 +79,13 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
 
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
-You can run the `substreams-sink-kv` inject mode with the `inject.sh` script.
+You can run the `substreams-sink-kv` inject mode.
 
 ```bash
- ./inject.sh
+  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+  substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
+> **Note** You can also use the `inject.sh` scripts which contains the call above
 
 The `inject` mode is running the [`block-meta` substream](https://github.com/streamingfast/substreams-eth-block-meta) and applying the `KVOperation` to a local `badger -b` that is located here `./badger_data.db`.
 
@@ -115,11 +117,15 @@ The Generic Query service is a [Connect-Web protocol](https://connect.build/docs
 
 The API is defined in `protobuf` [here](../../proto/substreams/sink/kv/v1/read.proto).
 
-Launch the API via the `./serve.sh` script. This starts the Connect-Web server
+
+Launch the API, this starts the Connect-Web server
 
 ```bash
-substreams-sink-kv serve "badger3://$(pwd)/badger_data.db" substreams.yaml --listen-addr=":8080"
+  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+  substreams-sink-kv serve "badger3://$(pwd)/badger_data.db" substreams.yaml --listen-addr=":8080"
 ```
+
+> **Note** You can also use the `serve.sh` scripts which contains the call above
 
 ### Website
 
