@@ -66,13 +66,17 @@ extern "C" {
     pub fn get_by_prefix(prefix_ptr: *const u8, prefix_len: u32, limit: u32, output_ptr: u32) -> u32;
 }
 
-pub fn kv_prefix<K: AsRef<str>>(prefix: K, limit: u32) -> KvPairs {
+pub fn kv_prefix<K: AsRef<str>>(prefix: K, limit_opt: Option<u32>) -> KvPairs {
     let prefix = prefix.as_ref();
 
     unsafe {
         let prefix_bytes = prefix.as_bytes();
         let mut output_buf = Vec::with_capacity(8);
         let output_ptr = output_buf.as_mut_ptr();
+        let mut limit = 0;
+        if let Some(l) = limit_opt {
+            limit = l;
+        }
         let length = get_by_prefix(
             prefix_bytes.as_ptr(),
             prefix_bytes.len() as u32,
@@ -94,7 +98,7 @@ pub fn kv_prefix<K: AsRef<str>>(prefix: K, limit: u32) -> KvPairs {
 extern "C" {
     pub fn scan(start_ptr: *const u8, start_len: u32,exclusively_end_ptr: *const u8, exclusively_end_len: u32, limit: u32, output_ptr: u32) -> u32;
 }
-pub fn kv_scan<K: AsRef<str>>(start: K, exclusively_end: K, limit: u32) -> KvPairs {
+pub fn kv_scan<K: AsRef<str>>(start: K, exclusively_end: K, limit_opt: Option<u32>) -> KvPairs {
     let start = start.as_ref();
     let exclusively_end = exclusively_end.as_ref();
 
@@ -103,6 +107,10 @@ pub fn kv_scan<K: AsRef<str>>(start: K, exclusively_end: K, limit: u32) -> KvPai
         let exclusively_end_bytes = exclusively_end.as_bytes();
         let mut output_buf = Vec::with_capacity(8);
         let output_ptr = output_buf.as_mut_ptr();
+        let mut limit = 0;
+        if let Some(l) = limit_opt {
+            limit = l;
+        }
         let length = scan(
             start_bytes.as_ptr(),
             start_bytes.len() as u32,

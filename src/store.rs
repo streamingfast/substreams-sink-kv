@@ -14,8 +14,8 @@ pub trait StoreNew {
 pub trait StoreGet {
     fn get<K: AsRef<str>>(&self, key: K) -> Option<KvPair>;
     fn get_many(&self, keys: Vec<String>) -> Option<KvPairs>;
-    fn prefix<K: AsRef<str>>(&self, prefix: K, limit: u32) -> KvPairs;
-    fn scan<K: AsRef<str>>(&self, start: K, exclusive_end: K, limit: u32) -> KvPairs;
+    fn prefix<K: AsRef<str>>(&self, prefix: K, limit: Option<u32>) -> KvPairs;
+    fn scan<K: AsRef<str>>(&self, start: K, exclusive_end: K, limit: Option<u32>) -> KvPairs;
 
 }
 
@@ -30,6 +30,6 @@ impl StoreGet for Store {
         return externs::kv_get_key(key)
     }
     fn get_many(&self, keys: Vec<String>) -> Option<KvPairs> { return externs::kv_get_many_keys(keys) }
-    fn prefix<K: AsRef<str>>(&self, key: K, limit: u32) -> KvPairs {  return externs::kv_prefix(key, limit) }
-    fn scan<K: AsRef<str>>(&self, start: K, exclusive_end: K, limit: u32) -> KvPairs { return externs::kv_scan(start, exclusive_end, limit) }
+    fn prefix<K: AsRef<str>>(&self, key: K, limit: Option<u32>) -> KvPairs {  return externs::kv_prefix(key, limit) }
+    fn scan<K: AsRef<str>>(&self, start: K, exclusive_end: K, limit: Option<u32>) -> KvPairs { return externs::kv_scan(start, exclusive_end, limit) }
 }

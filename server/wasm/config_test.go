@@ -68,8 +68,6 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-// TODO: add more testing
-// TODO: do validation that there are only letters and digits left
 func Test_exportNameFromFQGrpcMethod(t *testing.T) {
 	tests := []struct {
 		grpcPath string

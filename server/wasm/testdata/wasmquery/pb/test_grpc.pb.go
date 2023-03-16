@@ -84,7 +84,7 @@ func (c *testServiceClient) TestGetMany(ctx context.Context, in *TestGetManyRequ
 }
 
 type TestService_TestGetManyClient interface {
-	Recv() (*OptionalTuples, error)
+	Recv() (*Tuples, error)
 	grpc.ClientStream
 }
 
@@ -92,8 +92,8 @@ type testServiceTestGetManyClient struct {
 	grpc.ClientStream
 }
 
-func (x *testServiceTestGetManyClient) Recv() (*OptionalTuples, error) {
-	m := new(OptionalTuples)
+func (x *testServiceTestGetManyClient) Recv() (*Tuples, error) {
+	m := new(Tuples)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func _TestService_TestGetMany_Handler(srv interface{}, stream grpc.ServerStream)
 }
 
 type TestService_TestGetManyServer interface {
-	Send(*OptionalTuples) error
+	Send(*Tuples) error
 	grpc.ServerStream
 }
 
@@ -242,7 +242,7 @@ type testServiceTestGetManyServer struct {
 	grpc.ServerStream
 }
 
-func (x *testServiceTestGetManyServer) Send(m *OptionalTuples) error {
+func (x *testServiceTestGetManyServer) Send(m *Tuples) error {
 	return x.ServerStream.SendMsg(m)
 }
 

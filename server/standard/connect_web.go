@@ -9,13 +9,12 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	connect_go "github.com/bufbuild/connect-go"
-	"go.uber.org/zap"
-
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1/kvv1connect"
 	sserver "github.com/streamingfast/substreams-sink-kv/server"
+	"go.uber.org/zap"
 )
 
 var _ sserver.Serveable = (*ConnectServer)(nil)

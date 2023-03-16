@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/grpc/codes"
+
+	"google.golang.org/grpc/status"
+
 	"go.uber.org/zap"
 
 	"google.golang.org/grpc"
@@ -42,9 +46,12 @@ func (h *Handler) handle(_ interface{}, stream grpc.ServerStream) error {
 		return err
 	}
 
-	res, _, err := h.engine.bg.Execute(h.exportName, m.Bytes())
+	res, wasmErr, err := h.engine.bg.Execute(h.exportName, m.Bytes())
 	if err != nil {
 		return fmt.Errorf("executing func %q: %w", h.exportName, err)
+	}
+	if err, ok := wasmErr.(string); ok && err != "" {
+		return status.Error(codes.Internal, err)
 	}
 
 	out := h.protoCodec.NewMessage()

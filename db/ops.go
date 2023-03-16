@@ -105,7 +105,10 @@ func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err e
 }
 
 func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
-	if limit <= 0 || limit > l.QueryRowsLimit {
+	if limit == 0 {
+		limit = l.QueryRowsLimit
+	}
+	if limit < 0 || limit > l.QueryRowsLimit {
 		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, l.QueryRowsLimit, limit)
 	}
 	if prefix == "" {
@@ -135,7 +138,10 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 }
 
 func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
-	if limit <= 0 || limit > l.QueryRowsLimit {
+	if limit == 0 {
+		limit = l.QueryRowsLimit
+	}
+	if limit < 0 || limit > l.QueryRowsLimit {
 		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, l.QueryRowsLimit, limit)
 	}
 

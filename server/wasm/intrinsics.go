@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+
 	"google.golang.org/protobuf/proto"
 
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
@@ -58,9 +59,8 @@ func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, pa
 
 	keys := &pbkv.KVKeys{}
 	if err := proto.Unmarshal(data, keys); err != nil {
-		e.logger.Warn("failed to proto unmarhal proto keys", zap.Error(err))
+		e.logger.Warn("failed to proto unmarshal proto keys", zap.Error(err))
 		return nil, wasmedge.Result_Fail
-
 	}
 
 	// TODO: ctx is probably incorrect
