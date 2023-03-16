@@ -18,4 +18,4 @@ sink:
   type: sf.substreams.sink.kv.v1.WASMQueryService
   config:
     wasmQueryModule: "@@./blockmeta_wasm_query/blockmeta_wasm_query.wasm"
-    grpcService: "eth.service.v1.Blockmeta"
+    grpcService: "eth.service.v1.BlockMeta"
