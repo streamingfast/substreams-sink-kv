@@ -1,0 +1,13 @@
+specVersion: v0.1.0
+package:
+  name: "substreams_eth_block_meta"
+  version: v0.4.0
+
+imports:
+  sink_kv: https://github.com/streamingfast/substreams-sink-kv/releases/download/v0.1.2/substreams-sink-kv-v0.1.2.spkg
+  blockmeta: https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.1/substreams-eth-block-meta-v0.4.1.spkg
+
+sink:
+  module: blockmeta:kv_out
+  type: sf.substreams.sink.kv.v1.GenericService
+  config:

@@ -2,20 +2,22 @@
 
 In this example, we will launch the [`block-meta` substream](https://github.com/streamingfast/substreams-eth-block-meta), sink it to a key-value store and launch a WASM query service to access the data in the key-value store.
 
-## Install
-*WasmEdge*
+## Requirements
+
+##### WasmEdge
+
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
 ```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 ```
 
-*substreams-sink-kv*
+## Install
+
 Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
 ```
-
 
 ### Substream
 The `block-meta` substreams tracks the first and last block of every month since genesis block. The substream has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
@@ -58,7 +60,6 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
         }
     }
 }
-
 ```
 
 ### Running Injector

@@ -4,18 +4,22 @@ A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-
 - [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible) via the `GenericService` 
 - a User defined WASM query service
 
-## Install
-*WasmEdge*
+## Requirements
+
+##### WasmEdge
+
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
 ```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 ```
 
-*substreams-sink-kv*
+## Install
+
 Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
+
 ```
 
 ## Running
