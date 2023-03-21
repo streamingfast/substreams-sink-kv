@@ -11,16 +11,19 @@ Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/q
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 ```
 
+> **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
+
 ## Install
 
-Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
+Get the binary from the [Releases page](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
 ```
 
-### Substream
-The `block-meta` substreams tracks the first and last block of every month since genesis block. The substream has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
+### Substreams
+
+The `block-meta` substreams tracks the first and last block of every month since genesis block. The substreams has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
 
 ```yaml
 ...
@@ -35,9 +38,10 @@ The `block-meta` substreams tracks the first and last block of every month since
     type: proto:sf.substreams.sink.kv.v1.KVOperations
 ...
 ```
-You can see the full `substreams.yaml` [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/substreams.yaml#L46-L54)
 
-The module outputs  [`KVOperations`](../../proto/substreams/sink/kv/v1/kv.proto) that the `substreams-sink-kv` will apply to key-value-store. The implementation details can be found [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/src/kv_out.rs)
+> **Note** [See full `substreams.yaml`](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/substreams.yaml#L46-L54)
+
+The module outputs  [`KVOperations`](../../proto/substreams/sink/kv/v1/kv.proto) that the `substreams-sink-kv` will apply to key/value store. The implementation details can be found [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/src/kv_out.rs)
 
 ```rust
 use substreams::proto;
@@ -75,12 +79,13 @@ Before we run the `substreams-sink-kv` we need to build the WASM query service
 You can run the `substreams-sink-kv` inject mode.
 
 ```bash
+  # Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
   export DYLD_LIBRARY_PATH=$LIBRARY_PATH
   substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
 > **Note** You can also use the `inject.sh` scripts which contains the call above
 
-The `inject` mode is running the [`block-meta` substream](https://github.com/streamingfast/substreams-eth-block-meta) and applying the `KVOperation` to a local `badger -b` that is located here `./badger_data.db`. 
+The `inject` mode is running the [`block-meta` substreams](https://github.com/streamingfast/substreams-eth-block-meta) and applying the `KVOperation` to a local `badger -b` that is located here `./badger_data.db`.
 
 After a few minutes of sinking your local `badger-db` should contain keys. You can close the `inject` process.
 
@@ -142,7 +147,7 @@ In a separate terminal you can run the following command, to consume your gRPC A
   grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019","month":"05"}' localhost:7878 eth.service.v1.BlockMeta.GetMonth
 ```
 
-You should get the following output: 
+You should get the following output:
 
 ```bash
 {

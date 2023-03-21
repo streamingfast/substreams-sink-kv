@@ -68,7 +68,7 @@ func (s *Stats) Start(each time.Duration) {
 					fields = append(fields, zap.Stringer("last_block", s.lastBlock))
 				}
 
-				s.logger.Info("substreams sink stats", fields...)
+				s.logger.Info("substreams kv stats", fields...)
 			case <-s.Terminating():
 				return
 			}

@@ -34,6 +34,7 @@ func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap
 		if err != nil {
 			return nil, fmt.Errorf("failed to get handler: %w", err)
 		}
+
 		grpcService.Streams = append(grpcService.Streams, grpc.StreamDesc{
 			StreamName:    methodConfig.Name,
 			Handler:       handler.handle,
