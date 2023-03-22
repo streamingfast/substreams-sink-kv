@@ -167,3 +167,5 @@ require (
 	google.golang.org/grpc v1.50.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/second-state/WasmEdge-go => ../../second-state/WasmEdge-go

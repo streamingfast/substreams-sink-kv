@@ -5,7 +5,7 @@ use wasmedge_bindgen::*;
 use wasmedge_bindgen_macro::*;
 use crate::pb::test::{GetTestRequest, TestPrefixRequest, TestScanRequest, TestGetManyRequest, Tuple, Tuples};
 use prost::Message;
-use substreams_sink_kv::pb::types::KvPair;
+use substreams_sink_kv::pb::sf::substreams::sink::types::v1::KvPair;
 use substreams_sink_kv::prelude::*;
 
 #[wasmedge_bindgen]

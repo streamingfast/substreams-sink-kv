@@ -75,7 +75,7 @@ breaking down the `sink` block we get the following:
   - [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
 - **config**: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
-> **_NOTE:_**  the `@@` notion will read the path and inject the content of the file in bytes, while the `@` notion will dump the file content in ascii 
+> **_NOTE:_**  the `@@` notation will read the path and inject the content of the file in bytes, while the `@` notation will dump the file content in ascii 
 
 
 ### Generic Service

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3](https://github.com/streamingfast/substreams-sink-kv/releases/tag/v0.1.3)
+
+### Added 
+
+* Added WASM Query Support
+* `GenericService` example `./examples/generic-service`
+* `WASMQueryService` example `./examples/wasm-query-service`
+
+### Changed
+
+* Remove `substream-sink-kv run` CLI and added `substream-sink-kv inject` & `substream-sink-kv serve`
+* Move `rust` crate to its own repo `https://github.com/streamingfast/substreams-sink-rs`
+
 ## [0.1.2](https://github.com/streamingfast/substreams-sink-kv/releases/tag/v0.1.2)
 
 ### Changed
