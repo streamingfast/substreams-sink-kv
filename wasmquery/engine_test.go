@@ -1,4 +1,4 @@
-package wasm
+package wasmquery
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestEngine_newEngineFromFile(t *testing.T) {
-	wasmFile := "./testdata/wasmquery/wasm_query.wasm"
+	wasmFile := "./testdata/wasm_query.wasm"
 	kv := db.NewMockDB()
 	eng, err := NewEngineFromFile(wasmFile, kv, zlog)
 	require.NoError(t, err)

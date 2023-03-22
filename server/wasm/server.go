@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"fmt"
+	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 	"time"
 
 	"google.golang.org/grpc"
@@ -16,7 +17,7 @@ import (
 
 var _ sserver.Serveable = (*Server)(nil)
 
-func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap.Logger) (*Server, error) {
+func NewServer(config *Config, wasmEnginePool *wasmquery.EnginePool, protoCodec Codec, logger *zap.Logger) (*Server, error) {
 	encoding.RegisterCodec(protoCodec)
 	srv := standard.NewServer(server.NewOptions())
 
@@ -25,12 +26,12 @@ func NewServer(config *Config, wasmEngine *Engine, protoCodec Codec, logger *zap
 	var v interface{}
 	grpcService := &grpc.ServiceDesc{
 		ServiceName: config.FQGRPCServiceName,
-		HandlerType: wasmEngine,
+		//HandlerType: wasmEngine,
 		Methods:     []grpc.MethodDesc{},
 	}
 
 	for _, methodConfig := range config.Methods {
-		handler, err := wasmEngine.GetHandler(methodConfig, protoCodec, logger)
+		handler, err := NewHandler(methodConfig, wasmEnginePool, protoCodec, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get handler: %w", err)
 		}

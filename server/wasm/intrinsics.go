@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-
 	"google.golang.org/protobuf/proto"
 
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
@@ -14,7 +13,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func (e *Engine) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
+type Intrinsics struct {
+	kv     db.Reader
+	logger *zap.Logger
+}
+
+func (i *Intrinsics) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
 	mem := callframe.GetMemoryByIndex(0)
 
 	keyPtr := params[0].(int32)
@@ -25,16 +29,16 @@ func (e *Engine) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params 
 	copy(key, data)
 
 	// TODO: ctx is probably incorrect
-	val, err := e.kv.Get(context.Background(), string(key))
+	val, err := i.kv.Get(context.Background(), string(key))
 	if err != nil {
 		if err == db.ErrNotFound {
 			return []interface{}{int32(0)}, wasmedge.Result_Success
 		}
-		e.logger.Warn("get key failed", zap.String("key", string(key)), zap.Error(err))
+		i.logger.Warn("get key failed", zap.String("key", string(key)), zap.Error(err))
 		return []interface{}{int32(0)}, wasmedge.Result_Fail
 	}
 
-	valuePtr := e.allocate(int32(len(val)))
+	valuePtr := i.allocate(int32(len(val)))
 	data, _ = mem.GetData(uint(valuePtr), uint(len(val)))
 
 	copy(data, val)
@@ -47,7 +51,7 @@ func (e *Engine) getKey(_ interface{}, callframe *wasmedge.CallingFrame, params 
 	return []interface{}{1}, wasmedge.Result_Success
 }
 
-func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
+func (i *Intrinsics) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
 	mem := callframe.GetMemoryByIndex(0)
 
 	keyPtr := params[0].(int32)
@@ -59,20 +63,20 @@ func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, pa
 
 	keys := &pbkv.KVKeys{}
 	if err := proto.Unmarshal(data, keys); err != nil {
-		e.logger.Warn("failed to proto unmarshal proto keys", zap.Error(err))
+		i.logger.Warn("failed to proto unmarshal proto keys", zap.Error(err))
 		return nil, wasmedge.Result_Fail
 	}
 
 	// TODO: ctx is probably incorrect
-	values, err := e.kv.GetMany(context.Background(), keys.Keys)
+	values, err := i.kv.GetMany(context.Background(), keys.Keys)
 	if err != nil {
 		if err == db.ErrNotFound {
 			return []interface{}{int32(0)}, wasmedge.Result_Success
 		}
-		e.logger.Warn("get key failed", zap.String("key", string(key)), zap.Error(err))
+		i.logger.Warn("get key failed", zap.String("key", string(key)), zap.Error(err))
 		return []interface{}{int32(0)}, wasmedge.Result_Fail
 	}
-	e.logger.Debug("kv database prefix",
+	i.logger.Debug("kv database prefix",
 		zap.Strings("keys", keys.Keys),
 		zap.Int("resp", len(values)),
 	)
@@ -82,11 +86,11 @@ func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, pa
 	}
 	outBytes, err := proto.Marshal(out)
 	if err != nil {
-		e.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
+		i.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
 		return nil, wasmedge.Result_Fail
 	}
 
-	protoPtr := e.allocate(int32(len(outBytes)))
+	protoPtr := i.allocate(int32(len(outBytes)))
 	data, _ = mem.GetData(uint(protoPtr), uint(len(outBytes)))
 	copy(data, outBytes)
 
@@ -98,7 +102,7 @@ func (e *Engine) getManyKeys(_ interface{}, callframe *wasmedge.CallingFrame, pa
 	return []interface{}{1}, wasmedge.Result_Success
 }
 
-func (e *Engine) getByPrefix(_ interface{}, callFrame *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
+func (i *Intrinsics) getByPrefix(_ interface{}, callFrame *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
 	mem := callFrame.GetMemoryByIndex(0)
 
 	prefixPtr := params[0].(int32)
@@ -109,17 +113,17 @@ func (e *Engine) getByPrefix(_ interface{}, callFrame *wasmedge.CallingFrame, pa
 
 	limit := params[2].(int32)
 
-	keyVals, _, err := e.kv.GetByPrefix(context.Background(), string(prefix), int(limit))
+	keyVals, _, err := i.kv.GetByPrefix(context.Background(), string(prefix), int(limit))
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			e.logger.Debug("no values found", zap.Error(err))
+			i.logger.Debug("no values found", zap.Error(err))
 			return []interface{}{int32(0)}, wasmedge.Result_Success
 		}
 
-		e.logger.Warn("prefix search failed", zap.String("prefix", string(prefix)), zap.Error(err))
+		i.logger.Warn("prefix search failed", zap.String("prefix", string(prefix)), zap.Error(err))
 		return nil, wasmedge.Result_Fail
 	}
-	e.logger.Debug("kv database prefix",
+	i.logger.Debug("kv database prefix",
 		zap.String("prefix", string(prefix)),
 		zap.Int32("limit", limit),
 		zap.Int("key_value_count", len(keyVals)),
@@ -131,11 +135,11 @@ func (e *Engine) getByPrefix(_ interface{}, callFrame *wasmedge.CallingFrame, pa
 	}
 	outBytes, err := proto.Marshal(out)
 	if err != nil {
-		e.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
+		i.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
 		return nil, wasmedge.Result_Fail
 	}
 
-	protoPtr := e.allocate(int32(len(outBytes)))
+	protoPtr := i.allocate(int32(len(outBytes)))
 	data, _ = mem.GetData(uint(protoPtr), uint(len(outBytes)))
 	copy(data, outBytes)
 
@@ -147,7 +151,7 @@ func (e *Engine) getByPrefix(_ interface{}, callFrame *wasmedge.CallingFrame, pa
 	return []interface{}{1}, wasmedge.Result_Success
 }
 
-func (e *Engine) scan(_ interface{}, callFrame *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
+func (i *Intrinsics) scan(_ interface{}, callFrame *wasmedge.CallingFrame, params []interface{}) ([]interface{}, wasmedge.Result) {
 	mem := callFrame.GetMemoryByIndex(0)
 
 	startPtr := params[0].(int32)
@@ -164,21 +168,21 @@ func (e *Engine) scan(_ interface{}, callFrame *wasmedge.CallingFrame, params []
 
 	limit := params[4].(int32)
 
-	keyVals, _, err := e.kv.Scan(context.Background(), string(start), string(exclusiveEnd), int(limit))
+	keyVals, _, err := i.kv.Scan(context.Background(), string(start), string(exclusiveEnd), int(limit))
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			e.logger.Debug("no values found", zap.Error(err))
+			i.logger.Debug("no values found", zap.Error(err))
 			return []interface{}{int32(0)}, wasmedge.Result_Success
 		}
 
-		e.logger.Warn("scan search failed",
+		i.logger.Warn("scan search failed",
 			zap.String("start", string(start)),
 			zap.String("exclusive_end", string(exclusiveEnd)),
 			zap.Error(err),
 		)
 		return nil, wasmedge.Result_Fail
 	}
-	e.logger.Debug("kv database scan",
+	i.logger.Debug("kv database scan",
 		zap.String("start", string(start)),
 		zap.String("exclusive_end", string(exclusiveEnd)),
 		zap.Int32("limit", limit),
@@ -191,11 +195,11 @@ func (e *Engine) scan(_ interface{}, callFrame *wasmedge.CallingFrame, params []
 	}
 	outBytes, err := proto.Marshal(out)
 	if err != nil {
-		e.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
+		i.logger.Warn("failed to proto marshal kv pairs", zap.Error(err))
 		return nil, wasmedge.Result_Fail
 	}
 
-	protoPtr := e.allocate(int32(len(outBytes)))
+	protoPtr := i.allocate(int32(len(outBytes)))
 	data, _ = mem.GetData(uint(protoPtr), uint(len(outBytes)))
 	copy(data, outBytes)
 

@@ -131,7 +131,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 
 		wasmEngine, err := wasm.NewEngineFromBytes(wasmServ.GetWasmQueryModule(), kvDB, zlog)
 		if err != nil {
-			return nil, fmt.Errorf("failed to setup wasm engine: %w", err)
+			return nil, fmt.Errorf("failed to setup wasm engine.go: %w", err)
 		}
 
 		return wasm.NewServer(config, wasmEngine, wasm.PassthroughCodec{}, zlog)

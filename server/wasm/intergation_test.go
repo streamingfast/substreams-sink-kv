@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"context"
+	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 	"os"
 	"testing"
 
@@ -396,13 +397,18 @@ func getWasmService(t *testing.T, protoPath, wasmPath, fqServiceName string, moc
 
 	protoFileDesc := protoFileToDescriptor(t, protoPath)
 
-	wasmEngine, err := NewEngineFromBytes(code, mockDB, zlog)
-	require.NoError(t, err)
 
 	config, err := NewConfig(protoFileDesc, fqServiceName)
 	require.NoError(t, err)
 
-	server, err := NewServer(config, wasmEngine, TestPassthroughCodec{}, zlog)
+	wasmPool, err := wasmquery.NewEnginePool(context.Background(),1, func() (*wasmquery.Engine, error) {
+		wasmEngine, err := wasmquery.NewEngineFromBytes(code, mockDB, zlog)
+		require.NoError(t, err)
+		return wasmEngine, nil
+	})
+	require.NoError(t, err)
+
+	server, err := NewServer(config, wasmPool, TestPassthroughCodec{}, zlog)
 	require.NoError(t, err)
 
 	return server
