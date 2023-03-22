@@ -145,7 +145,7 @@ main() {
 verify_github_token() {
   release_env_file="$ROOT/.env.release"
 
-  if [[ ! -f "$release_env_file" || ! grep -q "GITHUB_TOKEN=" "$release_env_file" ]]; then
+  if [[ ! -f "$release_env_file" ]] || ! grep -q "GITHUB_TOKEN=" "$release_env_file" ; then
     if [[ "$GITHUB_TOKEN" != "" ]]; then
         echo 'GITHUB_TOKEN=${GITHUB_TOKEN}' >> "$release_env_file"
 
