@@ -1,4 +1,4 @@
-package wasm
+package wasmquery
 
 import (
 	"testing"
@@ -14,13 +14,13 @@ func TestNewConfig(t *testing.T) {
 	tests := []struct {
 		protoPath   string
 		fqService   string
-		expect      *Config
+		expect      *ServiceConfig
 		expectError bool
 	}{
 		{
-			protoPath: "./testdata/wasmquery/test.proto",
+			protoPath: "./testdata/test.proto",
 			fqService: "sf.test.v1.TestService",
-			expect: &Config{
+			expect: &ServiceConfig{
 				FQGRPCServiceName: "sf.test.v1.TestService",
 				Methods: []*MethodConfig{
 					{
@@ -47,7 +47,7 @@ func TestNewConfig(t *testing.T) {
 			},
 		},
 		{
-			protoPath:   "./testdata/wasmquery/test.proto",
+			protoPath:   "./testdata/test.proto",
 			fqService:   "sf.reader.v1.Unknown",
 			expectError: true,
 		},
@@ -56,7 +56,7 @@ func TestNewConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.protoPath, func(t *testing.T) {
 			filedesc := protoFileToDescriptor(t, test.protoPath)
-			config, err := NewConfig(filedesc, test.fqService)
+			config, err := NewServiceConfig(filedesc, test.fqService)
 			if test.expectError {
 				require.Error(t, err)
 			} else {

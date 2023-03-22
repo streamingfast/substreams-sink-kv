@@ -1,8 +1,10 @@
-package wasm
+package wasmquery
 
 import (
 	"fmt"
 	"time"
+
+	"github.com/streamingfast/logging"
 
 	"google.golang.org/grpc/codes"
 
@@ -15,38 +17,49 @@ import (
 
 type Handler struct {
 	exportName string
-	engine     *Engine
+	enginePool *Engine
 	protoCodec Codec
 	logger     *zap.Logger
 }
 
-func (e *Engine) GetHandler(config *MethodConfig, protoCodec Codec, logger *zap.Logger) (*Handler, error) {
-
-	if _, found := e.functionList[config.ExportName]; !found {
-		return nil, fmt.Errorf("unable to create handler for grpc method %q, export %q not found in wasm", config.FQGRPCName, config.ExportName)
-	}
+func newHandler(config *MethodConfig, enginePool *Engine, protoCodec Codec, logger *zap.Logger) (*Handler, error) {
 
 	return &Handler{
 		exportName: config.ExportName,
 		protoCodec: protoCodec,
-		engine:     e,
+		enginePool: enginePool,
 		logger:     logger.With(zap.String("export_name", config.ExportName)),
 	}, nil
 }
 
 func (h *Handler) handle(_ interface{}, stream grpc.ServerStream) error {
+	ctx := stream.Context()
+
+	logger := logging.Logger(ctx, h.logger)
+
 	t0 := time.Now()
 	defer func() {
-		h.logger.Debug("finished handler", zap.Duration("elapsed", time.Since(t0)))
+		logger.Debug("finished handler", zap.Duration("elapsed", time.Since(t0)))
 	}()
 
-	h.logger.Debug("handling wasm query call")
+	logger.Debug("handling wasm query call")
 	m := h.protoCodec.NewMessage()
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
 
-	res, wasmErr, err := h.engine.bg.Execute(h.exportName, m.Bytes())
+	vmInstance := h.enginePool.borrowVM(ctx)
+	defer func() {
+		h.enginePool.returnVM(vmInstance)
+	}()
+	logger = logger.With(vmInstance.loggerFields()...)
+
+	request := &Request{
+		ctx:    ctx,
+		logger: logger,
+	}
+
+	res, wasmErr, err := vmInstance.execute(request, h.exportName, m.Bytes())
 	if err != nil {
 		return fmt.Errorf("executing func %q: %w", h.exportName, err)
 	}
