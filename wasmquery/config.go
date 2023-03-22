@@ -1,4 +1,4 @@
-package wasm
+package wasmquery
 
 import (
 	"fmt"
@@ -7,7 +7,14 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-type Config struct {
+type EngineConfig struct {
+	vmCount       uint64
+	code          []byte
+	codec         Codec
+	serviceConfig *ServiceConfig
+}
+
+type ServiceConfig struct {
 	FQGRPCServiceName string
 	Methods           []*MethodConfig
 }
@@ -18,13 +25,29 @@ type MethodConfig struct {
 	ExportName string // will match the name of the function in the wasm code
 }
 
-func NewConfig(protoFile *descriptorpb.FileDescriptorProto, fqGRPCService string) (*Config, error) {
+func NewEngineConfig(count uint64, code []byte, serviceConfig *ServiceConfig) *EngineConfig {
+	return NewEngineConfigWithCodec(count, code, serviceConfig, PassthroughCodec{})
+}
+
+func NewEngineConfigWithCodec(count uint64, code []byte, serviceConfig *ServiceConfig, codec Codec) *EngineConfig {
+	return &EngineConfig{
+		vmCount:       count,
+		code:          code,
+		codec:         codec,
+		serviceConfig: serviceConfig,
+	}
+}
+
+func NewServiceConfig(
+	protoFile *descriptorpb.FileDescriptorProto,
+	fqGRPCService string,
+) (*ServiceConfig, error) {
 	for _, srv := range protoFile.Service {
 		servName := fmt.Sprintf("%s.%s", protoFile.GetPackage(), srv.GetName())
 		if servName != fqGRPCService {
 			continue
 		}
-		c := &Config{
+		c := &ServiceConfig{
 			FQGRPCServiceName: servName,
 		}
 		for _, mth := range srv.Method {
@@ -38,6 +61,13 @@ func NewConfig(protoFile *descriptorpb.FileDescriptorProto, fqGRPCService string
 		return c, nil
 	}
 	return nil, fmt.Errorf("unable to find grpc service %q in proto file", fqGRPCService)
+}
+
+func (s *ServiceConfig) getWASMFunctionNames() (out []string) {
+	for _, method := range s.Methods {
+		out = append(out, method.ExportName)
+	}
+	return out
 }
 
 func exportNameFromFQGrpcMethod(fqGRPCMethod string) string {

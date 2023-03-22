@@ -2,9 +2,12 @@ package wasm
 
 import (
 	"context"
-	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 	"os"
 	"testing"
+
+	"go.uber.org/zap"
+
+	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/substreams-sink-kv/db"
@@ -41,7 +44,7 @@ func Test_IntrinsicGet(t *testing.T) {
 			name: "golden path",
 			req:  &pbtest.GetTestRequest{Key: "key1"},
 			db: map[string][]byte{
-				"key1": []byte("julien"),
+				"key1": []byte("juliens"),
 			},
 			expectResp: &pbtest.Tuple{Key: "key1", Value: "julien"},
 		},
@@ -391,27 +394,23 @@ func Test_IntrinsicScan(t *testing.T) {
 
 }
 
-func getWasmService(t *testing.T, protoPath, wasmPath, fqServiceName string, mockDB *db.MockDB) *Server {
+func getWasmService(t *testing.T, protoPath, wasmPath, fqServiceName string, mockDB *db.MockDB) *wasmquery.Engine {
 	code, err := os.ReadFile(wasmPath)
 	require.NoError(t, err)
 
 	protoFileDesc := protoFileToDescriptor(t, protoPath)
 
-
-	config, err := NewConfig(protoFileDesc, fqServiceName)
+	config, err := wasmquery.NewServiceConfig(protoFileDesc, fqServiceName)
 	require.NoError(t, err)
 
-	wasmPool, err := wasmquery.NewEnginePool(context.Background(),1, func() (*wasmquery.Engine, error) {
-		wasmEngine, err := wasmquery.NewEngineFromBytes(code, mockDB, zlog)
-		require.NoError(t, err)
-		return wasmEngine, nil
-	})
+	engineConfig := wasmquery.NewEngineConfigWithCodec(1, code, config, TestPassthroughCodec{})
+
+	engine, err := wasmquery.NewEngine(engineConfig, func(vm wasmquery.VM, logger *zap.Logger) wasmquery.WASMExtension {
+		return NewKVExtension(mockDB, vm, logger)
+	}, zlog)
 	require.NoError(t, err)
 
-	server, err := NewServer(config, wasmPool, TestPassthroughCodec{}, zlog)
-	require.NoError(t, err)
-
-	return server
+	return engine
 
 }
 

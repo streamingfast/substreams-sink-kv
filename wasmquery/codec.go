@@ -1,8 +1,8 @@
-package wasm
+package wasmquery
 
 import "google.golang.org/grpc/encoding"
 
-// Codec
+// codec
 
 type Codec interface {
 	encoding.Codec

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/streamingfast/substreams-sink-kv/wasmquery"
+
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,7 +17,6 @@ import (
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
-	"github.com/streamingfast/substreams-sink-kv/server/wasm"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"go.uber.org/zap"
@@ -124,17 +125,23 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("find proto file descriptor: %w", err)
 		}
 
-		config, err := wasm.NewConfig(fileDesc, wasmServ.GrpcService)
+		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService)
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
 		}
 
-		wasmEngine, err := wasm.NewEngineFromBytes(wasmServ.GetWasmQueryModule(), kvDB, zlog)
+		engine, err := wasmquery.NewEngine(
+			wasmquery.NewEngineConfig(1, wasmServ.GetWasmQueryModule(), config),
+			func(vm wasmquery.VM, logger *zap.Logger) wasmquery.WASMExtension {
+				return nil
+			},
+			zlog,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup wasm engine.go: %w", err)
 		}
 
-		return wasm.NewServer(config, wasmEngine, wasm.PassthroughCodec{}, zlog)
+		return engine, nil
 	case "sf.substreams.sink.kv.v1.GenericService":
 		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "listen-ssl-self-signed")), nil
 	default:
