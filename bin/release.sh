@@ -143,29 +143,12 @@ main() {
 }
 
 verify_github_token() {
-  release_env_file="$ROOT/.env.release"
-
-  if [[ "$GITHUB_TOKEN" != "" && ! -f "$release_env_file" ]]; then
-    echo "GITHUB_TOKEN=${GITHUB_TOKEN}" > "$release_env_file"
-  fi
-
-  if [ ! -f "$ROOT/.env.release" ] || ! grep -q "GITHUB_TOKEN=gh" "$release_env_file"; then
-    echo "A '.env.release' file must be found at the root of the project and it must contain"
-    echo "definition of 'GITHUB_TOKEN' variable. You need to create this file locally and the"
-    echo "content should be:"
+  if [[ ! -f "$HOME/.config/goreleaser/github_token" && "$GITHUB_TOKEN" = "" ]]; then
+    echo "No GitHub token could be found in environment variable GITHUB_TOKEN"
+    echo "nor at ~/.config/goreleaser/github_token."
     echo ""
-    echo "GITHUB_TOKEN=<your_github_token>"
-    echo ""
-    echo "You will need to create your own GitHub Token on GitHub website and make it available through"
-    echo "the file mentioned above."
-
-    if [[ -f "$ROOT/.env.release" ]]; then
-      echo ""
-      echo "Actual content of '$release_env_file' is:"
-      echo ""
-      cat "$release_env_file"
-    fi
-
+    echo "You will need to create one on GitHub website and make it available through"
+    echo "one of the accept way mentioned above."
     exit 1
   fi
 }
