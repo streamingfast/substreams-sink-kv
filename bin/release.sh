@@ -145,35 +145,33 @@ main() {
 verify_github_token() {
   release_env_file="$ROOT/.env.release"
 
-  if [[ ! -f "$release_env_file" ]]; then
+  if [[ ! -f "$release_env_file" || ! grep -q "GITHUB_TOKEN=" "$release_env_file" ]]; then
     if [[ "$GITHUB_TOKEN" != "" ]]; then
-        echo 'GITHUB_TOKEN=${GITHUB_TOKEN}' > "$release_env_file"
+        echo 'GITHUB_TOKEN=${GITHUB_TOKEN}' >> "$release_env_file"
 
     elif [[ -f "$HOME/.config/goreleaser/github_token" ]]; then
 
       token=$(cat "$HOME/.config/goreleaser/github_token")
-      echo 'GITHUB_TOKEN=${token}' > "$release_env_file"
-    fi
-  fi
+      echo 'GITHUB_TOKEN=${token}' >> "$release_env_file"
 
-  if [ ! -f "$release_env_file" ] || ! grep -q "GITHUB_TOKEN=" "$release_env_file"; then
-    echo "A '.env.release' file must be found at the root of the project and it must contain"
-    echo "definition of 'GITHUB_TOKEN' variable. You need to create this file locally and the"
-    echo "content should be:"
-    echo ""
-    echo "GITHUB_TOKEN=<your_github_token>"
-    echo ""
-    echo "You will need to create your own GitHub Token on GitHub website and make it available through"
-    echo "the file mentioned above."
-
-    if [[ -f "$release_env_file" ]]; then
+    else
+      echo "A '.env.release' file must be found at the root of the project and it must contain"
+      echo "definition of 'GITHUB_TOKEN' variable. You need to create this file locally and the"
+      echo "content should be:"
       echo ""
-      echo "Actual content of '$release_env_file' is:"
+      echo "GITHUB_TOKEN=<your_github_token>"
       echo ""
-      cat "$release_env_file"
-    fi
+      echo "You will need to create your own GitHub Token on GitHub website and make it available through"
+      echo "the file mentioned above."
 
-    exit 1
+      if [[ -f "$release_env_file" ]]; then
+        echo ""
+        echo "Actual content of '$release_env_file' is:"
+        echo ""
+        cat "$release_env_file"
+      fi
+      exit 1
+    fi
   fi
 }
 
