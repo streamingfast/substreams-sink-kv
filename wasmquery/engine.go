@@ -1,9 +1,12 @@
 package wasmquery
 
+import "C"
 import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/second-state/WasmEdge-go/wasmedge"
 
 	"github.com/streamingfast/dgrpc/server"
 	"github.com/streamingfast/dgrpc/server/standard"
@@ -18,13 +21,30 @@ type Engine struct {
 	logger *zap.Logger
 }
 
-func NewEngine(config *EngineConfig, extensionFactory WASMExtensionFactory, logger *zap.Logger) (*Engine, error) {
+type Option func(*Engine) *Engine
+
+func WithVMDebugLogLevel() Option {
+	return func(engine *Engine) *Engine {
+		wasmedge.SetLogDebugLevel()
+		return engine
+	}
+}
+
+func WithVMErrorLogLevel() Option {
+	return func(engine *Engine) *Engine {
+		wasmedge.SetLogErrorLevel()
+		return engine
+	}
+}
+
+func NewEngine(config *EngineConfig, extensionFactory WASMExtensionFactory, logger *zap.Logger, opts ...Option) (*Engine, error) {
 	logger.Info("initializing wasm query engine", zap.Uint64("vm_count", config.vmCount))
 
 	eng := &Engine{
 		vmPool: make(chan *vm, config.vmCount),
 		logger: logger,
 	}
+	wasmedge.SetLogOff()
 
 	if err := eng.setupGRPCServer(config.codec, config.serviceConfig); err != nil {
 		return nil, fmt.Errorf("failed to setup grpc server")
@@ -37,8 +57,8 @@ func NewEngine(config *EngineConfig, extensionFactory WASMExtensionFactory, logg
 		}
 
 		wasmExtension := extensionFactory(v, eng.logger)
-		if err := v.register(wasmExtension); err != nil {
-			return nil, fmt.Errorf("failed to register intrinsic to module: %w", err)
+		if err := v.registerHost(wasmExtension); err != nil {
+			return nil, fmt.Errorf("failed to registerHost intrinsic to module: %w", err)
 		}
 
 		if err := v.instantiate(config.serviceConfig.getWASMFunctionNames()); err != nil {
@@ -46,6 +66,10 @@ func NewEngine(config *EngineConfig, extensionFactory WASMExtensionFactory, logg
 		}
 
 		eng.vmPool <- v
+	}
+
+	for _, opt := range opts {
+		eng = opt(eng)
 	}
 
 	return eng, nil
@@ -80,10 +104,9 @@ func (e *Engine) setupGRPCServer(codec Codec, config *ServiceConfig) error {
 			return fmt.Errorf("failed to get handler: %w", err)
 		}
 
-		grpcService.Streams = append(grpcService.Streams, grpc.StreamDesc{
-			StreamName:    methodConfig.Name,
-			Handler:       handler.handle,
-			ServerStreams: true,
+		grpcService.Methods = append(grpcService.Methods, grpc.MethodDesc{
+			MethodName: methodConfig.Name,
+			Handler:    handler.handle,
 		})
 	}
 

@@ -52,6 +52,9 @@ func NewServiceConfig(
 		}
 		for _, mth := range srv.Method {
 			fqGRPC := fmt.Sprintf("%s.%s", c.FQGRPCServiceName, mth.GetName())
+			if mth.GetServerStreaming() {
+				return nil, fmt.Errorf("unable to support GRPC stream %s", fqGRPC)
+			}
 			c.Methods = append(c.Methods, &MethodConfig{
 				Name:       mth.GetName(),
 				FQGRPCName: fqGRPC,

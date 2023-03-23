@@ -5,14 +5,25 @@ package sf.test.v1;
 option go_package = "sink-kv/pb/proto;pbtest";
 
 service TestService {
-  rpc TestGet(GetTestRequest) returns (stream Tuple);
-  rpc TestGetMany(TestGetManyRequest) returns (stream Tuples);
-  rpc TestPrefix(TestPrefixRequest) returns (stream Tuples);
-  rpc TestScan(TestScanRequest) returns (stream Tuples);
+  rpc TestGet(TestGetRequest) returns (Tuple);
+  rpc TestGetMany(TestGetManyRequest) returns (Tuples);
+  rpc TestPrefix(TestPrefixRequest) returns (Tuples);
+  rpc TestScan(TestScanRequest) returns (Tuples);
+  rpc TestSleep(TestSleepRequest) returns (Response);
+  rpc TestPanic(TestPanicRequest) returns (Response);
 }
 
-message GetTestRequest {
+message TestGetRequest {
   string key = 1;
+}
+
+message TestSleepRequest {
+  string request_id = 1;
+  int32 duration = 2;
+}
+
+message TestPanicRequest {
+  bool should_panic = 1;
 }
 
 message TestGetManyRequest {
@@ -37,4 +48,8 @@ message Tuples {
 message Tuple {
   string key = 1;
   string value = 2;
+}
+
+message Response {
+  string output = 1;
 }

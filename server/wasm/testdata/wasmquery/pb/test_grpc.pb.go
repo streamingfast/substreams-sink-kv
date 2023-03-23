@@ -22,10 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TestServiceClient interface {
-	TestGet(ctx context.Context, in *GetTestRequest, opts ...grpc.CallOption) (TestService_TestGetClient, error)
-	TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (TestService_TestGetManyClient, error)
-	TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (TestService_TestPrefixClient, error)
-	TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (TestService_TestScanClient, error)
+	TestGet(ctx context.Context, in *TestGetRequest, opts ...grpc.CallOption) (*Tuple, error)
+	TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (*Tuples, error)
+	TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (*Tuples, error)
+	TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (*Tuples, error)
+	TestSleep(ctx context.Context, in *TestSleepRequest, opts ...grpc.CallOption) (*Response, error)
+	TestPanic(ctx context.Context, in *TestPanicRequest, opts ...grpc.CallOption) (*Response, error)
 }
 
 type testServiceClient struct {
@@ -36,142 +38,70 @@ func NewTestServiceClient(cc grpc.ClientConnInterface) TestServiceClient {
 	return &testServiceClient{cc}
 }
 
-func (c *testServiceClient) TestGet(ctx context.Context, in *GetTestRequest, opts ...grpc.CallOption) (TestService_TestGetClient, error) {
-	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[0], "/sf.test.v1.TestService/TestGet", opts...)
+func (c *testServiceClient) TestGet(ctx context.Context, in *TestGetRequest, opts ...grpc.CallOption) (*Tuple, error) {
+	out := new(Tuple)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestGet", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &testServiceTestGetClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type TestService_TestGetClient interface {
-	Recv() (*Tuple, error)
-	grpc.ClientStream
-}
-
-type testServiceTestGetClient struct {
-	grpc.ClientStream
-}
-
-func (x *testServiceTestGetClient) Recv() (*Tuple, error) {
-	m := new(Tuple)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *testServiceClient) TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (TestService_TestGetManyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[1], "/sf.test.v1.TestService/TestGetMany", opts...)
+func (c *testServiceClient) TestGetMany(ctx context.Context, in *TestGetManyRequest, opts ...grpc.CallOption) (*Tuples, error) {
+	out := new(Tuples)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestGetMany", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &testServiceTestGetManyClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type TestService_TestGetManyClient interface {
-	Recv() (*Tuples, error)
-	grpc.ClientStream
-}
-
-type testServiceTestGetManyClient struct {
-	grpc.ClientStream
-}
-
-func (x *testServiceTestGetManyClient) Recv() (*Tuples, error) {
-	m := new(Tuples)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *testServiceClient) TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (TestService_TestPrefixClient, error) {
-	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[2], "/sf.test.v1.TestService/TestPrefix", opts...)
+func (c *testServiceClient) TestPrefix(ctx context.Context, in *TestPrefixRequest, opts ...grpc.CallOption) (*Tuples, error) {
+	out := new(Tuples)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestPrefix", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &testServiceTestPrefixClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type TestService_TestPrefixClient interface {
-	Recv() (*Tuples, error)
-	grpc.ClientStream
-}
-
-type testServiceTestPrefixClient struct {
-	grpc.ClientStream
-}
-
-func (x *testServiceTestPrefixClient) Recv() (*Tuples, error) {
-	m := new(Tuples)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *testServiceClient) TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (TestService_TestScanClient, error) {
-	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[3], "/sf.test.v1.TestService/TestScan", opts...)
+func (c *testServiceClient) TestScan(ctx context.Context, in *TestScanRequest, opts ...grpc.CallOption) (*Tuples, error) {
+	out := new(Tuples)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestScan", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &testServiceTestScanClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type TestService_TestScanClient interface {
-	Recv() (*Tuples, error)
-	grpc.ClientStream
-}
-
-type testServiceTestScanClient struct {
-	grpc.ClientStream
-}
-
-func (x *testServiceTestScanClient) Recv() (*Tuples, error) {
-	m := new(Tuples)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
+func (c *testServiceClient) TestSleep(ctx context.Context, in *TestSleepRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestSleep", in, out, opts...)
+	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	return out, nil
+}
+
+func (c *testServiceClient) TestPanic(ctx context.Context, in *TestPanicRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/sf.test.v1.TestService/TestPanic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // TestServiceServer is the server API for TestService service.
 // All implementations must embed UnimplementedTestServiceServer
 // for forward compatibility
 type TestServiceServer interface {
-	TestGet(*GetTestRequest, TestService_TestGetServer) error
-	TestGetMany(*TestGetManyRequest, TestService_TestGetManyServer) error
-	TestPrefix(*TestPrefixRequest, TestService_TestPrefixServer) error
-	TestScan(*TestScanRequest, TestService_TestScanServer) error
+	TestGet(context.Context, *TestGetRequest) (*Tuple, error)
+	TestGetMany(context.Context, *TestGetManyRequest) (*Tuples, error)
+	TestPrefix(context.Context, *TestPrefixRequest) (*Tuples, error)
+	TestScan(context.Context, *TestScanRequest) (*Tuples, error)
+	TestSleep(context.Context, *TestSleepRequest) (*Response, error)
+	TestPanic(context.Context, *TestPanicRequest) (*Response, error)
 	mustEmbedUnimplementedTestServiceServer()
 }
 
@@ -179,17 +109,23 @@ type TestServiceServer interface {
 type UnimplementedTestServiceServer struct {
 }
 
-func (UnimplementedTestServiceServer) TestGet(*GetTestRequest, TestService_TestGetServer) error {
-	return status.Errorf(codes.Unimplemented, "method TestGet not implemented")
+func (UnimplementedTestServiceServer) TestGet(context.Context, *TestGetRequest) (*Tuple, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestGet not implemented")
 }
-func (UnimplementedTestServiceServer) TestGetMany(*TestGetManyRequest, TestService_TestGetManyServer) error {
-	return status.Errorf(codes.Unimplemented, "method TestGetMany not implemented")
+func (UnimplementedTestServiceServer) TestGetMany(context.Context, *TestGetManyRequest) (*Tuples, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestGetMany not implemented")
 }
-func (UnimplementedTestServiceServer) TestPrefix(*TestPrefixRequest, TestService_TestPrefixServer) error {
-	return status.Errorf(codes.Unimplemented, "method TestPrefix not implemented")
+func (UnimplementedTestServiceServer) TestPrefix(context.Context, *TestPrefixRequest) (*Tuples, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestPrefix not implemented")
 }
-func (UnimplementedTestServiceServer) TestScan(*TestScanRequest, TestService_TestScanServer) error {
-	return status.Errorf(codes.Unimplemented, "method TestScan not implemented")
+func (UnimplementedTestServiceServer) TestScan(context.Context, *TestScanRequest) (*Tuples, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestScan not implemented")
+}
+func (UnimplementedTestServiceServer) TestSleep(context.Context, *TestSleepRequest) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestSleep not implemented")
+}
+func (UnimplementedTestServiceServer) TestPanic(context.Context, *TestPanicRequest) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestPanic not implemented")
 }
 func (UnimplementedTestServiceServer) mustEmbedUnimplementedTestServiceServer() {}
 
@@ -204,88 +140,112 @@ func RegisterTestServiceServer(s grpc.ServiceRegistrar, srv TestServiceServer) {
 	s.RegisterService(&TestService_ServiceDesc, srv)
 }
 
-func _TestService_TestGet_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetTestRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _TestService_TestGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(TestServiceServer).TestGet(m, &testServiceTestGetServer{stream})
-}
-
-type TestService_TestGetServer interface {
-	Send(*Tuple) error
-	grpc.ServerStream
-}
-
-type testServiceTestGetServer struct {
-	grpc.ServerStream
-}
-
-func (x *testServiceTestGetServer) Send(m *Tuple) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _TestService_TestGetMany_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(TestGetManyRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestGet(ctx, in)
 	}
-	return srv.(TestServiceServer).TestGetMany(m, &testServiceTestGetManyServer{stream})
-}
-
-type TestService_TestGetManyServer interface {
-	Send(*Tuples) error
-	grpc.ServerStream
-}
-
-type testServiceTestGetManyServer struct {
-	grpc.ServerStream
-}
-
-func (x *testServiceTestGetManyServer) Send(m *Tuples) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _TestService_TestPrefix_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(TestPrefixRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestGet",
 	}
-	return srv.(TestServiceServer).TestPrefix(m, &testServiceTestPrefixServer{stream})
-}
-
-type TestService_TestPrefixServer interface {
-	Send(*Tuples) error
-	grpc.ServerStream
-}
-
-type testServiceTestPrefixServer struct {
-	grpc.ServerStream
-}
-
-func (x *testServiceTestPrefixServer) Send(m *Tuples) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _TestService_TestScan_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(TestScanRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestGet(ctx, req.(*TestGetRequest))
 	}
-	return srv.(TestServiceServer).TestScan(m, &testServiceTestScanServer{stream})
+	return interceptor(ctx, in, info, handler)
 }
 
-type TestService_TestScanServer interface {
-	Send(*Tuples) error
-	grpc.ServerStream
+func _TestService_TestGetMany_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestGetManyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestGetMany(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestGetMany",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestGetMany(ctx, req.(*TestGetManyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-type testServiceTestScanServer struct {
-	grpc.ServerStream
+func _TestService_TestPrefix_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestPrefixRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestPrefix(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestPrefix",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestPrefix(ctx, req.(*TestPrefixRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-func (x *testServiceTestScanServer) Send(m *Tuples) error {
-	return x.ServerStream.SendMsg(m)
+func _TestService_TestScan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestScanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestScan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestScan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestScan(ctx, req.(*TestScanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TestService_TestSleep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestSleepRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestSleep(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestSleep",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestSleep(ctx, req.(*TestSleepRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TestService_TestPanic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestPanicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestPanic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sf.test.v1.TestService/TestPanic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestPanic(ctx, req.(*TestPanicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // TestService_ServiceDesc is the grpc.ServiceDesc for TestService service.
@@ -294,28 +254,32 @@ func (x *testServiceTestScanServer) Send(m *Tuples) error {
 var TestService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sf.test.v1.TestService",
 	HandlerType: (*TestServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "TestGet",
-			Handler:       _TestService_TestGet_Handler,
-			ServerStreams: true,
+			MethodName: "TestGet",
+			Handler:    _TestService_TestGet_Handler,
 		},
 		{
-			StreamName:    "TestGetMany",
-			Handler:       _TestService_TestGetMany_Handler,
-			ServerStreams: true,
+			MethodName: "TestGetMany",
+			Handler:    _TestService_TestGetMany_Handler,
 		},
 		{
-			StreamName:    "TestPrefix",
-			Handler:       _TestService_TestPrefix_Handler,
-			ServerStreams: true,
+			MethodName: "TestPrefix",
+			Handler:    _TestService_TestPrefix_Handler,
 		},
 		{
-			StreamName:    "TestScan",
-			Handler:       _TestService_TestScan_Handler,
-			ServerStreams: true,
+			MethodName: "TestScan",
+			Handler:    _TestService_TestScan_Handler,
+		},
+		{
+			MethodName: "TestSleep",
+			Handler:    _TestService_TestSleep_Handler,
+		},
+		{
+			MethodName: "TestPanic",
+			Handler:    _TestService_TestPanic_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "test.proto",
 }

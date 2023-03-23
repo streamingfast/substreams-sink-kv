@@ -1,6 +1,8 @@
 package wasmquery
 
 import (
+	"fmt"
+
 	"github.com/second-state/WasmEdge-go/wasmedge"
 	"go.uber.org/zap"
 )
@@ -14,6 +16,16 @@ type WASMExtension interface {
 
 type VM interface {
 	CurrentRequest() *Request
-	SetPanic(error)
 	Allocate(size int32) int32
+}
+
+type PanicErr struct {
+	message      string
+	filename     string
+	lineNumber   int32
+	columnNumber int32
+}
+
+func (e *PanicErr) Error() string {
+	return fmt.Sprintf("panic in wasm: %q at %s:%d:%d", e.message, e.filename, e.lineNumber, e.columnNumber)
 }

@@ -20,6 +20,7 @@ type vm struct {
 	functionList     map[string]bool
 	allocateFuncName string
 	logger           *zap.Logger
+	panic            *PanicErr
 }
 
 func newVMFromFile(id uint64, wasmFilepath string, logger *zap.Logger) (*vm, error) {
@@ -35,7 +36,7 @@ func newVMFromBytes(id uint64, code []byte, logger *zap.Logger) (*vm, error) {
 }
 
 func newVM(id uint64, loadCode func(vm *wasmedge.VM) error, logger *zap.Logger) (*vm, error) {
-	wasmedge.SetLogErrorLevel()
+
 	conf := wasmedge.NewConfigure(wasmedge.WASI)
 
 	vm := &vm{
@@ -95,11 +96,12 @@ func (v *vm) instantiate(requiredFunctionNames []string) error {
 
 func (v *vm) execute(request *Request, exportName string, input []byte) ([]interface{}, interface{}, error) {
 	v.currentRequest = request
+	v.panic = nil
 	return v.bg.Execute(exportName, input)
 }
 
-func (v *vm) register(i WASMExtension) error {
-	hostModule := wasmedge.NewModule("host")
+func (v *vm) registerHost(i WASMExtension) error {
+	hostModule := v.getHostModule()
 	i.SetupWASMHostModule(hostModule)
 	return v.vm.RegisterModule(hostModule)
 }
@@ -111,8 +113,4 @@ func (v *vm) Allocate(size int32) int32 {
 	}
 	pointerOfPointers := allocateResult[0].(int32)
 	return pointerOfPointers
-}
-
-func (v *vm) SetPanic(err error) {
-	panic(err)
 }

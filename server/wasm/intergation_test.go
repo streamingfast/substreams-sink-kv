@@ -2,8 +2,10 @@ package wasm
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -18,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Test_IntrinsicGet(t *testing.T) {
+func Test_WASMExtentionGet(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	server := getWasmService(
@@ -35,22 +37,22 @@ func Test_IntrinsicGet(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		req        *pbtest.GetTestRequest
+		req        *pbtest.TestGetRequest
 		db         map[string][]byte
 		expectResp *pbtest.Tuple
 		expectErr  error
 	}{
 		{
 			name: "golden path",
-			req:  &pbtest.GetTestRequest{Key: "key1"},
+			req:  &pbtest.TestGetRequest{Key: "key1"},
 			db: map[string][]byte{
-				"key1": []byte("juliens"),
+				"key1": []byte("julien"),
 			},
 			expectResp: &pbtest.Tuple{Key: "key1", Value: "julien"},
 		},
 		{
 			name: "key not found",
-			req:  &pbtest.GetTestRequest{Key: "key2"},
+			req:  &pbtest.TestGetRequest{Key: "key2"},
 			db: map[string][]byte{
 				"key1": []byte("julien"),
 			},
@@ -66,10 +68,7 @@ func Test_IntrinsicGet(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			db.KV = test.db
 
-			stream, err := cli.TestGet(context.Background(), test.req)
-			require.NoError(t, err)
-
-			resp, err := stream.Recv()
+			resp, err := cli.TestGet(context.Background(), test.req)
 			if test.expectErr != nil {
 				require.Error(t, err)
 				assert.Equal(t, test.expectErr, err)
@@ -82,7 +81,7 @@ func Test_IntrinsicGet(t *testing.T) {
 	}
 }
 
-func Test_IntrinsicGetMany(t *testing.T) {
+func Test_WASMExtentionGetMany(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	server := getWasmService(
@@ -137,10 +136,7 @@ func Test_IntrinsicGetMany(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			db.KV = test.db
 
-			stream, err := cli.TestGetMany(context.Background(), test.req)
-			require.NoError(t, err)
-
-			resp, err := stream.Recv()
+			resp, err := cli.TestGetMany(context.Background(), test.req)
 			if test.expectErr != nil {
 				require.Error(t, err)
 				assert.Equal(t, test.expectErr, err)
@@ -153,7 +149,7 @@ func Test_IntrinsicGetMany(t *testing.T) {
 	}
 }
 
-func Test_IntrinsicPrefix(t *testing.T) {
+func Test_WASMExtentionPrefix(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	server := getWasmService(
@@ -251,10 +247,7 @@ func Test_IntrinsicPrefix(t *testing.T) {
 			require.NoError(t, err)
 			cli := pbtest.NewTestServiceClient(conn)
 
-			stream, err := cli.TestPrefix(context.Background(), test.req)
-			require.NoError(t, err)
-
-			resp, err := stream.Recv()
+			resp, err := cli.TestPrefix(context.Background(), test.req)
 			if test.expectErr != nil {
 				require.Error(t, err)
 				assert.Equal(t, test.expectErr, err)
@@ -267,7 +260,7 @@ func Test_IntrinsicPrefix(t *testing.T) {
 
 }
 
-func Test_IntrinsicScan(t *testing.T) {
+func Test_WASMExtentionScan(t *testing.T) {
 	endpoint := "localhost:7878"
 	db := db.NewMockDB()
 	server := getWasmService(
@@ -379,10 +372,7 @@ func Test_IntrinsicScan(t *testing.T) {
 			require.NoError(t, err)
 			cli := pbtest.NewTestServiceClient(conn)
 
-			stream, err := cli.TestScan(context.Background(), test.req)
-			require.NoError(t, err)
-
-			resp, err := stream.Recv()
+			resp, err := cli.TestScan(context.Background(), test.req)
 			if test.expectErr {
 				require.NoError(t, err)
 			} else {
@@ -391,6 +381,88 @@ func Test_IntrinsicScan(t *testing.T) {
 			}
 		})
 	}
+
+}
+
+func Test_WASMExtensionSleep(t *testing.T) {
+	endpoint := "localhost:7878"
+	db := db.NewMockDB()
+	server := getWasmService(
+		t,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+		db,
+	)
+	go server.Serve(endpoint)
+	defer func() {
+		server.Shutdown()
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	reqA := &pbtest.TestSleepRequest{Duration: 1000, RequestId: "A"}
+	reqAEnd := make(chan bool, 1)
+	reqB := &pbtest.TestSleepRequest{Duration: 10, RequestId: "B"}
+	reqBEnd := make(chan bool, 1)
+
+	conn, err := dgrpc.NewInternalClient(endpoint)
+	require.NoError(t, err)
+	cli := pbtest.NewTestServiceClient(conn)
+
+	go func() {
+		fmt.Println("start request A")
+		t0 := time.Now()
+		resp, err := cli.TestSleep(context.Background(), reqA)
+		require.NoError(t, err)
+		fmt.Println("end request A", time.Since(t0))
+		assertProtoEqual(t, &pbtest.Response{
+			Output: "A completed",
+		}, resp)
+		reqAEnd <- true
+	}()
+
+	go func() {
+		fmt.Println("start request B")
+		t0 := time.Now()
+		resp, err := cli.TestSleep(context.Background(), reqB)
+		require.NoError(t, err)
+		fmt.Println("end request B", time.Since(t0))
+		assertProtoEqual(t, &pbtest.Response{
+			Output: "B completed",
+		}, resp)
+		reqBEnd <- true
+	}()
+	<-reqAEnd
+	<-reqBEnd
+}
+
+func Test_WASMExtensionPanic(t *testing.T) {
+	endpoint := "localhost:7878"
+	db := db.NewMockDB()
+	server := getWasmService(
+		t,
+		"./testdata/wasmquery/test.proto",
+		"./testdata/wasmquery/wasm_query.wasm",
+		"sf.test.v1.TestService",
+		db,
+	)
+	go server.Serve(endpoint)
+	defer func() {
+		server.Shutdown()
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	conn, err := dgrpc.NewInternalClient(endpoint)
+	require.NoError(t, err)
+	cli := pbtest.NewTestServiceClient(conn)
+
+	request := &pbtest.TestPanicRequest{ShouldPanic: true}
+	_, err = cli.TestPanic(context.Background(), request)
+
+	require.Error(t, err)
+	assert.Error(t, err, status.Error(codes.Internal, "panic in wasm: \"panicking\" at src/lib.r:118:1"))
 
 }
 

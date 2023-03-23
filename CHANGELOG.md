@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added WASM Query Support
 * `GenericService` example `./examples/generic-service`
 * `WASMQueryService` example `./examples/wasm-query-service`
+* Panic handling in wasm query engine 
 
 ### Changed
 
+* Removed support for GRPC `stream`, only support request response
 * Remove `substream-sink-kv run` CLI and added `substream-sink-kv inject` & `substream-sink-kv serve`
 * Move `rust` crate to its own repo `https://github.com/streamingfast/substreams-sink-rs`
 

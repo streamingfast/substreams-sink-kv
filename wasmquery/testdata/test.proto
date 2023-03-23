@@ -5,10 +5,10 @@ package sf.test.v1;
 option go_package = "sink-kv/pb/proto;pbtest";
 
 service TestService {
-  rpc TestGet(GetTestRequest) returns (stream Tuple);
-  rpc TestGetMany(TestGetManyRequest) returns (stream Tuples);
-  rpc TestPrefix(TestPrefixRequest) returns (stream Tuples);
-  rpc TestScan(TestScanRequest) returns (stream Tuples);
+  rpc TestGet(GetTestRequest) returns (Tuple);
+  rpc TestGetMany(TestGetManyRequest) returns (Tuples);
+  rpc TestPrefix(TestPrefixRequest) returns (Tuples);
+  rpc TestScan(TestScanRequest) returns (Tuples);
 }
 
 message GetTestRequest {
