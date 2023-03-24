@@ -1,49 +1,42 @@
 package wasmquery
 
-import "google.golang.org/grpc/encoding"
+import (
+	"fmt"
 
-// codec
+	"google.golang.org/protobuf/proto"
+)
 
-type Codec interface {
-	encoding.Codec
+type JSONPassthroughCodec struct{}
 
-	NewMessage() Byteable
-}
-type Byteable interface {
-	Set(in []byte)
-	Bytes() []byte
-}
-
-var _ Codec = PassthroughCodec{}
-
-type PassthroughCodec struct{}
-
-func (PassthroughCodec) Marshal(v interface{}) ([]byte, error) {
-	return v.(*passthroughBytes).bytes, nil
-}
-
-func (PassthroughCodec) Unmarshal(data []byte, v interface{}) error {
-	el := v.(*passthroughBytes)
-	el.bytes = data
+func (c *JSONPassthroughCodec) Name() string                  { return "json" }
+func (c *JSONPassthroughCodec) Marshal(a any) ([]byte, error) { panic("unimplemented") }
+func (c *JSONPassthroughCodec) Unmarshal(data []byte, a any) error {
+	v, ok := a.(*ConnectWebRequest)
+	if !ok {
+		return fmt.Errorf("unpected object type")
+	}
+	v.contentType = ContentTypeJson
+	v.data = data
 	return nil
 }
 
-func (PassthroughCodec) Name() string { return "proto" }
+type ProtoPassthroughCodec struct{}
 
-func (c PassthroughCodec) NewMessage() Byteable {
-	return &passthroughBytes{}
+func (c *ProtoPassthroughCodec) Name() string { return "proto" }
+func (c *ProtoPassthroughCodec) Marshal(a any) ([]byte, error) {
+	el, ok := a.(*ConnectWebRequest)
+	if ok {
+		return el.data, nil
+	}
+	return proto.Marshal(a.(proto.Message))
 }
 
-// Passing bytes around
-
-type passthroughBytes struct {
-	bytes []byte
-}
-
-func (b *passthroughBytes) Set(in []byte) {
-	b.bytes = in
-}
-
-func (b *passthroughBytes) Bytes() []byte {
-	return b.bytes
+func (c *ProtoPassthroughCodec) Unmarshal(data []byte, a any) error {
+	v, ok := a.(*ConnectWebRequest)
+	if !ok {
+		return fmt.Errorf("unpected object type")
+	}
+	v.contentType = ContentTypeProto
+	v.data = data
+	return nil
 }

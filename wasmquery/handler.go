@@ -3,54 +3,58 @@ package wasmquery
 import (
 	"context"
 	"fmt"
-	"time"
-
+	connect_go "github.com/bufbuild/connect-go"
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/dynamic"
 	"github.com/streamingfast/logging"
-
-	"google.golang.org/grpc/codes"
-
-	"google.golang.org/grpc/status"
-
 	"go.uber.org/zap"
-
-	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"time"
 )
 
-type Handler struct {
+type handler struct {
+	msgDesc    *desc.MessageDescriptor
 	exportName string
-	enginePool *Engine
-	protoCodec Codec
+	engine     *Engine
 	logger     *zap.Logger
 }
 
-func newHandler(config *MethodConfig, enginePool *Engine, protoCodec Codec, logger *zap.Logger) (*Handler, error) {
-
-	return &Handler{
-		exportName: config.ExportName,
-		protoCodec: protoCodec,
-		enginePool: enginePool,
-		logger:     logger.With(zap.String("export_name", config.ExportName)),
-	}, nil
+func newHandler(engine *Engine, exportName string, msgDesc *desc.MessageDescriptor, logger *zap.Logger) *handler {
+	return &handler{
+		msgDesc:    msgDesc,
+		engine:     engine,
+		exportName: exportName,
+		logger:     logger,
+	}
 }
 
-func (h *Handler) handle(_ interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-
+func (h *handler) Handler(ctx context.Context, req *connect_go.Request[ConnectWebRequest]) (*connect_go.Response[ConnectWebRequest], error) {
 	logger := logging.Logger(ctx, h.logger)
-
 	t0 := time.Now()
 	defer func() {
-		logger.Debug("finished handler", zap.Duration("elapsed", time.Since(t0)))
+		logger.Debug("finished connect-web handler", zap.Duration("elapsed", time.Since(t0)))
 	}()
 
-	logger.Debug("handling wasm query call")
-	m := h.protoCodec.NewMessage()
-	if err := dec(m); err != nil {
-		return nil, err
+	dynMsg := dynamic.NewMessageFactoryWithDefaults().NewDynamicMessage(h.msgDesc)
+
+	data := req.Msg.data
+
+	if req.Msg.contentType == ContentTypeJson {
+		if err := dynMsg.UnmarshalJSON(data); err != nil {
+			return nil, status.Error(codes.Internal, fmt.Errorf("failed to unmarshal request: %w", err).Error())
+		}
+
+		var err error
+		data, err = dynMsg.Marshal()
+		if err != nil {
+			return nil, status.Error(codes.Internal, fmt.Errorf("failed to get byte data: %w", err).Error())
+		}
 	}
 
-	vmInstance := h.enginePool.borrowVM(ctx)
+	vmInstance := h.engine.borrowVM(ctx)
 	defer func() {
-		h.enginePool.returnVM(vmInstance)
+		h.engine.returnVM(vmInstance)
 	}()
 	logger = logger.With(vmInstance.loggerFields()...)
 
@@ -59,7 +63,7 @@ func (h *Handler) handle(_ interface{}, ctx context.Context, dec func(interface{
 		logger: logger,
 	}
 
-	res, wasmErr, err := vmInstance.execute(request, h.exportName, m.Bytes())
+	res, wasmErr, err := vmInstance.execute(request, h.exportName, data)
 	if err != nil {
 		if vmInstance.panic != nil {
 			return nil, status.Error(codes.Internal, vmInstance.panic.Error())
@@ -70,8 +74,6 @@ func (h *Handler) handle(_ interface{}, ctx context.Context, dec func(interface{
 		return nil, status.Error(codes.Internal, werr)
 	}
 
-	out := h.protoCodec.NewMessage()
-	out.Set(res[0].([]byte))
-
-	return out, nil
+	out := &ConnectWebRequest{data: res[0].([]byte), contentType: ContentTypeProto}
+	return connect_go.NewResponse(out), nil
 }
