@@ -11,7 +11,7 @@ protobuf:
   files:
     - service.proto
   importPaths:
-    - ./blockmeta_wasm_query/proto
+    - ./proto
 
 sink:
   module: blockmeta:kv_out
