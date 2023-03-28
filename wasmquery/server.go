@@ -29,7 +29,7 @@ func (e *Engine) newServer(registerProto bool, config *ServiceConfig) (*server, 
 	mux := http.NewServeMux()
 
 	for _, method := range config.Methods {
-		h := newHandler(e, method.exportName, method.inputType, c.logger)
+		h := newHandler(e, method, c.logger)
 		mux.Handle(method.connectWebPath, connect_go.NewUnaryHandler(
 			method.connectWebPath,
 			h.Handler,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	connect_go "github.com/bufbuild/connect-go"
-	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
@@ -14,35 +13,33 @@ import (
 )
 
 type handler struct {
-	msgDesc    *desc.MessageDescriptor
-	exportName string
-	engine     *Engine
-	logger     *zap.Logger
+	method *MethodConfig
+	engine *Engine
+	logger *zap.Logger
 }
 
-func newHandler(engine *Engine, exportName string, msgDesc *desc.MessageDescriptor, logger *zap.Logger) *handler {
+func newHandler(engine *Engine, method *MethodConfig, logger *zap.Logger) *handler {
 	return &handler{
-		msgDesc:    msgDesc,
-		engine:     engine,
-		exportName: exportName,
-		logger:     logger,
+		engine: engine,
+		method: method,
+		logger: logger,
 	}
 }
 
 func (h *handler) Handler(ctx context.Context, req *connect_go.Request[ConnectWebRequest]) (*connect_go.Response[ConnectWebRequest], error) {
-	logger := logging.Logger(ctx, h.logger)
+	logger := logging.Logger(ctx, h.logger).With(zap.String("export_name", h.method.exportName))
+	fromRestAPI := req.Msg.contentType == ContentTypeJson
+	logger = logger.With(h.method.loggerFields(fromRestAPI)...)
 	t0 := time.Now()
 	defer func() {
-		logger.Debug("finished connect-web handler", zap.Duration("elapsed", time.Since(t0)))
+		logger.Info("finished connect-web handler", zap.Duration("elapsed", time.Since(t0)))
 	}()
 
-	dynMsg := dynamic.NewMessageFactoryWithDefaults().NewDynamicMessage(h.msgDesc)
-
 	data := req.Msg.data
-
-	if req.Msg.contentType == ContentTypeJson {
+	if fromRestAPI {
+		dynMsg := dynamic.NewMessageFactoryWithDefaults().NewDynamicMessage(h.method.inputType)
 		if err := dynMsg.UnmarshalJSON(data); err != nil {
-			return nil, status.Error(codes.Internal, fmt.Errorf("failed to unmarshal request: %w", err).Error())
+			return nil, status.Error(codes.Internal, fmt.Errorf("failed to unmarshal json  for request: %w", err).Error())
 		}
 
 		var err error
@@ -63,17 +60,33 @@ func (h *handler) Handler(ctx context.Context, req *connect_go.Request[ConnectWe
 		logger: logger,
 	}
 
-	res, wasmErr, err := vmInstance.execute(request, h.exportName, data)
+	exportName := h.method.exportName
+	res, wasmErr, err := vmInstance.execute(request, exportName, data)
 	if err != nil {
 		if vmInstance.panic != nil {
 			return nil, status.Error(codes.Internal, vmInstance.panic.Error())
 		}
-		return nil, status.Error(codes.Internal, fmt.Sprintf("unknown error executnig %q: %s", h.exportName, err))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unknown error executnig %q: %s", exportName, err))
 	}
-	if werr, ok := wasmErr.(string); ok && werr != "" {
-		return nil, status.Error(codes.Internal, werr)
+	if wErr, ok := wasmErr.(string); ok && wErr != "" {
+		return nil, status.Error(codes.Internal, wErr)
 	}
 
-	out := &ConnectWebRequest{data: res[0].([]byte), contentType: ContentTypeProto}
+	respBytes := res[0].([]byte)
+	if fromRestAPI {
+		dynMsg := dynamic.NewMessageFactoryWithDefaults().NewDynamicMessage(h.method.outputType)
+		if err := dynMsg.Unmarshal(respBytes); err != nil {
+			return nil, status.Error(codes.Internal, fmt.Errorf("failed to unmarshal proto for response: %w", err).Error())
+		}
+
+		var err error
+		respBytes, err = dynMsg.MarshalJSON()
+		if err != nil {
+			return nil, status.Error(codes.Internal, fmt.Errorf("failed to get json bytes response: %w", err).Error())
+		}
+
+	}
+
+	out := &ConnectWebRequest{data: respBytes, contentType: ContentTypeProto}
 	return connect_go.NewResponse(out), nil
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/jhump/protoreflect/desc"
 
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -29,6 +31,19 @@ type MethodConfig struct {
 	connectWebPath string // represents the connect-web REST api path
 	inputType      *desc.MessageDescriptor
 	outputType     *desc.MessageDescriptor
+}
+
+func (m *MethodConfig) loggerFields(asRESTApi bool) []zap.Field {
+	apiType := "gRPC"
+	path := m.fqn
+	if asRESTApi {
+		apiType = "REST"
+		path = m.connectWebPath
+	}
+	return []zap.Field{
+		zap.String("api_type", apiType),
+		zap.String("path", path),
+	}
 }
 
 func NewEngineConfig(count uint64, code []byte, serviceConfig *ServiceConfig) *EngineConfig {
