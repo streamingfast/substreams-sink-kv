@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/streamingfast/substreams-sink-kv/server/wasm"
+
 	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 
 	"time"
@@ -133,7 +135,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 		engine, err := wasmquery.NewEngine(
 			wasmquery.NewEngineConfig(1, wasmServ.GetWasmQueryModule(), config),
 			func(vm wasmquery.VM, logger *zap.Logger) wasmquery.WASMExtension {
-				return nil
+				return wasm.NewKVExtension(kvDB, vm, logger)
 			},
 			zlog,
 		)

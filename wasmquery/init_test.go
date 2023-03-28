@@ -8,5 +8,5 @@ import (
 var zlog, _ = logging.PackageLogger("sink-kv", "github.com/streamingfast/substreams-sink-kv/wasmquery.test")
 
 func init() {
-	logging.InstantiateLoggers(logging.WithDefaultLevel(zapcore.InfoLevel))
+	logging.InstantiateLoggers(logging.WithDefaultLevel(zapcore.DebugLevel))
 }

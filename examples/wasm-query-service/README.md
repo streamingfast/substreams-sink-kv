@@ -13,6 +13,14 @@ curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/insta
 
 > **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
 
+##### Buf CLI
+
+`buf` command v1.11.10 or later https://docs.buf.build/installation
+
+```bash
+brew install bufbuild/buf/buf
+```
+
 ## Install
 
 Get the binary from the [Releases page](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
@@ -92,7 +100,7 @@ After a few minutes of sinking your local `badger-db` should contain keys. You c
 We can introspect the store with our [`kvdb` CLI](https://github.com/streamingfast/kvdb)
 
 ```bash
-  kvdb read prefix kmonth:first --dsn "badger3://$(pwd)/badger_data.db" --decoder="proto://./blockmeta_wasm_query/proto/block_meta.proto@eth.block_meta.v1.BlockMeta"
+  kvdb read prefix kmonth:first --dsn "badger3://$(pwd)/badger_data.db" --decoder="proto://./proto/block_meta.proto@eth.block_meta.v1.BlockMeta"
 ```
 
 You should get an output like this
@@ -109,11 +117,11 @@ kmonth:first:201512	->	{"number":"622214","hash":"fw3ZOpMrUo8mqZReGkt+SBfnpv0aiP
 ...
 ````
 
-### WASM Query
+### WASM Query Service
 
-The wasm query service, is a user defined service that exposes a consumable gRPC API. There are 2 important parts:
+The wasm query service, is a user defined service that exposes a consumable REST and gRPC API via a Connect-Web server. There are 2 important parts:
 
-- The `.proto` that finds the gRPC api found  [here](./blockmeta_wasm_query/proto/service.proto)
+- The `.proto` that finds the gRPC api found  [here](./proto/service.proto)
 ```protobuf
 service Blockmeta {
   rpc GetMonth(GetMonthRequest) returns (stream MonthResponse);
@@ -121,7 +129,7 @@ service Blockmeta {
 ```
 
 - The `WASM` code that is executed when the gRPC API is called. The full implementation is [here](./blockmeta_wasm_query/src/lib.rs)
-
+  o
 The important things to note are:
 
 1) For every `method` in the defined gRPC service (i.e. `GetMonth`) there needs to be a matching `WASM` query function where the name is the fully qualified gRPC method name sanitized ( lowercase and periods replaced by underscores). For example `eth.service.v1.blockmeta.GetMonth` execute this WASM function `eth_service_v1_blockmeta_getmonth`
@@ -134,44 +142,36 @@ Launch the `substreams-sink-kv` in serve mode. This will essentially start a gRP
   substreams-sink-kv serve "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
 
-> **Note** You can also use the `serve.sh` scripts which contains the call above
+> **Note** You can also use the `serve.sh` scripts which cntains the call above
 
+In a separate terminal you can run the following command, to consume your Connect-Web API
+
+*API Calls*
+```bash
+# REST API Call
+curl --header 'Content-Type: application/json' --data '{"start": "2019-8","end": "2019-9"}' localhost:7878/eth.service.v1.BlockMeta/GetBlockInfo
+
+# gRPC API Call
+grpcurl -plaintext -proto ./proto/service.proto -d '{"year": "2019","month":"05"}' localhost:7878 eth.service.v1.BlockMeta.GetMonth
+```
+### Website
+
+In this example we create a basic `react` application to consume the REST API
 
 ```bash
- ./serve.sh
+cd frontend
+yarn install
+yarn dev
 ```
 
-In a separate terminal you can run the following command, to consume your gRPC API
+## Resources
 
-```bash
-  grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019","month":"05"}' localhost:7878 eth.service.v1.BlockMeta.GetMonth
-```
+### Protobuf
 
-You should get the following output:
+the `./proto` folder contains all the Protobuf files used in this example. The `./proto-gen.sh` script will generate the appropriate 
+`typescript` and `rust` generated files, in the WASM query and the React frontend application. It will use the `./bug.gen.yaml` to determine 
+what to generate. You will need to have the following protoc plugins installed locally:
 
-```bash
-{
-  "month": {
-    "year": "2019",
-    "month": "05",
-    "firstBlock": {
-      "number": "7671850",
-      "hash": "[E3, 52, 7D, 1E, A7, 79, 67, C4, 5C, C8, 28, C4, B4, 6D, 85, 1E, B6, CA, A0, 70, 18, 7D, EA, FC, F8, A0, 36, 0C, 5B, F3, 2D, AE]",
-      "parentHash": "[C8, CD, 3A, 20, BC, 35, 2E, 4C, 2A, C6, D9, 03, B0, EA, AF, 90, 82, 43, AF, 19, 42, 8A, C2, 48, BD, B5, E8, 0B, 2B, 42, 49, 65]",
-      "timestamp": "2019-05-01T00:00:16Z"
-    },
-    "lastBlock": {
-      "number": "7870424",
-      "hash": "[89, A6, BC, 8F, AC, 95, 7B, 5A, 81, 89, DA, 8F, A7, CB, AD, 34, 00, 94, 0A, 4A, 46, F3, 4A, 49, D9, B8, 77, D0, 7C, 28, D9, 38]",
-      "parentHash": "[CB, D2, 79, 74, 24, 80, A9, 61, 9E, 45, D9, 40, CB, D0, 23, EE, A0, 13, 7A, 24, E1, 1C, 8B, F1, 6C, 9C, B8, B5, 70, 08, 18, 46]",
-      "timestamp": "2019-05-31T23:59:56Z"
-    }
-  }
-}
-```
-
-Other examples
-
-```bash
-  grpcurl -plaintext -proto ./blockmeta_wasm_query/proto/service.proto -d '{"year": "2019"}' localhost:7878 eth.service.v1.BlockMeta.GetYear
-```
+- https://github.com/bufbuild/protobuf-es
+- https://github.com/bufbuild/connect-es
+- https://crates.io/crates/protoc-gen-prost

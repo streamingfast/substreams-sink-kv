@@ -4,36 +4,52 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+
+	"github.com/jhump/protoreflect/desc"
+
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 type EngineConfig struct {
 	vmCount       uint64
 	code          []byte
-	codec         Codec
 	serviceConfig *ServiceConfig
 }
 
 type ServiceConfig struct {
-	FQGRPCServiceName string
-	Methods           []*MethodConfig
+	fqn            string
+	connectWebPath string
+	Methods        []*MethodConfig
+	protoFile      *descriptorpb.FileDescriptorProto
 }
 
 type MethodConfig struct {
-	Name       string
-	FQGRPCName string // fully qualified grpc name
-	ExportName string // will match the name of the function in the wasm code
+	name           string
+	fqn            string // fully qualified grpc name
+	exportName     string // will match the name of the function in the wasm code
+	connectWebPath string // represents the connect-web REST api path
+	inputType      *desc.MessageDescriptor
+	outputType     *desc.MessageDescriptor
+}
+
+func (m *MethodConfig) loggerFields(asRESTApi bool) []zap.Field {
+	apiType := "gRPC"
+	path := m.fqn
+	if asRESTApi {
+		apiType = "REST"
+		path = m.connectWebPath
+	}
+	return []zap.Field{
+		zap.String("api_type", apiType),
+		zap.String("path", path),
+	}
 }
 
 func NewEngineConfig(count uint64, code []byte, serviceConfig *ServiceConfig) *EngineConfig {
-	return NewEngineConfigWithCodec(count, code, serviceConfig, PassthroughCodec{})
-}
-
-func NewEngineConfigWithCodec(count uint64, code []byte, serviceConfig *ServiceConfig, codec Codec) *EngineConfig {
 	return &EngineConfig{
 		vmCount:       count,
 		code:          code,
-		codec:         codec,
 		serviceConfig: serviceConfig,
 	}
 }
@@ -42,23 +58,35 @@ func NewServiceConfig(
 	protoFile *descriptorpb.FileDescriptorProto,
 	fqGRPCService string,
 ) (*ServiceConfig, error) {
-	for _, srv := range protoFile.Service {
+
+	fd, err := desc.CreateFileDescriptor(protoFile)
+	if err != nil {
+		return nil, fmt.Errorf("file descriptor: %w", err)
+	}
+
+	for _, srv := range fd.GetServices() {
 		servName := fmt.Sprintf("%s.%s", protoFile.GetPackage(), srv.GetName())
 		if servName != fqGRPCService {
 			continue
 		}
 		c := &ServiceConfig{
-			FQGRPCServiceName: servName,
+			fqn:            servName,
+			connectWebPath: fmt.Sprintf("/%s/", servName),
+			protoFile:      protoFile,
 		}
-		for _, mth := range srv.Method {
-			fqGRPC := fmt.Sprintf("%s.%s", c.FQGRPCServiceName, mth.GetName())
-			if mth.GetServerStreaming() {
+		for _, mth := range srv.GetMethods() {
+			fqGRPC := fmt.Sprintf("%s.%s", c.fqn, mth.GetName())
+			connectWebPath := fmt.Sprintf("/%s/%s", c.fqn, mth.GetName())
+			if mth.IsServerStreaming() {
 				return nil, fmt.Errorf("unable to support GRPC stream %s", fqGRPC)
 			}
 			c.Methods = append(c.Methods, &MethodConfig{
-				Name:       mth.GetName(),
-				FQGRPCName: fqGRPC,
-				ExportName: exportNameFromFQGrpcMethod(fqGRPC),
+				name:           mth.GetName(),
+				fqn:            fqGRPC,
+				exportName:     exportNameFromFQGrpcMethod(fqGRPC),
+				connectWebPath: connectWebPath,
+				inputType:      mth.GetInputType(),
+				outputType:     mth.GetOutputType(),
 			})
 		}
 		return c, nil
@@ -68,7 +96,7 @@ func NewServiceConfig(
 
 func (s *ServiceConfig) getWASMFunctionNames() (out []string) {
 	for _, method := range s.Methods {
-		out = append(out, method.ExportName)
+		out = append(out, method.exportName)
 	}
 	return out
 }

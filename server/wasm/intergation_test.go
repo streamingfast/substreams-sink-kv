@@ -2,7 +2,6 @@ package wasm
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -40,7 +39,7 @@ func Test_WASMExtentionGet(t *testing.T) {
 		req        *pbtest.TestGetRequest
 		db         map[string][]byte
 		expectResp *pbtest.Tuple
-		expectErr  error
+		expectErr  bool
 	}{
 		{
 			name: "golden path",
@@ -56,7 +55,7 @@ func Test_WASMExtentionGet(t *testing.T) {
 			db: map[string][]byte{
 				"key1": []byte("julien"),
 			},
-			expectErr: status.Error(codes.Internal, "not found"),
+			expectErr: true,
 		},
 	}
 
@@ -69,9 +68,11 @@ func Test_WASMExtentionGet(t *testing.T) {
 			db.KV = test.db
 
 			resp, err := cli.TestGet(context.Background(), test.req)
-			if test.expectErr != nil {
+			if test.expectErr {
 				require.Error(t, err)
-				assert.Equal(t, test.expectErr, err)
+				e, ok := status.FromError(err)
+				require.True(t, ok, "error must be a GRPC error")
+				assert.Equal(t, codes.Unknown, e.Code())
 			} else {
 				require.NoError(t, err)
 				assertProtoEqual(t, test.expectResp, resp)
@@ -101,7 +102,7 @@ func Test_WASMExtentionGetMany(t *testing.T) {
 		req        *pbtest.TestGetManyRequest
 		db         map[string][]byte
 		expectResp *pbtest.Tuples
-		expectErr  error
+		expectErr  bool
 	}{
 		{
 			name: "golden path",
@@ -124,7 +125,7 @@ func Test_WASMExtentionGetMany(t *testing.T) {
 				"key2": []byte("black"),
 				"key3": []byte("green"),
 			},
-			expectErr: status.Error(codes.Internal, "not found"),
+			expectErr: true,
 		},
 	}
 
@@ -137,9 +138,11 @@ func Test_WASMExtentionGetMany(t *testing.T) {
 			db.KV = test.db
 
 			resp, err := cli.TestGetMany(context.Background(), test.req)
-			if test.expectErr != nil {
+			if test.expectErr {
 				require.Error(t, err)
-				assert.Equal(t, test.expectErr, err)
+				e, ok := status.FromError(err)
+				require.True(t, ok, "error must be a GRPC error")
+				assert.Equal(t, codes.Unknown, e.Code())
 			} else {
 				require.NoError(t, err)
 				assertProtoEqual(t, test.expectResp, resp)
@@ -169,7 +172,7 @@ func Test_WASMExtentionPrefix(t *testing.T) {
 		req        *pbtest.TestPrefixRequest
 		db         map[string][]byte
 		expectResp *pbtest.Tuples
-		expectErr  error
+		expectErr  bool
 	}{
 		{
 			name: "with limit",
@@ -248,9 +251,11 @@ func Test_WASMExtentionPrefix(t *testing.T) {
 			cli := pbtest.NewTestServiceClient(conn)
 
 			resp, err := cli.TestPrefix(context.Background(), test.req)
-			if test.expectErr != nil {
+			if test.expectErr {
 				require.Error(t, err)
-				assert.Equal(t, test.expectErr, err)
+				e, ok := status.FromError(err)
+				require.True(t, ok, "error must be a GRPC error")
+				assert.Equal(t, codes.Unknown, e.Code())
 			} else {
 				require.NoError(t, err)
 				assertProtoEqual(t, test.expectResp, resp)
@@ -374,7 +379,10 @@ func Test_WASMExtentionScan(t *testing.T) {
 
 			resp, err := cli.TestScan(context.Background(), test.req)
 			if test.expectErr {
-				require.NoError(t, err)
+				require.Error(t, err)
+				e, ok := status.FromError(err)
+				require.True(t, ok, "error must be a GRPC error")
+				assert.Equal(t, codes.Unknown, e.Code())
 			} else {
 				require.NoError(t, err)
 				assertProtoEqual(t, test.expectResp, resp)
@@ -401,9 +409,9 @@ func Test_WASMExtensionSleep(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	reqA := &pbtest.TestSleepRequest{Duration: 1000, RequestId: "A"}
+	reqDurationA := 10000
+	reqDurationB := 10
 	reqAEnd := make(chan bool, 1)
-	reqB := &pbtest.TestSleepRequest{Duration: 10, RequestId: "B"}
 	reqBEnd := make(chan bool, 1)
 
 	conn, err := dgrpc.NewInternalClient(endpoint)
@@ -411,30 +419,38 @@ func Test_WASMExtensionSleep(t *testing.T) {
 	cli := pbtest.NewTestServiceClient(conn)
 
 	go func() {
-		fmt.Println("start request A")
-		t0 := time.Now()
-		resp, err := cli.TestSleep(context.Background(), reqA)
+		resp, err := cli.TestSleep(context.Background(), &pbtest.TestSleepRequest{Duration: int32(reqDurationA), RequestId: "A"})
 		require.NoError(t, err)
-		fmt.Println("end request A", time.Since(t0))
-		assertProtoEqual(t, &pbtest.Response{
-			Output: "A completed",
-		}, resp)
 		reqAEnd <- true
+		assertProtoEqual(t, &pbtest.Response{Output: "A completed"}, resp)
 	}()
 
+	time.Sleep(3 * time.Millisecond)
+
 	go func() {
-		fmt.Println("start request B")
-		t0 := time.Now()
-		resp, err := cli.TestSleep(context.Background(), reqB)
+		resp, err := cli.TestSleep(context.Background(), &pbtest.TestSleepRequest{Duration: int32(reqDurationB), RequestId: "B"})
 		require.NoError(t, err)
-		fmt.Println("end request B", time.Since(t0))
-		assertProtoEqual(t, &pbtest.Response{
-			Output: "B completed",
-		}, resp)
 		reqBEnd <- true
+		assertProtoEqual(t, &pbtest.Response{Output: "B completed"}, resp)
 	}()
-	<-reqAEnd
-	<-reqBEnd
+
+	select {
+	case _ = <-reqAEnd:
+	case _ = <-reqBEnd:
+		t.Fatal("expect request A to terminate first")
+		return
+	case <-time.After(10100 * time.Millisecond):
+		t.Fatal("expect request A to terminate withing the specific sleep duration")
+		return
+	}
+
+	select {
+	case _ = <-reqBEnd:
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("expect request b to terminate withing the specific sleep duration")
+		return
+	}
+
 }
 
 func Test_WASMExtensionPanic(t *testing.T) {
@@ -475,11 +491,11 @@ func getWasmService(t *testing.T, protoPath, wasmPath, fqServiceName string, moc
 	config, err := wasmquery.NewServiceConfig(protoFileDesc, fqServiceName)
 	require.NoError(t, err)
 
-	engineConfig := wasmquery.NewEngineConfigWithCodec(1, code, config, TestPassthroughCodec{})
+	engineConfig := wasmquery.NewEngineConfig(1, code, config)
 
 	engine, err := wasmquery.NewEngine(engineConfig, func(vm wasmquery.VM, logger *zap.Logger) wasmquery.WASMExtension {
 		return NewKVExtension(mockDB, vm, logger)
-	}, zlog)
+	}, zlog, wasmquery.SkipProtoRegister())
 	require.NoError(t, err)
 
 	return engine

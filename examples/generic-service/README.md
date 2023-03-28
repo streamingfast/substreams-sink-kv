@@ -2,7 +2,6 @@
 
 In this example, we will launch the [`block-meta` substream](https://github.com/streamingfast/substreams-eth-block-meta), sink it to a key-value store and launch a Generic service gRPC API and connect it to a webpage.
 
-
 ## Requirements
 
 ##### WasmEdge
@@ -11,6 +10,7 @@ Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/q
 ```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 ```
+> **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
 
 ##### Buf CLI
 
@@ -76,12 +76,12 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
 
 ### Running Injector
 
-
 > **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
 You can run the `substreams-sink-kv` inject mode.
 
 ```bash
+  # Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
   export DYLD_LIBRARY_PATH=$LIBRARY_PATH
   substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
