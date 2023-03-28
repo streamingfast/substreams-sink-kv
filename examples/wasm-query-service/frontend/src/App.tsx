@@ -151,7 +151,7 @@ const App: React.FC = () => {
                             </Button>
                         </Col>
                     </Row>
-                    <Table dataSource={months} columns={columns} style={{marginTop: "20px"}}/>;
+                    <Table dataSource={months} columns={columns} style={{marginTop: "20px"}}/>
                 </div>
             </Content>
             <Footer style={{ textAlign: 'center' }}>StreamingFast ©2023</Footer>
