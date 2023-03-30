@@ -11,6 +11,7 @@ import (
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
+	sink "github.com/streamingfast/substreams-sink"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	"github.com/streamingfast/substreams-sink-kv/sinker"
 	"github.com/streamingfast/substreams/client"
@@ -41,6 +42,7 @@ var injectCmd = Command(injectRunE,
 )
 
 func init() {
+	sink.RegisterMetrics()
 	sinker.RegisterMetrics()
 }
 

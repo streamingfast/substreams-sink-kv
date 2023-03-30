@@ -13,7 +13,7 @@ require (
 	github.com/streamingfast/kvdb v0.1.1-0.20230106211814-335aada11ecd
 	github.com/streamingfast/logging v0.0.0-20220813175024-b4fbb0e893df
 	github.com/streamingfast/substreams v1.0.1-0.20230313192236-810f11eea539
-	github.com/streamingfast/substreams-sink v0.0.0-20230228155421-eb5cdf2ed678
+	github.com/streamingfast/substreams-sink v0.0.0-20230330182604-d28a2d1bf2b7
 	github.com/stretchr/testify v1.8.1
 	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.23.0
