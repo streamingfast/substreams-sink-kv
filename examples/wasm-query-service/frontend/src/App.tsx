@@ -122,19 +122,10 @@ const App: React.FC = () => {
                 />
             </Header>
             <Content style={{ padding: '0 50px' }}>
-                <Breadcrumb style={{ margin: '16px 0' }}>
-                    <Breadcrumb.Item>Search</Breadcrumb.Item>
-                </Breadcrumb>
-                <div className="site-layout-content" style={{ background: colorBgContainer }}>
+                <div className="site-layout-content" style={{ background: colorBgContainer, marginTop: "25px" }} >
                     <Row justify={"center"} align={'middle'} >
                         <Col md={24} style={{textAlign: 'center'}}>
                             <h1>ETH BlockMeta powered by connect-web and Substream Sink KV</h1>
-                        </Col>
-                        <Col md={24}>
-                            <Alert
-                                description="Info Description Info Description Info Description Info Description"
-                                type="info"
-                            />
                         </Col>
                     </Row>
                     <Row gutter={[16, 16]} style={{marginTop: "25px"}}>
