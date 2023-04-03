@@ -13,7 +13,7 @@ require (
 	github.com/streamingfast/kvdb v0.1.1-0.20230106211814-335aada11ecd
 	github.com/streamingfast/logging v0.0.0-20220813175024-b4fbb0e893df
 	github.com/streamingfast/substreams v1.0.1-0.20230313192236-810f11eea539
-	github.com/streamingfast/substreams-sink v0.0.0-20230330182604-d28a2d1bf2b7
+	github.com/streamingfast/substreams-sink v0.0.0-20230403140748-db3b0d195289
 	github.com/stretchr/testify v1.8.1
 	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.23.0
@@ -23,17 +23,8 @@ require (
 require (
 	cloud.google.com/go/bigtable v1.2.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/container v1.7.0 // indirect
 	cloud.google.com/go/longrunning v0.3.0 // indirect
-	cloud.google.com/go/monitoring v1.8.0 // indirect
-	cloud.google.com/go/trace v1.4.0 // indirect
-	contrib.go.opencensus.io/exporter/stackdriver v0.12.6 // indirect
-	contrib.go.opencensus.io/exporter/zipkin v0.1.1 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v0.32.3 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.8.6 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.32.6 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator v0.0.0-20221018185641-36f91511cfd7 // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/bufbuild/connect-grpcreflect-go v1.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
@@ -57,15 +48,11 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/flatbuffers v23.3.3+incompatible // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/openzipkin/zipkin-go v0.4.0 // indirect
 	github.com/paulbellamy/ratecounter v0.2.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pingcap/errors v0.11.5-0.20211224045212-9687c2b0f87c // indirect
@@ -80,24 +67,13 @@ require (
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/streamingfast/dtracing v0.0.0-20210811175635-d55665d3622a // indirect
-	github.com/streamingfast/sf-tracing v0.0.0-20221104190152-7f721cb9b60c // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf // indirect
 	github.com/tikv/client-go/v2 v2.0.1-0.20220224085007-df187fa79aa1 // indirect
 	github.com/tikv/pd/client v0.0.0-20220216070739-26c668271201 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.9.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.36.4 // indirect
 	go.opentelemetry.io/otel v1.11.1 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.9.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.9.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.9.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.9.0 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.9.0 // indirect
-	go.opentelemetry.io/otel/exporters/zipkin v1.9.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.9.0 // indirect
 	go.opentelemetry.io/otel/trace v1.11.1 // indirect
-	go.opentelemetry.io/proto/otlp v0.18.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"go.uber.org/zap/zapcore"
-
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"google.golang.org/protobuf/types/descriptorpb"
 
@@ -19,7 +17,7 @@ import (
 var zlog, _ = logging.PackageLogger("sink-kv", "github.com/streamingfast/substreams-sink-kv/server/wasm.test")
 
 func init() {
-	logging.InstantiateLoggers(logging.WithDefaultLevel(zapcore.InfoLevel))
+	logging.InstantiateLoggers()
 }
 
 func assertProtoEqual(t *testing.T, expected proto.Message, actual proto.Message) {
