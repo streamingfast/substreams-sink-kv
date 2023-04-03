@@ -76,7 +76,7 @@ const App: React.FC = () => {
         },
         {
             title: 'First Block',
-            key: 'first_block',
+            key: 'first_blocks',
             render: (_: any, month: Month) => {
                 if (!month.firstBlock) {
                     return (<></>)
