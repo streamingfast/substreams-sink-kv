@@ -20,8 +20,9 @@ const { RangePicker } = DatePicker;
 // The transport defines what type of endpoint we're hitting.
 // In our example we'll be communicating with a Connect endpoint.
 const transport = createConnectTransport({
-    baseUrl: "http://localhost:7878",
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7878",
 });
+
 
 
 // Here we make the client itself, combining the service
