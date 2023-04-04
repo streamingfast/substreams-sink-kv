@@ -20,7 +20,7 @@ const { RangePicker } = DatePicker;
 // The transport defines what type of endpoint we're hitting.
 // In our example we'll be communicating with a Connect endpoint.
 const transport = createConnectTransport({
-    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7878",
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7676",
 });
 
 
@@ -76,7 +76,7 @@ const App: React.FC = () => {
         },
         {
             title: 'First Block',
-            key: 'first_blocks',
+            key: 'first_block',
             render: (_: any, month: Month) => {
                 if (!month.firstBlock) {
                     return (<></>)
