@@ -57,7 +57,11 @@ func NewEngineConfig(count uint64, code []byte, serviceConfig *ServiceConfig) *E
 func NewServiceConfig(
 	protoFile *descriptorpb.FileDescriptorProto,
 	fqGRPCService string,
+	apiPrefix string,
 ) (*ServiceConfig, error) {
+	if err := validatePrefix(apiPrefix); err != nil {
+		return nil, fmt.Errorf("invalid api prefix %q: %w", apiPrefix, err)
+	}
 
 	fd, err := desc.CreateFileDescriptor(protoFile)
 	if err != nil {
@@ -69,14 +73,22 @@ func NewServiceConfig(
 		if servName != fqGRPCService {
 			continue
 		}
+
+		connectWebPath := fmt.Sprintf("/%s/", servName)
+		if apiPrefix != "" {
+			connectWebPath = fmt.Sprintf("%s%s", apiPrefix, connectWebPath)
+		}
 		c := &ServiceConfig{
 			fqn:            servName,
-			connectWebPath: fmt.Sprintf("/%s/", servName),
+			connectWebPath: connectWebPath,
 			protoFile:      protoFile,
 		}
 		for _, mth := range srv.GetMethods() {
 			fqGRPC := fmt.Sprintf("%s.%s", c.fqn, mth.GetName())
 			connectWebPath := fmt.Sprintf("/%s/%s", c.fqn, mth.GetName())
+			if apiPrefix != "" {
+				connectWebPath = fmt.Sprintf("%s%s", apiPrefix, connectWebPath)
+			}
 			if mth.IsServerStreaming() {
 				return nil, fmt.Errorf("unable to support GRPC stream %s", fqGRPC)
 			}
@@ -105,4 +117,17 @@ func exportNameFromFQGrpcMethod(fqGRPCMethod string) string {
 	exportName := strings.Replace(fqGRPCMethod, ".", "_", -1)
 	exportName = strings.Replace(exportName, "/", "_", -1)
 	return strings.ToLower(exportName)
+}
+
+func validatePrefix(prefix string) error {
+	if prefix == "" {
+		return nil
+	}
+	if !strings.HasPrefix(prefix, "/") {
+		return fmt.Errorf("api prefix must start with a '/' and cannot end with a '/")
+	}
+	if strings.HasSuffix(prefix, "/") {
+		return fmt.Errorf("api prefix must start with a '/' and cannot end with a '/")
+	}
+	return nil
 }

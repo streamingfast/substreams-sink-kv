@@ -32,6 +32,7 @@ var serveCmd = Command(serveRunE,
 	Flags(func(flags *pflag.FlagSet) {
 		flags.String("listen-addr", ":7878", "Listen via GRPC Connect-Web on this address")
 		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
+		flags.String("api-prefix", "", "Prefix that will be added to the Connect Web routes")
 	}),
 	Description(`
 		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
@@ -127,7 +128,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("find proto file descriptor: %w", err)
 		}
 
-		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService)
+		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, mustGetString(cmd, "api-prefix"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
 		}

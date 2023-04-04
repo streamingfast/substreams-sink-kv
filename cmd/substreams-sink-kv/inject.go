@@ -28,6 +28,7 @@ var injectCmd = Command(injectRunE,
 		flags.BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
 		flags.String("listen-addr", "", "Launch query server on this address")
 		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
+		flags.String("api-prefix", "", "Prefix that will be added to the Connect Web routes i.e. /api")
 		flags.StringP("endpoint", "e", "mainnet.eth.streamingfast.io:443", "URL to the substreams endpoint")
 
 	}),

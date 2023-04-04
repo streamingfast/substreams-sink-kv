@@ -488,7 +488,7 @@ func getWasmService(t *testing.T, protoPath, wasmPath, fqServiceName string, moc
 
 	protoFileDesc := protoFileToDescriptor(t, protoPath)
 
-	config, err := wasmquery.NewServiceConfig(protoFileDesc, fqServiceName)
+	config, err := wasmquery.NewServiceConfig(protoFileDesc, fqServiceName, "")
 	require.NoError(t, err)
 
 	engineConfig := wasmquery.NewEngineConfig(1, code, config)
