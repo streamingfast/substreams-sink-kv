@@ -156,22 +156,58 @@ grpcurl -plaintext -proto ./proto/service.proto -d '{"year": "2019","month":"05"
 ```
 ### Website
 
-In this example we create a basic `react` application to consume the REST API
+In this example we create a basic `react` application to consume the REST API. We leverage `buf` to generate the typescript code used in our application
 
+*Code Generation*
+
+the `./proto` folder contains all the Protobuf files used in this example. The `./proto-gen.sh` script will generate the appropriate
+`typescript` and `rust` generated files, in the WASM query and the React frontend application. It will use the `./buf.gen.yaml` to determine
+what to generate. You will need to have the following protoc plugins installed locally:
+
+- https://github.com/bufbuild/protobuf-es
+- https://github.com/bufbuild/connect-es
+- https://crates.io/crates/protoc-gen-prost
+
+*React App*
+
+We use the generated code to instantiate an API Client
+```typescript
+...
+// The transport defines what type of endpoint we're hitting.
+// In our example we'll be communicating with a Connect endpoint.
+const transport = createConnectTransport({
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7878",
+});
+
+// Here we make the client itself, combining the service
+// definition with the transport.
+const client = createPromiseClient(BlockMeta, transport);
+...
+```
+
+We can then use the client to do API calls to our connect-web server
+
+```typescript
+const search = async () => {
+    ...
+    const response = await client.getBlockInfo({
+      start: startDate,
+      end: endDate,
+    })
+    ...
+}
+```
+
+*Running Locally*
 ```bash
 cd frontend
 yarn install
 yarn dev
 ```
 
-## Resources
+*Resources*
+We are hosting a demo here: https://wasm-query-kv-demo.mainnet.eth.streamingfast.io/
 
-### Protobuf
+You can also explore the Connect-Web API with the [buf studio](https://studio.buf.build/jubeless/wasm-query-kv-example/eth.service.v1.BlockMeta/GetBlockInfo?target=https%3A%2F%2Fwasm-query-kv-demo.mainnet.eth.streamingfast.io%2Fapi%2F&share=s9Kp5lJQUCouSSwqUbJSUDIyMLTUNTRU0gGJpualQMSMDHQNjJW4agE)
 
-the `./proto` folder contains all the Protobuf files used in this example. The `./proto-gen.sh` script will generate the appropriate 
-`typescript` and `rust` generated files, in the WASM query and the React frontend application. It will use the `./bug.gen.yaml` to determine 
-what to generate. You will need to have the following protoc plugins installed locally:
 
-- https://github.com/bufbuild/protobuf-es
-- https://github.com/bufbuild/connect-es
-- https://crates.io/crates/protoc-gen-prost

@@ -20,10 +20,8 @@ const { RangePicker } = DatePicker;
 // The transport defines what type of endpoint we're hitting.
 // In our example we'll be communicating with a Connect endpoint.
 const transport = createConnectTransport({
-    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7676",
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:7878",
 });
-
-
 
 // Here we make the client itself, combining the service
 // definition with the transport.
@@ -126,7 +124,14 @@ const App: React.FC = () => {
                 <div className="site-layout-content" style={{ background: colorBgContainer, marginTop: "25px" }} >
                     <Row justify={"center"} align={'middle'} >
                         <Col md={24} style={{textAlign: 'center'}}>
-                            <h1>ETH BlockMeta powered by connect-web and Substream Sink KV</h1>
+                            <h1>ETH BlockMeta</h1>
+                        </Col>
+                        <Col md={24} style={{textAlign: 'left'}}>
+                            <div style={{ backgroundColor: "#e6f4ff", border: "1px solid #91caff", padding: "8px 12px"}}>
+                                This is the demo of Connect-Web powered react application backed by <a target="_blank" href={"https://github.com/streamingfast/substreams-sink-kv"}>Substreams Sink KV</a><br/><br/>
+                                You can go through the full walk through and view the code on <a target="_blank" href={"https://github.com/streamingfast/substreams-sink-kv/tree/develop/examples/wasm-query-service"}>github</a><br/><br/>
+                                You can also explore the Connect-Web API with the <a href={"https://studio.buf.build/jubeless/wasm-query-kv-example/eth.service.v1.BlockMeta/GetBlockInfo?target=https%3A%2F%2Fwasm-query-kv-demo.mainnet.eth.streamingfast.io%2Fapi%2F&share=s9Kp5lJQUCouSSwqUbJSUDIyMLTUNTRU0gGJpualQMSMDHQNjJW4agE"}>buf studio</a>
+                            </div>
                         </Col>
                     </Row>
                     <Row gutter={[16, 16]} style={{marginTop: "25px"}}>
