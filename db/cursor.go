@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
 )
@@ -35,7 +34,7 @@ func (l *DB) WriteCursor(ctx context.Context, c *sink.Cursor) error {
 }
 
 func cursorToBytes(c *sink.Cursor) []byte {
-	out := fmt.Sprintf("%s:%s:%d", c.Cursor, c.Block.ID(), c.Block.Num())
+	out := fmt.Sprintf("%s:%s:%d", c.Cursor, c.Block().ID(), c.Block().Num())
 	return []byte(out)
 }
 
@@ -44,13 +43,12 @@ func cursorFromBytes(in []byte) (*sink.Cursor, error) {
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid cursor")
 	}
-	blockNum, err := strconv.ParseUint(parts[2], 10, 64)
+
+	// We validate the parts but don't read them, all information is taken from the cursor itself
+	_, err := strconv.ParseUint(parts[2], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cursor")
 	}
 
-	return &sink.Cursor{
-		Cursor: parts[0],
-		Block:  bstream.NewBlockRef(parts[1], blockNum),
-	}, nil
+	return sink.NewCursor(parts[0])
 }

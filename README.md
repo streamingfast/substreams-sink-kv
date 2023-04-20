@@ -1,7 +1,7 @@
 # Substreams key-value service Sink
 
 A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-targets) to pipe data from a [Substreams](https://substreams.streamingfast.io) endpoint into a key-value store and serve queries through either:
-- [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible) via the `GenericService` 
+- [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible) via the `GenericService`
 - a User defined WASM query service
 
 ## Requirements
@@ -9,6 +9,7 @@ A [Substreams _sink_](https://substreams.streamingfast.io/developers-guide/sink-
 ##### WasmEdge
 
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
+
 ```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
 ```
@@ -19,7 +20,6 @@ Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
-
 ```
 
 ## Running
@@ -49,7 +49,7 @@ The Query Service is an API that allows you to consume data from your sinked key
 - Generic Service
 - Wasm Query Service
 
-the `sink` block of your substreams manifest defines and configures which one to use 
+the `sink` block of your substreams manifest defines and configures which one to use
 
 ```yaml
 specVersion: v0.1.0
@@ -69,24 +69,24 @@ sink:
 
 breaking down the `sink` block we get the following:
 
-- **module**: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)  
+- **module**: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)
 - **type**: Support to types currently:
-  - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto) 
+  - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto)
   - [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
 - **config**: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
-> **_NOTE:_**  the `@@` notation will read the path and inject the content of the file in bytes, while the `@` notation will dump the file content in ascii 
+> **_NOTE:_**  the `@@` notation will read the path and inject the content of the file in bytes, while the `@` notation will dump the file content in ascii
 
 
 ### Generic Service
 
-The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto). 
+The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto).
 
-You can find a detailed example with documentation [here](./examples/generic-service) 
+You can find a detailed example with documentation [here](./examples/generic-service)
 
-### WASM Query Service 
+### WASM Query Service
 
-The wasm query service is a user-defined gRPC API that is backed by WASM code, which has access to underlying key-value store. 
+The wasm query service is a user-defined gRPC API that is backed by WASM code, which has access to underlying key-value store.
 
 You can find a detailed example with documentation [here](./examples/wasm-query-service)
 

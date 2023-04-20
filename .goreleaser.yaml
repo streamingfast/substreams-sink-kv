@@ -1,14 +1,5 @@
-project_name: substreams-sink-kv
-
-release:
-  draft: true
-  github:
-    owner: streamingfast
-    name: substreams-sink-kv
-  name_template: '{{.Tag}}'
-  target_commitish: '{{ .Commit }}'
-  extra_files:
-    - glob: build/substreams-sink-kv-{{.Tag}}.spkg
+env_files:
+  github_token: ~/.config/goreleaser/github_token
 
 builds:
   - id: darwin-amd64
@@ -22,6 +13,7 @@ builds:
       - CC=o64-clang
       - CXX=o64-clang++
     flags:
+      - -trimpath
       - -mod=readonly
     ldflags:
       - -s -w -X main.version={{.Version}}
@@ -37,6 +29,7 @@ builds:
       - CC=oa64-clang
       - CXX=oa64-clang++
     flags:
+      - -trimpath
       - -mod=readonly
     ldflags:
       - -s -w -X main.version={{.Version}}
@@ -52,6 +45,7 @@ builds:
       - CC=x86_64-linux-gnu-gcc
       - CXX=x86_64-linux-gnu-g++
     flags:
+      - -trimpath
       - -mod=readonly
     ldflags:
       - -s -w -X main.version={{.Version}}
@@ -63,7 +57,7 @@ archives:
       - darwin-arm64
       - linux-amd64
     name_template: >-
-      substreams_sink_kv_
+      {{ .ProjectName }}_
       {{- tolower .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -73,13 +67,24 @@ archives:
     - LICENSE
     - README.md
 
-snapshot:
-  name_template: '{{ .Tag }}-next'
-
 checksum:
-  name_template: checksums.txt
+  name_template: 'checksums.txt'
 
-dist: dist
+snapshot:
+  name_template: "{{ .Tag }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^GitBook:'
+
+release:
+  draft: true
+  name_template: '{{ .Tag }}'
+  target_commitish: '{{ .Commit }}'
 
 brews:
   - name: substreams-sink-kv
@@ -92,5 +97,5 @@ brews:
       name: goreleaserbot
       email: goreleaser@streamingfast.io
     homepage: "https://github.com/streamingfast/substreams-sink-kv"
-    description: "Substreams Sink KV"
+    description: "StreamingFast CLI for 'substreams-sink-kv'"
     license: "Apache-2.0"

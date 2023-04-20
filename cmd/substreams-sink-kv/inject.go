@@ -4,66 +4,59 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/streamingfast/cli"
 	. "github.com/streamingfast/cli"
-	"github.com/streamingfast/derr"
+	"github.com/streamingfast/cli/sflags"
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	"github.com/streamingfast/substreams-sink-kv/sinker"
-	"github.com/streamingfast/substreams/client"
-	"github.com/streamingfast/substreams/manifest"
 	"go.uber.org/zap"
 )
 
 var injectCmd = Command(injectRunE,
-	"inject <dsn> <spkg> [<start>:<stop>]",
-	"Fills a KV store from a substreams output and optionally runs a server",
-	RangeArgs(1, 4),
+	"inject <dsn> <manifest> [<start>:<stop>]",
+	"Fills a KV store from a Substreams output and optionally runs a server",
+	RangeArgs(1, 3),
 	Flags(func(flags *pflag.FlagSet) {
-		flags.BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
-		flags.BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
-		flags.String("listen-addr", "", "Launch query server on this address")
-		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
-		flags.String("api-prefix", "", "Prefix that will be added to the Connect Web routes i.e. /api")
-		flags.StringP("endpoint", "e", "mainnet.eth.streamingfast.io:443", "URL to the substreams endpoint")
+		sink.AddFlagsToSet(flags)
+		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
 
+		flags.String("endpoint", "mainnet.eth.stramingfast.io:443", "The endpoint where to contact the Substreams server")
+		flags.String("listen-addr", "", "Launch query server on this address")
 	}),
 	Description(`
 		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
   		* spkg: URL or local path to a '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
   		* module: FQGRPCName of the output module (declared in the manifest), (ex: 'kv_out')
-		
+
 		Environment Variables:
 		* SUBSTREAMS_API_TOKEN: Your authentication token (JWt) to the substreams endpoint
 	`),
+	OnCommandErrorLogAndExit(zlog),
 )
-
-func init() {
-	sink.RegisterMetrics()
-	sinker.RegisterMetrics()
-}
 
 func injectRunE(cmd *cobra.Command, args []string) error {
 	app := shutter.New()
 	ctx := cmd.Context()
 
-	dsn := args[0]
-	manifestPath := args[1]
-	blockRange := ""
-	if len(args) > 2 {
-		blockRange = args[3]
-	}
-	endpoint := viper.GetString("inject-endpoint")
+	sink.RegisterMetrics()
+	sinker.RegisterMetrics()
 
-	zlog.Info("running injector",
+	dsn, manifestPath, blockRange := extractInjectArgs(cmd, args)
+
+	flushInterval := sflags.MustGetDuration(cmd, "flush-interval")
+	endpoint := sflags.MustGetString(cmd, "endpoint")
+
+	zlog.Info("starting KV sinker",
 		zap.String("dsn", dsn),
 		zap.String("endpoint", endpoint),
 		zap.String("manifest_path", manifestPath),
 		zap.String("block_range", blockRange),
+		zap.Duration("flush_interval", flushInterval),
 	)
 
 	kvDB, err := db.New(dsn, zlog, tracer)
@@ -71,96 +64,39 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("new psql loader: %w", err)
 	}
 
-	zlog.Info("reading substreams spkg", zap.String("manifest_path", manifestPath))
-	pkg, err := manifest.NewReader(manifestPath).Read()
-	if err != nil {
-		return fmt.Errorf("read manifest: %w", err)
-	}
-
-	graph, err := manifest.NewModuleGraph(pkg.Modules.Modules)
-	if err != nil {
-		return fmt.Errorf("create substreams moduel graph: %w", err)
-	}
-
-	if pkg.SinkModule == "" {
-		return fmt.Errorf("sink module is required in sink config")
-	}
-	outputModuleName := pkg.SinkModule
-
-	zlog.Info("validating output store", zap.String("output_store", outputModuleName))
-	module, err := graph.Module(outputModuleName)
-	if err != nil {
-		return fmt.Errorf("get output module %q: %w", outputModuleName, err)
-	}
-	if module.GetKindMap() == nil {
-		return fmt.Errorf("ouput module %q is *not* of  type 'Mapper'", outputModuleName)
-	}
-
-	if module.Output.Type != "proto:sf.substreams.sink.kv.v1.KVOperations" {
-		return fmt.Errorf("kv sync only supports maps with output type 'proto:sf.substreams.sink.kv.v1.KVOperations'")
-	}
-	hashes := manifest.NewModuleHashes()
-	outputModuleHash := hashes.HashModule(pkg.Modules, module, graph)
-
-	resolvedStartBlock, resolvedStopBlock, err := readBlockRange(module, blockRange)
-	if err != nil {
-		return fmt.Errorf("resolve block range: %w", err)
-	}
-	zlog.Info("resolved block range",
-		zap.Int64("start_block", resolvedStartBlock),
-		zap.Uint64("stop_block", resolvedStopBlock),
-	)
-
-	apiToken := readAPIToken()
-	config := &sinker.Config{
-		DBLoader:         kvDB,
-		BlockRange:       blockRange,
-		Pkg:              pkg,
-		OutputModule:     module,
-		OutputModuleName: outputModuleName,
-		OutputModuleHash: outputModuleHash,
-		ClientConfig: client.NewSubstreamsClientConfig(
-			endpoint,
-			apiToken,
-			viper.GetBool("run-insecure"),
-			viper.GetBool("run-plaintext"),
-		),
-	}
-
-	kvSinker, err := sinker.New(
-		config,
-		zlog,
-		tracer,
+	sink, err := sink.NewFromViper(
+		cmd,
+		"proto:sf.substreams.sink.kv.v1.KVOperations",
+		endpoint, manifestPath, sink.InferOutputModuleFromPackage, blockRange,
+		zlog, tracer,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to setup sinker: %w", err)
 	}
-	kvSinker.OnTerminating(app.Shutdown)
 
+	kvSinker, err := sinker.New(sink, kvDB, flushInterval, zlog, tracer)
+	if err != nil {
+		return fmt.Errorf("unable to setup sinker: %w", err)
+	}
+
+	kvSinker.OnTerminating(app.Shutdown)
 	app.OnTerminating(func(err error) {
-		zlog.Info("application terminating shutting down sinker")
 		kvSinker.Shutdown(err)
 	})
 
 	go func() {
-		if err := kvSinker.Start(ctx); err != nil {
-			zlog.Error("sinker failed", zap.Error(err))
-			kvSinker.Shutdown(err)
-		}
+		kvSinker.Run(ctx)
 	}()
 
 	if listenAddr := viper.GetString("inject-listen-addr"); listenAddr != "" {
-		zlog.Info("setting up query server",
-			zap.String("dsn", dsn),
-			zap.String("listen_addr", listenAddr),
-		)
-		server, err := setupServer(cmd, pkg, kvDB)
+		zlog.Info("setting up query server", zap.String("dsn", dsn), zap.String("listen_addr", listenAddr))
+		server, err := setupServer(cmd, sink.Package(), kvDB)
 		if err != nil {
 			return fmt.Errorf("setup server: %w", err)
 
 		}
-		app.OnTerminating(func(err error) {
-			zlog.Info("application terminating shutting down server")
+		app.OnTerminating(func(_ error) {
+			zlog.Info("inject terminating shutting down server")
 			server.Shutdown()
 		})
 
@@ -169,48 +105,45 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 				app.Shutdown(err)
 			}
 		}()
-
 	}
 
-	signalHandler := derr.SetupSignalHandler(0 * time.Second)
 	zlog.Info("ready, waiting for signal to quit")
+
+	signalHandler, isSignaled, _ := cli.SetupSignalHandler(0*time.Second, zlog)
 	select {
 	case <-signalHandler:
-		zlog.Info("received termination signal, quitting application")
 		go app.Shutdown(nil)
+		break
 	case <-app.Terminating():
-		NoError(app.Err(), "application shutdown unexpectedly, quitting")
+		zlog.Info("inject terminating", zap.Bool("from_signal", isSignaled.Load()), zap.Bool("with_error", app.Err() != nil))
+		break
 	}
 
-	zlog.Info("waiting for app termination")
+	zlog.Info("inject for run termination")
 	select {
 	case <-app.Terminated():
 	case <-time.After(30 * time.Second):
-		zlog.Error("application did not terminated within 30s, forcing exit")
+		zlog.Warn("inject did not terminate within 30s")
 	}
 
-	zlog.Info("app terminated")
+	if err := app.Err(); err != nil {
+		return err
+	}
+
+	zlog.Info("inject terminated gracefully")
 	return nil
 }
 
-func parseArgs(cmd *cobra.Command, args []string) (dsn, manifestPath, outputModuleName, blockRange string) {
-	switch len(args) {
-	case 4:
-		blockRange = args[3]
-		fallthrough
-	case 3:
-		dsn = args[0]
+func extractInjectArgs(_ *cobra.Command, args []string) (dsn, manifestPath, blockRange string) {
+	manifestPath = "substreams.yaml"
+
+	dsn = args[0]
+	if len(args) >= 2 {
 		manifestPath = args[1]
-		outputModuleName = args[2]
-	case 2:
-		dsn = args[0]
-		manifestPath = args[1]
-		outputModuleName = "kv_out"
-	case 1:
-		dsn = args[0]
-		manifestPath = "substreams.yaml"
-		outputModuleName = "kv_out"
-	default:
 	}
+	if len(args) >= 3 {
+		blockRange = args[2]
+	}
+
 	return
 }
