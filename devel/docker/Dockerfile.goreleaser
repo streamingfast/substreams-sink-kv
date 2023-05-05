@@ -1,0 +1,3 @@
+FROM goreleaser/goreleaser-cross:v1.20.2
+
+COPY wasmedge.h /usr/include/wasmedge/
