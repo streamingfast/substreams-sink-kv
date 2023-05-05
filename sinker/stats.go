@@ -6,6 +6,7 @@ import (
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dmetrics"
 	"github.com/streamingfast/shutter"
+	sink "github.com/streamingfast/substreams-sink"
 	"go.uber.org/zap"
 )
 
@@ -32,8 +33,10 @@ func (s *Stats) RecordBlock(block bstream.BlockRef) {
 	s.lastBlock = block
 }
 
-func (s *Stats) Start(each time.Duration) {
-	s.logger.Info("starting stats service", zap.Duration("runs_each", each))
+func (s *Stats) Start(each time.Duration, cursor *sink.Cursor) {
+	if !cursor.IsBlank() {
+		s.lastBlock = cursor.Block()
+	}
 
 	if s.IsTerminating() || s.IsTerminated() {
 		panic("already shutdown, refusing to start again")
@@ -46,25 +49,22 @@ func (s *Stats) Start(each time.Duration) {
 		for {
 			select {
 			case <-ticker.C:
-				// Logging fields order is important as it affects the final rendering, we carefully ordered
-				// them so the development logs looks nicer.
-				fields := []zap.Field{
-					zap.Stringer("db_flush_rate", s.dbFlushRate),
-					zap.Uint64("flushed_entries", s.flusehdEntries.ValueUint()),
-				}
-
-				if s.lastBlock == nil {
-					fields = append(fields, zap.String("last_block", "None"))
-				} else {
-					fields = append(fields, zap.Stringer("last_block", s.lastBlock))
-				}
-
-				s.logger.Info("substreams kv stats", fields...)
+				s.LogNow()
 			case <-s.Terminating():
 				return
 			}
 		}
 	}()
+}
+
+func (s *Stats) LogNow() {
+	// Logging fields order is important as it affects the final rendering, we carefully ordered
+	// them so the development logs looks nicer.
+	s.logger.Info("substreams kv stats",
+		zap.Stringer("db_flush_rate", s.dbFlushRate),
+		zap.Uint64("flushed_entries", s.flusehdEntries.ValueUint()),
+		zap.Stringer("last_block", s.lastBlock),
+	)
 }
 
 func (s *Stats) Close() {

@@ -7,9 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
-
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 )
 
