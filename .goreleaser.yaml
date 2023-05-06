@@ -10,8 +10,11 @@ builds:
     goarch:
       - amd64
     env:
+      - CGO_ENABLED=1
       - CC=o64-clang
       - CXX=o64-clang++
+      - C_INCLUDE_PATH=/usr/local/osxcross/include/amd64
+      - LIBRARY_PATH=/usr/local/osxcross/lib/amd64
     flags:
       - -trimpath
       - -mod=readonly
@@ -26,8 +29,11 @@ builds:
     goarch:
       - arm64
     env:
+      - CGO_ENABLED=1
       - CC=oa64-clang
       - CXX=oa64-clang++
+      - C_INCLUDE_PATH=/usr/local/osxcross/include/arm64
+      - LIBRARY_PATH=/usr/local/osxcross/lib/arm64
     flags:
       - -trimpath
       - -mod=readonly
@@ -42,8 +48,11 @@ builds:
     goarch:
       - amd64
     env:
+      - CGO_ENABLED=1
       - CC=x86_64-linux-gnu-gcc
       - CXX=x86_64-linux-gnu-g++
+      - C_INCLUDE_PATH=/usr/x86_64-linux-gnu/include
+      - LIBRARY_PATH=/usr/x86_64-linux-gnu/lib
     flags:
       - -trimpath
       - -mod=readonly

@@ -2,4 +2,12 @@ global:
   language: golang
   variant: application
 release:
+  # You need a specialized goreleaser-cross image that contains WasmEdge (include/lib(s))
+  # for each supported platform. For now, we do not publish this image to a public
+  # docker registry. So you need to build it manually with
+  #
+  #   ./devel/docker/push.sh
+  #
+  # It will build the image locally, then you will be able to release.
+  goreleaser-docker-image: goreleaser-wasmedge:v1.20.3
   upload-substreams-spkg: substreams.yaml
