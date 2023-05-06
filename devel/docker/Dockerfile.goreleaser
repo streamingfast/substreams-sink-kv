@@ -8,7 +8,7 @@ RUN cd /root &&\
     wget -O wasmedge.tar.gz https://github.com/WasmEdge/WasmEdge/releases/download/0.11.2/WasmEdge-0.11.2-ubuntu20.04_x86_64.tar.gz &&\
     tar -xzvf wasmedge.tar.gz &&\
     mkdir -p /usr/x86_64-linux-gnu/lib &&\
-    cp -R WasmEdge-0.11.2-Linux/include /usr/x86_64-linux-gnu/include &&\
+    cp -R WasmEdge-0.11.2-Linux/include/* /usr/x86_64-linux-gnu/include &&\
     cp -R WasmEdge-0.11.2-Linux/lib/* /usr/x86_64-linux-gnu/lib &&\
     rm -rf wasmedge-ubuntu-20.04-x86-64
 
@@ -32,8 +32,6 @@ RUN cd /root &&\
     cp -Ra WasmEdge-0.11.2-Darwin/lib/libwasmedge.* /usr/local/osxcross/lib/amd64 &&\
     rm -rf wasmedge-darwin-amd64
 
-COPY wasmedge/0.11.2-linux/lib /usr/x86_64-linux-gnu/lib
-COPY wasmedge/0.11.2-linux/include/wasmedge /usr/x86_64-linux-gnu/include/wasmedge
 COPY --from=x86_64-linux-gnu /lib/x86_64-linux-gnu/libz.so.1* /usr/x86_64-linux-gnu/lib
 COPY --from=x86_64-linux-gnu /lib/x86_64-linux-gnu/libtinfo.so.6* /usr/x86_64-linux-gnu/lib
 

@@ -94,6 +94,25 @@ You can find a detailed example with documentation [here](./examples/wasm-query-
 
 Refer to the [general StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md).
 
+### WasmEdge
+
+Bumping `github.com/second-state/WasmEdge-go` to a newer version requires matching WasmEdge version. For example `github.com/second-state/WasmEdge-go@0.11.2` requires [WasmEdge 0.11.2](https://github.com/WasmEdge/WasmEdge/releases/tag/0.11.2).
+
+If a new version of [WasmEdge](https://github.com/WasmEdge/WasmEdge), it requires also modifying the [./devel/docker/Dockerfile.goreleaser](./devel/docker/Dockerfile.goreleaser) file so it pulls dependencies required for building using the correct version. Testing the build can be done using by first building the Docker image via `./devel/docker/push.sh` and then running:
+
+```bash
+docker run --rm -it -v `pwd`:/work -w /work goreleaser-wasmedge:v1.20.3 release --snapshot --clean --skip-validate
+```
+
+Manual Golang compilation within the docker image can be done with:
+
+```bash
+docker run --rm -it -v `pwd`:/work -w /work --entrypoint bash goreleaser-wasmedge:v1.20.3
+cd /work
+# Adjust CC, CXX, C_INCLUDE_PATH, LIBRARY_PATH and GOOS/GOARCH according to .goreleaser.yaml file
+CGO_ENABLED=1 CC=oa64-clang CXX=oa64-clang++ GOOS=darwin GOARCH=arm64 C_INCLUDE_PATH=/usr/local/osxcross/include/arm64 LIBRARY_PATH="/usr/local/osxcross/lib/arm64" go build -trimpath -mod=readonly -ldflags="-s -w" -o /work/substreams-sink-kv-cross-compiled ./cmd/substreams-sink-kv/
+```
+
 ## License
 
 [Apache 2.0](https://github.com/streamingfast/substreams/blob/develop/LICENSE/README.md).

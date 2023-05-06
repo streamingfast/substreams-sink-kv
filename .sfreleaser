@@ -9,5 +9,5 @@ release:
   #   ./devel/docker/push.sh
   #
   # It will build the image locally, then you will be able to release.
-  goreleaser-docker-image: goreleaser-wasmedge:v1.20.3
+  goreleaser-docker-image: goreleaser-cross-wasmedge:v1.20.3
   upload-substreams-spkg: substreams.yaml

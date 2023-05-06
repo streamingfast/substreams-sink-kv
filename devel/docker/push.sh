@@ -18,7 +18,7 @@ main() {
     docker_file="Dockerfile.goreleaser"
   fi
 
-  docker build -f "$docker_file" . -t goreleaser-wasmedge:v1.20.3
+  docker build -f "$docker_file" . -t goreleaser-cross-wasmedge:v1.20.3
 }
 
 usage_error() {
