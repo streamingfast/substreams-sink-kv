@@ -13,7 +13,7 @@ import (
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1/kvv1connect"
+	kvv1connect "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1/kvv1connect"
 	sserver "github.com/streamingfast/substreams-sink-kv/server"
 	"go.uber.org/zap"
 )
@@ -26,7 +26,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 		logger:   logger,
 	}
 
-	location, handler := kvconnect.NewKvHandler(cs)
+	location, handler := kvv1connect.NewKvHandler(cs)
 	mappings := map[string]http.Handler{
 		location: handler,
 	}
@@ -48,7 +48,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 }
 
 type ConnectServer struct {
-	kvconnect.UnimplementedKvHandler
+	kvv1connect.UnimplementedKvHandler
 	srv      *connectweb.ConnectWebServer
 	DBReader db.Reader
 	logger   *zap.Logger
