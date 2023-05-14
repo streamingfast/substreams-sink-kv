@@ -12,7 +12,7 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
 	"github.com/streamingfast/substreams-sink-kv/server/wasm"
@@ -123,7 +123,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB, api
 	}
 	switch pkg.SinkConfig.TypeUrl {
 	case "sf.substreams.sink.kv.v1.WASMQueryService":
-		wasmServ := &pbkv.WASMQueryService{}
+		wasmServ := &kvv1.WASMQueryService{}
 		if err := pkg.SinkConfig.UnmarshalTo(wasmServ); err != nil {
 			return nil, fmt.Errorf("failed to proto unmarshall: %w", err)
 		}

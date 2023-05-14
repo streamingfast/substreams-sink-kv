@@ -6,7 +6,7 @@ import (
 
 	"github.com/second-state/WasmEdge-go/wasmedge"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
@@ -57,9 +57,9 @@ func (i *KVExtension) scan(_ interface{}, callFrame *wasmedge.CallingFrame, para
 		zap.Int("key_value_count", len(keyVals)),
 	)
 
-	out := &pbkv.KVPairs{}
+	out := &kvv1.KVPairs{}
 	for _, kv := range keyVals {
-		out.Pairs = append(out.Pairs, &pbkv.KVPair{Key: kv.Key, Value: kv.Value})
+		out.Pairs = append(out.Pairs, &kvv1.KVPair{Key: kv.Key, Value: kv.Value})
 	}
 	outBytes, err := proto.Marshal(out)
 	if err != nil {

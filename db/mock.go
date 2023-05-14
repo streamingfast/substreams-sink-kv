@@ -66,7 +66,7 @@ func (m *MockDB) GetMany(ctx context.Context, keys []string) (values [][]byte, e
 func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
 
 	var keys []string
-	for k, _ := range m.KV {
+	for k := range m.KV {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -92,7 +92,7 @@ func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (val
 
 func (m *MockDB) Scan(ctx context.Context, start string, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
 	var keys []string
-	for k, _ := range m.KV {
+	for k := range m.KV {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

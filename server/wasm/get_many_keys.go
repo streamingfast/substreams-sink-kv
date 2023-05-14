@@ -5,7 +5,7 @@ import (
 
 	"github.com/second-state/WasmEdge-go/wasmedge"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
@@ -23,7 +23,7 @@ func (i *KVExtension) getManyKeys(_ interface{}, callframe *wasmedge.CallingFram
 
 	copy(key, data)
 
-	keys := &pbkv.KVKeys{}
+	keys := &kvv1.KVKeys{}
 	if err := proto.Unmarshal(data, keys); err != nil {
 		i.logger.Warn("failed to proto unmarshal proto keys", zap.Error(err))
 		return nil, wasmedge.Result_Fail
@@ -43,9 +43,9 @@ func (i *KVExtension) getManyKeys(_ interface{}, callframe *wasmedge.CallingFram
 		zap.Strings("keys", keys.Keys),
 		zap.Int("resp", len(values)),
 	)
-	out := &pbkv.KVPairs{}
+	out := &kvv1.KVPairs{}
 	for idx, value := range values {
-		out.Pairs = append(out.Pairs, &pbkv.KVPair{Key: keys.Keys[idx], Value: value})
+		out.Pairs = append(out.Pairs, &kvv1.KVPair{Key: keys.Keys[idx], Value: value})
 	}
 	outBytes, err := proto.Marshal(out)
 	if err != nil {
