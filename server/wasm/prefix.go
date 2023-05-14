@@ -6,7 +6,7 @@ import (
 
 	"github.com/second-state/WasmEdge-go/wasmedge"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )

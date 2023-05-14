@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"net/http"
+
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 
 	"github.com/bufbuild/connect-go"
 	connect_go "github.com/bufbuild/connect-go"
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1/kvv1connect"
+	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1/kvv1connect"
 	sserver "github.com/streamingfast/substreams-sink-kv/server"
 	"go.uber.org/zap"
 )

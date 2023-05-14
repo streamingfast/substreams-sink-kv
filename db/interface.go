@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sink "github.com/streamingfast/substreams-sink"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 )
 
 type Loader interface {

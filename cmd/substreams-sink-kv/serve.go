@@ -12,7 +12,7 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
 	"github.com/streamingfast/substreams-sink-kv/server/wasm"

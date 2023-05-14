@@ -3,10 +3,11 @@ managed:
   enabled: true
   go_package_prefix:
     default: github.com/streamingfast/substreams-sink-kv/pb
+
 plugins:
-  - name: go
-    out: ../pb
+  - plugin: buf.build/protocolbuffers/go:v1.28.1
+    out: pb
     opt: paths=source_relative
-  - name: connect-go
-    out: ../pb
+  - plugin: buf.build/bufbuild/connect-go:v1.7.0
+    out: pb
     opt: paths=source_relative
