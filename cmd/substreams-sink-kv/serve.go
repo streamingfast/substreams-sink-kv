@@ -3,22 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"github.com/streamingfast/substreams-sink-kv/server/wasm"
-
-	"github.com/streamingfast/substreams-sink-kv/wasmquery"
-
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	. "github.com/streamingfast/cli"
+	"github.com/streamingfast/cli/sflags"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
+	"github.com/streamingfast/substreams-sink-kv/server/wasm"
+	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"go.uber.org/zap"
@@ -35,6 +33,8 @@ var serveCmd = Command(serveRunE,
 		flags.String("api-prefix", "", "Prefix that will be added to the Connect Web routes")
 	}),
 	Description(`
+		Test
+
 		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
  		* spkg: URL or local path to a '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
 	`),
@@ -51,7 +51,7 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	// parse args
 	dsn := args[0]
 	manifestPath := args[1]
-	listenAddr := mustGetString(cmd, "listen-addr")
+	listenAddr := sflags.MustGetString(cmd, "listen-addr")
 
 	zlog.Info("serve substreams-sink-kv",
 		zap.String("dsn", dsn),
@@ -128,7 +128,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("find proto file descriptor: %w", err)
 		}
 
-		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, mustGetString(cmd, "api-prefix"))
+		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, sflags.MustGetString(cmd, "api-prefix"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
 		}
@@ -146,7 +146,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 
 		return engine, nil
 	case "sf.substreams.sink.kv.v1.GenericService":
-		return standard.NewServer(kvDB, zlog, mustGetBool(cmd, "listen-ssl-self-signed")), nil
+		return standard.NewServer(kvDB, zlog, sflags.MustGetBool(cmd, "listen-ssl-self-signed")), nil
 	default:
 		return nil, fmt.Errorf("invalid sink_config type: %s", pkg.SinkConfig.TypeUrl)
 	}

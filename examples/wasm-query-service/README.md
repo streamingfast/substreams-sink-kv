@@ -87,10 +87,12 @@ Before we run the `substreams-sink-kv` we need to build the WASM query service
 You can run the `substreams-sink-kv` inject mode.
 
 ```bash
-  # Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
-  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
-  substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
+# Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
+export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+
+substreams-sink-kv inject mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
+
 > **Note** You can also use the `inject.sh` scripts which contains the call above
 
 The `inject` mode is running the [`block-meta` substreams](https://github.com/streamingfast/substreams-eth-block-meta) and applying the `KVOperation` to a local `badger -b` that is located here `./badger_data.db`.
@@ -100,7 +102,7 @@ After a few minutes of sinking your local `badger-db` should contain keys. You c
 We can introspect the store with our [`kvdb` CLI](https://github.com/streamingfast/kvdb)
 
 ```bash
-  kvdb read prefix kmonth:first --dsn "badger3://$(pwd)/badger_data.db" --decoder="proto://./proto/block_meta.proto@eth.block_meta.v1.BlockMeta"
+kvdb read prefix kmonth:first --dsn "badger3://$(pwd)/badger_data.db" --decoder="proto://./proto/block_meta.proto@eth.block_meta.v1.BlockMeta"
 ```
 
 You should get an output like this

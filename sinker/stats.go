@@ -25,6 +25,7 @@ func NewStats(logger *zap.Logger) *Stats {
 
 		dbFlushRate:    dmetrics.MustNewAvgRateFromPromCounter(FlushCount, 1*time.Second, 30*time.Second, "flush"),
 		flusehdEntries: dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
+		lastBlock:      unsetBlockRef{},
 		logger:         logger,
 	}
 }
@@ -68,5 +69,14 @@ func (s *Stats) LogNow() {
 }
 
 func (s *Stats) Close() {
+	s.dbFlushRate.SyncNow()
+	s.LogNow()
+
 	s.Shutdown(nil)
 }
+
+type unsetBlockRef struct{}
+
+func (unsetBlockRef) ID() string     { return "" }
+func (unsetBlockRef) Num() uint64    { return 0 }
+func (unsetBlockRef) String() string { return "None" }

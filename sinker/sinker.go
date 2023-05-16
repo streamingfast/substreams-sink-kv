@@ -64,7 +64,6 @@ func (s *KVSinker) Run(ctx context.Context) {
 
 	s.Sinker.OnTerminating(s.Shutdown)
 	s.OnTerminating(func(err error) {
-		s.stats.LogNow()
 		s.logger.Info("kv sinker terminating", zap.Stringer("last_block_written", s.stats.lastBlock))
 		s.Sinker.Shutdown(err)
 	})
@@ -102,13 +101,15 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 	s.lastCursor = cursor
 
-	if cursor.Block().Num()%s.batchBlockModulo(data, isLive) == 0 {
+	blockRef := cursor.Block()
+	if blockRef.Num()%s.batchBlockModulo(data, isLive) == 0 {
 		flushStart := time.Now()
 		count, err := s.dbLoader.Flush(ctx, cursor)
 		if err != nil {
 			return fmt.Errorf("failed to flush: %w", err)
 		}
 
+		s.stats.RecordBlock(blockRef)
 		FlushCount.Inc()
 		FlushedEntriesCount.AddInt(count)
 		FlushDuration.AddInt64(time.Since(flushStart).Nanoseconds())

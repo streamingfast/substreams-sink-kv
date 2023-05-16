@@ -34,13 +34,13 @@ You can run `substreams-sink-kv` solely in `inject` or `serve` mode or both.
 
 ```bash
 # Inject Mode
-substreams-sink-kv inject -e "mainnet.eth.streamingfast.io:443" <kv_dsn> <substreams_spkg_path> <kv_out>
+substreams-sink-kv inject mainnet.eth.streamingfast.io:443 <kv_dsn> <substreams_spkg_path> <kv_out>
 
 # Serve Mode
 substreams-sink-kv serve <kv_dsn> <substreams_spkg_path> --listen-addr=":9000"
 
 # Inject and Serve Mode
-substreams-sink-kv inject -e "mainnet.eth.streamingfast.io:443" <kv_dsn> <substreams_spkg_path> <kv_out> --listen-addr=":9000"
+substreams-sink-kv inject mainnet.eth.streamingfast.io:443 <kv_dsn> <substreams_spkg_path> <kv_out> --listen-addr=":9000"
 ```
 
 ## Query Service

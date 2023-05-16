@@ -7,9 +7,11 @@ In this example, we will launch the [`block-meta` substream](https://github.com/
 ##### WasmEdge
 
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
+
 ```bash
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- --version 0.11.2
 ```
+
 > **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
 
 ##### Buf CLI
@@ -83,9 +85,10 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
 You can run the `substreams-sink-kv` inject mode.
 
 ```bash
-  # Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
-  export DYLD_LIBRARY_PATH=$LIBRARY_PATH
-  substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
+# Required only on MacOS to properly instruct the 'substreams-sink-kv' where to find the WasmEdge library
+export DYLD_LIBRARY_PATH=$LIBRARY_PATH
+
+substreams-sink-kv inject mainnet.eth.streamingfast.io:443 "badger3://$(pwd)/badger_data.db" substreams.yaml
 ```
 > **Note** You can also use the `inject.sh` scripts which contains the call above
 

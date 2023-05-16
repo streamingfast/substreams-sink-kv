@@ -18,23 +18,31 @@ import (
 )
 
 var injectCmd = Command(injectRunE,
-	"inject <dsn> <manifest> [<start>:<stop>]",
+	"inject <endpoint> <dsn> <manifest> [<start>:<stop>]",
 	"Fills a KV store from a Substreams output and optionally runs a server",
-	RangeArgs(1, 3),
+	RangeArgs(3, 4),
 	Flags(func(flags *pflag.FlagSet) {
 		sink.AddFlagsToSet(flags)
-		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
 
-		flags.String("endpoint", "mainnet.eth.stramingfast.io:443", "The endpoint where to contact the Substreams server")
+		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
 		flags.String("listen-addr", "", "Launch query server on this address")
+		flags.String("module", "", "An explicit module to sink, if not provided, expecting the Substreams manifest to defined 'sink' configuration")
 	}),
 	Description(`
-		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
-  		* spkg: URL or local path to a '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
-  		* module: FQGRPCName of the output module (declared in the manifest), (ex: 'kv_out')
+		Fills a KV store from a Substreams output and optionally runs a server. Authentication
+		with the remote endpoint can be done using the 'SUBSTREAMS_API_TOKEN' environment variable.
 
-		Environment Variables:
-		* SUBSTREAMS_API_TOKEN: Your authentication token (JWt) to the substreams endpoint
+		The required arguments are:
+		- <endpoint>: The Substreams endpoint to reach (e.g. 'mainnet.eth.streamingfast.io:443').
+		- <dsn>: URL to connect to the KV store, see https://github.com/streamingfast/kvdb for more DSN details (e.g. 'badger3:///tmp/substreams-sink-kv-db').
+		- <manifest>: URL or local path to a '.spkg' file (e.g. 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg').
+
+		The optional arguments are:
+		- <start>:<stop>: The range of block to sync, if not provided, will sync from the module's initial block and then forever.
+	`),
+	ExamplePrefixed("substreams-sink-kv inject", `
+		# Inject key/values produced by kv_out for the whole chain
+		mainnet.eth.streamingfast.io:443 badger3:///tmp/block-meta-db https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg
 	`),
 	OnCommandErrorLogAndExit(zlog),
 )
@@ -46,10 +54,10 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	sink.RegisterMetrics()
 	sinker.RegisterMetrics()
 
-	dsn, manifestPath, blockRange := extractInjectArgs(cmd, args)
+	endpoint, dsn, manifestPath, blockRange := extractInjectArgs(cmd, args)
 
 	flushInterval := sflags.MustGetDuration(cmd, "flush-interval")
-	endpoint := sflags.MustGetString(cmd, "endpoint")
+	module := sflags.MustGetString(cmd, "module")
 
 	zlog.Info("starting KV sinker",
 		zap.String("dsn", dsn),
@@ -57,6 +65,7 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		zap.String("manifest_path", manifestPath),
 		zap.String("block_range", blockRange),
 		zap.Duration("flush_interval", flushInterval),
+		zap.String("module", module),
 	)
 
 	kvDB, err := db.New(dsn, zlog, tracer)
@@ -64,10 +73,15 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("new psql loader: %w", err)
 	}
 
+	outputModuleName := sink.InferOutputModuleFromPackage
+	if module != "" {
+		outputModuleName = module
+	}
+
 	sink, err := sink.NewFromViper(
 		cmd,
-		"proto:sf.substreams.sink.kv.v1.KVOperations",
-		endpoint, manifestPath, sink.InferOutputModuleFromPackage, blockRange,
+		"sf.substreams.sink.kv.v1.KVOperations",
+		endpoint, manifestPath, outputModuleName, blockRange,
 		zlog, tracer,
 	)
 	if err != nil {
@@ -134,15 +148,12 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func extractInjectArgs(_ *cobra.Command, args []string) (dsn, manifestPath, blockRange string) {
-	manifestPath = "substreams.yaml"
-
-	dsn = args[0]
-	if len(args) >= 2 {
-		manifestPath = args[1]
-	}
-	if len(args) >= 3 {
-		blockRange = args[2]
+func extractInjectArgs(_ *cobra.Command, args []string) (endpoint, dsn, manifestPath, blockRange string) {
+	endpoint = args[0]
+	dsn = args[1]
+	manifestPath = args[2]
+	if len(args) == 4 {
+		blockRange = args[3]
 	}
 
 	return

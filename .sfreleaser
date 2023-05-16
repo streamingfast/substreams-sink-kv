@@ -4,7 +4,7 @@ global:
 release:
   # You need a specialized goreleaser-cross image that contains WasmEdge (include/lib(s))
   # for each supported platform. For now, we do not publish this image to a public
-  # docker registry. So you need to build it manually with
+  # Docker registry. So you need to build it manually with
   #
   #   ./devel/docker/push.sh
   #

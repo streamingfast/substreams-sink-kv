@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v2.1.0
+
+### Highlights
+
+We change the arguments accepted by `substreams-sink-kv inject` where now the first argument must be the endpoint to consume from. This was previously the provided through the flag `-e, --endpoint`. This has been done to aligned with other sinks supported by StreamingFast team.
+
+Before:
+
+```bash
+# Implicit default endpoint
+substreams-sink-kv inject <dsn> substreams.spkg
+
+# Explicit endpoint
+substreams-sink-kv inject -e mainnet.eth.streamingfast.io:443 <dsn> substreams.spkg
+```
+
+After:
+
+```bash
+substreams-sink-kv inject mainnet.eth.streamingfast.io:443 <dsn> substreams.spkg
+```
+
+### Changed
+
+- **Breaking** Flag `-e, --endpoint` has been replaced by a mandatory positional argument instead, see highlights for upgrade procedure.
+
 ## v2.0.0
 
 ### Highlights
