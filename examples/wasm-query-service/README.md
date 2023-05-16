@@ -8,7 +8,7 @@ In this example, we will launch the [`block-meta` substream](https://github.com/
 
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
 ```bash
-curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- --version 0.11.2
 ```
 
 > **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
@@ -31,7 +31,7 @@ go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
 
 ### Substreams
 
-The `block-meta` substreams tracks the first and last block of every month since genesis block. The substreams has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
+The `block-meta` Substreams tracks the first and last block of every month since genesis block. The Substreams has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
 
 ```yaml
 ...
@@ -82,7 +82,7 @@ Before we run the `substreams-sink-kv` we need to build the WASM query service
 ./build-wasm.sh
 ```
 
-> **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
+> **Note** To connect to Substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
 You can run the `substreams-sink-kv` inject mode.
 

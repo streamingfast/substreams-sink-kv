@@ -8,7 +8,7 @@ In this example, we will launch the [`block-meta` substream](https://github.com/
 
 Learn about WasmEdge from its [Quick Start Guide](https://wasmedge.org/book/en/quick_start/install.html), or simply run the following to install.
 ```bash
-curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- --version 0.11.2
 ```
 > **Note** If you use `zsh`, the final installation instructions talks about sourcing `"$HOME/.zprofile` but it seems this file is not created properly in all cases. If it's the case, add `source "$HOME/.wasmedge/env"` at the end of your `.zshrc` file.
 
@@ -20,7 +20,9 @@ curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/insta
 brew install bufbuild/buf/buf
 ```
 
-##### `npm` and `nodejs` 
+##### `npm` and `nodejs`
+
+See https://nodejs.org for installation instructions.
 
 ## Install
 
@@ -28,11 +30,11 @@ Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/
 
 ```bash
 go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv
-
 ```
 
-### Substream
-The `block-meta` substreams tracks the first and last block of every month since genesis block. The substream has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
+### Substreams
+
+The `block-meta` Substreams tracks the first and last block of every month since genesis block. The Substreams has a `map` module with an output type of `sf.substreams.sink.kv.v1.KVOperations`
 
 ```yaml
 ...
@@ -76,7 +78,7 @@ pub fn block_meta_to_kv_ops(ops: &mut KvOperations, deltas: store::Deltas<DeltaP
 
 ### Running Injector
 
-> **Note** To connect to substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
+> **Note** To connect to Substreams you will need an authentication token, follow this [guide](https://substreams.streamingfast.io/reference-and-specs/authentication) to obtain one,
 
 You can run the `substreams-sink-kv` inject mode.
 
@@ -113,7 +115,7 @@ kmonth:first:201512	->	{"number":"622214","hash":"fw3ZOpMrUo8mqZReGkt+SBfnpv0aiP
 
 ### Generic Service
 
-The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. 
+The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs.
 
 The API is defined in `protobuf` [here](../../proto/substreams/sink/kv/v1/read.proto).
 
@@ -131,7 +133,7 @@ Launch the API, this starts the Connect-Web server
 
 We create a straightforward web app template:
 
-```
+```bash
 npm create vite@latest -- connect-web-example --template react-ts
 cd connect-web-example/
 npm install
@@ -141,7 +143,7 @@ npm install @bufbuild/connect-web @bufbuild/protobuf
 
 Create the  `buf.gen.yaml`, that will configure `buf` to generate our `typescript` files based on the `proto` definitions
 
-```
+```yaml
 version: v1
 plugins:
   - plugin: es
@@ -150,7 +152,7 @@ plugins:
 
 * Add script line to generate `typescript` files from the `proto` files
 
-```
+```json
     # package.json
     # "scripts": {
     # ...
@@ -163,7 +165,7 @@ plugins:
 
 * Create client from KV in App.tsx:
 
-```
+```ts
 import {
     createConnectTransport,
     createPromiseClient,
@@ -177,7 +179,8 @@ const client = createPromiseClient(Kv, transport);
 ```
 
 * Call client from button action:
-```
+
+```ts
 const response = await client.get({
     key: inputValue,
 });
@@ -187,12 +190,11 @@ const response = await client.get({
 
 * Use our generated 'block_meta_pb' protobuf bindings to decode the value:
 
-```
+```ts
 import { BlockMeta } from "../gen/block_meta_pb";
 
 const blkmeta = BlockMeta.fromBinary(response.value);
 output = JSON.stringify(blkmeta, null, 2);
-
 ```
 
 The rest is just formatting, error-handling and front-end stuff ...
