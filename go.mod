@@ -13,7 +13,7 @@ require (
 	github.com/streamingfast/kvdb v0.1.1-0.20230106211814-335aada11ecd
 	github.com/streamingfast/logging v0.0.0-20221209193439-bff11742bf4c
 	github.com/streamingfast/substreams v1.1.3-0.20230517191318-2fb7e20c380b
-	github.com/streamingfast/substreams-sink v0.2.0
+	github.com/streamingfast/substreams-sink v0.2.5-0.20230517194254-47139ffe501c
 	github.com/stretchr/testify v1.8.1
 	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.23.0
@@ -142,5 +142,3 @@ require (
 	google.golang.org/grpc v1.54.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/streamingfast/substreams-sink => /Users/maoueh/work/sf/substreams-sink
