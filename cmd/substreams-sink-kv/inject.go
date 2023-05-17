@@ -18,9 +18,9 @@ import (
 )
 
 var injectCmd = Command(injectRunE,
-	"inject <endpoint> <dsn> <manifest> [<start>:<stop>]",
+	"inject <endpoint> <dsn> [<manifest>] [<start>:<stop>]",
 	"Fills a KV store from a Substreams output and optionally runs a server",
-	RangeArgs(3, 4),
+	RangeArgs(2, 4),
 	Flags(func(flags *pflag.FlagSet) {
 		sink.AddFlagsToSet(flags)
 
@@ -35,14 +35,20 @@ var injectCmd = Command(injectRunE,
 		The required arguments are:
 		- <endpoint>: The Substreams endpoint to reach (e.g. 'mainnet.eth.streamingfast.io:443').
 		- <dsn>: URL to connect to the KV store, see https://github.com/streamingfast/kvdb for more DSN details (e.g. 'badger3:///tmp/substreams-sink-kv-db').
-		- <manifest>: URL or local path to a '.spkg' file (e.g. 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg').
 
 		The optional arguments are:
+		- <manifest>: URL or local path to a '.spkg' file (e.g. 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg').
 		- <start>:<stop>: The range of block to sync, if not provided, will sync from the module's initial block and then forever.
+
+		Note that if you need to provide a block range, <manifest> needs to be provided. Use '.'
+		which is the default when <manifest> is not provided.
 	`),
 	ExamplePrefixed("substreams-sink-kv inject", `
 		# Inject key/values produced by kv_out for the whole chain
 		mainnet.eth.streamingfast.io:443 badger3:///tmp/block-meta-db https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg
+
+		# Inject key/values produced by Substreams in curret directory for range 10 000 to 20 000
+		mainnet.eth.streamingfast.io:443 badger3:///tmp/block-meta-db . 10_000:20_000
 	`),
 	OnCommandErrorLogAndExit(zlog),
 )
@@ -151,7 +157,10 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 func extractInjectArgs(_ *cobra.Command, args []string) (endpoint, dsn, manifestPath, blockRange string) {
 	endpoint = args[0]
 	dsn = args[1]
-	manifestPath = args[2]
+	if len(args) >= 3 {
+		manifestPath = args[2]
+	}
+
 	if len(args) == 4 {
 		blockRange = args[3]
 	}
