@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"github.com/streamingfast/cli"
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/cli/sflags"
@@ -25,8 +24,12 @@ var injectCmd = Command(injectRunE,
 		sink.AddFlagsToSet(flags)
 
 		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
-		flags.String("listen-addr", "", "Launch query server on this address")
 		flags.String("module", "", "An explicit module to sink, if not provided, expecting the Substreams manifest to defined 'sink' configuration")
+		flags.String("server-listen-addr", "", "Launch query server on this address")
+		flags.String("server-api-prefix", "", "Launch query server with this API prefix so the URl to query is <server-listen-addr>/<server-api-prefix>")
+
+		flags.String("listen-addr", "", "Launch query server on this address")
+		flags.Lookup("listen-addr").Deprecated = "use --server-listen-addr instead"
 	}),
 	Description(`
 		Fills a KV store from a Substreams output and optionally runs a server. Authentication
@@ -108,7 +111,13 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		kvSinker.Run(ctx)
 	}()
 
-	if listenAddr := viper.GetString("inject-listen-addr"); listenAddr != "" {
+	listenAddr, provided := sflags.MustGetStringProvided(cmd, "server-listen-addr")
+	if !provided {
+		// Fallback to deprecated flag
+		listenAddr = sflags.MustGetString(cmd, "listen-addr")
+	}
+
+	if listenAddr != "" {
 		zlog.Info("setting up query server", zap.String("dsn", dsn), zap.String("listen_addr", listenAddr))
 		server, err := setupServer(cmd, sink.Package(), kvDB)
 		if err != nil {

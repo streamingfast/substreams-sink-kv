@@ -1,0 +1,26 @@
+FROM ubuntu:20.04
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    apt-get -y install -y \
+    ca-certificates libssl1.1 vim htop iotop sysstat \
+    dstat strace lsof curl wget jq tzdata && \
+    rm /etc/localtime && \
+    ln -snf /usr/share/zoneinfo/America/Montreal /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata && \
+    apt-get -y install -y git && \
+    rm -rf /var/cache/apt /var/lib/apt/lists/*
+
+RUN cd /root &&\
+    curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- --version 0.11.2
+
+RUN cd /root &&\
+    wget -O substreams-sink-kv.tar.gz https://github.com/streamingfast/substreams-sink-kv/releases/download/$VERSION/substreams-sink-kv_linux_x86_64.tar.gz &&\
+    tar -xzvf substreams-sink-kv.tar.gz &&\
+    cp -R substreams-sink-kv /usr/local/bin/ &&\
+    rm -rf LICENSE README.md
+
+ENTRYPOINT [ "/usr/local/bin/substreams-sink-kv" ]
