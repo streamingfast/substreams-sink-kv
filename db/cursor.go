@@ -9,6 +9,7 @@ import (
 
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
+	"go.uber.org/zap"
 )
 
 var ErrCursorNotFound = errors.New("cursor not found")
@@ -22,6 +23,9 @@ func (l *DB) GetCursor(ctx context.Context) (*sink.Cursor, error) {
 		}
 		return nil, err
 	}
+
+	l.logger.Debug("cursor found", zap.String("cursor", string(val)))
+
 	return cursorFromBytes(val)
 }
 
@@ -34,7 +38,7 @@ func (l *DB) WriteCursor(ctx context.Context, c *sink.Cursor) error {
 }
 
 func cursorToBytes(c *sink.Cursor) []byte {
-	out := fmt.Sprintf("%s:%s:%d", c.Cursor, c.Block().ID(), c.Block().Num())
+	out := fmt.Sprintf("%s:%s:%d", c.String(), c.Block().ID(), c.Block().Num())
 	return []byte(out)
 }
 
