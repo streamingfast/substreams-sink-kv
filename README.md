@@ -113,6 +113,15 @@ cd /work
 CGO_ENABLED=1 CC=oa64-clang CXX=oa64-clang++ GOOS=darwin GOARCH=arm64 C_INCLUDE_PATH=/usr/local/osxcross/include/arm64 LIBRARY_PATH="/usr/local/osxcross/lib/arm64" go build -trimpath -mod=readonly -ldflags="-s -w" -o /work/substreams-sink-kv-cross-compiled ./cmd/substreams-sink-kv/
 ```
 
+## `kvdb` tool
+
+You can inspect badger files written by this tool with:
+
+```
+go install github.com/streamingfast/kvdb/cmd/kvdb@develop
+```
+
+
 ## License
 
 [Apache 2.0](https://github.com/streamingfast/substreams/blob/develop/LICENSE/README.md).
