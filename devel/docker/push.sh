@@ -32,9 +32,9 @@ main() {
   name="`printf $docker_file | sed 's/Dockerfile.//g'`"
 
   if [[ "$name" == "runtime" ]]; then
-    build_args="--build-arg='VERSION=$version' --platform=linux/amd64 -t '${tag_host}substreams-sink-kv:$version'"
+    build_args="--build-arg=VERSION=$version --platform=linux/amd64 -t ${tag_host}substreams-sink-kv:$version"
   elif [[ "$name" == "builder" ]]; then
-    build_args="--build-arg='VERSION=$version' --platform=linux/amd64,linux/arm64 -t ${tag_host}substreams-sink-kv-builder:v1.20.3"
+    build_args="--build-arg=VERSION=$version --platform=linux/amd64,linux/arm64 -t ${tag_host}substreams-sink-kv-builder:v1.20.3"
   else
     usage_error "Unknown Dockerfile '$docker_file'"
   fi
