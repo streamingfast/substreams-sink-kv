@@ -24,18 +24,20 @@ import (
 )
 
 var serveCmd = Command(serveRunE,
-	"serve <dsn> <spkg>",
+	"serve <dsn> <manifest>",
 	"Launches a query server connected to a key-value store",
 	ExactArgs(2),
 	Flags(func(flags *pflag.FlagSet) {
-		flags.String("listen-addr", ":7878", "Listen via GRPC Connect-Web on this address")
+		flags.String("listen-addr", ":7878", "Listen via gRPC Connect-Web on this address")
 		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
+		flags.String("api-prefix", "", "Launch query server with this API prefix so the URl to query is <listen-addr>/<api-prefix>")
 	}),
 	Description(`
-		Test
+		Launches a query server connected to a key-value store
 
-		* dsn: URL to connect to the KV store. Supported schemes: 'badger3', 'badger', 'bigkv', 'tikv', 'netkv'. See https://github.com/streamingfast/kvdb for more details. (ex: 'badger3:///tmp/substreams-sink-kv-db')
- 		* spkg: URL or local path to a '.spkg' file (ex: 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.3.0/substreams-eth-block-meta-v0.3.0.spkg')
+		The required arguments are:
+		- <dsn>: URL to connect to the KV store, see https://github.com/streamingfast/kvdb for more DSN details (e.g. 'badger3:///tmp/substreams-sink-kv-db').
+		- <manifest>: URL or local path to a '.spkg' file (e.g. 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg').
 	`),
 )
 
@@ -51,11 +53,15 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	dsn := args[0]
 	manifestPath := args[1]
 	listenAddr := sflags.MustGetString(cmd, "listen-addr")
+	listenSslSelfSigned := sflags.MustGetBool(cmd, "listen-ssl-self-signed")
+	apiPrefix := sflags.MustGetString(cmd, "api-prefix")
 
 	zlog.Info("serve substreams-sink-kv",
 		zap.String("dsn", dsn),
 		zap.String("manifest_path", manifestPath),
 		zap.String("listen_addr", listenAddr),
+		zap.Bool("listen_ssl_self_signed", listenSslSelfSigned),
+		zap.String("api_prefix", apiPrefix),
 	)
 
 	manifestReader := manifest.NewReader(manifestPath)
@@ -73,12 +79,12 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 		zap.String("dsn", dsn),
 		zap.String("listen_addr", listenAddr),
 	)
-	server, err := setupServer(cmd, pkg, kvDB)
+	server, err := setupServer(cmd, pkg, kvDB, apiPrefix, listenSslSelfSigned)
 	if err != nil {
 		return fmt.Errorf("setup server: %w", err)
 
 	}
-	app.OnTerminating(func(err error) {
+	app.OnTerminating(func(_ error) {
 		zlog.Info("application terminating shutting down server")
 		server.Shutdown()
 	})
@@ -111,13 +117,12 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (server.Serveable, error) {
+func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB, apiPrefix string, listenSslSelfSigned bool) (server.Serveable, error) {
 	if pkg.SinkConfig == nil {
 		return nil, fmt.Errorf("no sink config found in spkg")
 	}
 	switch pkg.SinkConfig.TypeUrl {
 	case "sf.substreams.sink.kv.v1.WASMQueryService":
-
 		wasmServ := &pbkv.WASMQueryService{}
 		if err := pkg.SinkConfig.UnmarshalTo(wasmServ); err != nil {
 			return nil, fmt.Errorf("failed to proto unmarshall: %w", err)
@@ -127,7 +132,7 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 			return nil, fmt.Errorf("find proto file descriptor: %w", err)
 		}
 
-		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, sflags.MustGetString(cmd, "server-api-prefix"))
+		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, apiPrefix)
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
 		}
@@ -145,7 +150,8 @@ func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB) (se
 
 		return engine, nil
 	case "sf.substreams.sink.kv.v1.GenericService":
-		return standard.NewServer(kvDB, zlog, sflags.MustGetBool(cmd, "listen-ssl-self-signed")), nil
+		return standard.NewServer(kvDB, zlog, listenSslSelfSigned), nil
+
 	default:
 		return nil, fmt.Errorf("invalid sink_config type: %s", pkg.SinkConfig.TypeUrl)
 	}

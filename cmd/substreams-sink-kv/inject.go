@@ -26,6 +26,7 @@ var injectCmd = Command(injectRunE,
 		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
 		flags.String("module", "", "An explicit module to sink, if not provided, expecting the Substreams manifest to defined 'sink' configuration")
 		flags.String("server-listen-addr", "", "Launch query server on this address")
+		flags.Bool("server-listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
 		flags.String("server-api-prefix", "", "Launch query server with this API prefix so the URl to query is <server-listen-addr>/<server-api-prefix>")
 
 		flags.String("listen-addr", "", "Launch query server on this address")
@@ -68,14 +69,34 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	flushInterval := sflags.MustGetDuration(cmd, "flush-interval")
 	module := sflags.MustGetString(cmd, "module")
 
-	zlog.Info("starting KV sinker",
+	listenAddr, provided := sflags.MustGetStringProvided(cmd, "server-listen-addr")
+	if !provided {
+		// Fallback to deprecated flag
+		listenAddr = sflags.MustGetString(cmd, "listen-addr")
+	}
+
+	apiPrefix := sflags.MustGetString(cmd, "server-api-prefix")
+	listenSslSelfSigned := sflags.MustGetBool(cmd, "server-listen-ssl-self-signed")
+
+	fields := []zap.Field{
 		zap.String("dsn", dsn),
 		zap.String("endpoint", endpoint),
 		zap.String("manifest_path", manifestPath),
 		zap.String("block_range", blockRange),
 		zap.Duration("flush_interval", flushInterval),
 		zap.String("module", module),
-	)
+	}
+
+	if listenAddr != "" {
+		fields = append(fields,
+			zap.Bool("start_server", true),
+			zap.String("listen_addr", listenAddr),
+			zap.Bool("listen_ssl_self_signed", listenSslSelfSigned),
+			zap.String("api_prefix", apiPrefix),
+		)
+	}
+
+	zlog.Info("starting KV sinker", fields...)
 
 	kvDB, err := db.New(dsn, zlog, tracer)
 	if err != nil {
@@ -102,7 +123,21 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to setup sinker: %w", err)
 	}
 
-	kvSinker.OnTerminating(app.Shutdown)
+	kvSinker.OnTerminating(func(err error) {
+		if err != nil {
+			app.Shutdown(err)
+			return
+		}
+
+		if listenAddr == "" {
+			// If there is no server actively listening, we shut down right away.
+			// The actual termination in this case will happen otherwise when the
+			// SIGINT signal is received.
+			app.Shutdown(nil)
+		} else {
+			zlog.Info("sinker terminating but server is still running, waiting for SIGINT to terminate")
+		}
+	})
 	app.OnTerminating(func(err error) {
 		kvSinker.Shutdown(err)
 	})
@@ -111,15 +146,9 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		kvSinker.Run(ctx)
 	}()
 
-	listenAddr, provided := sflags.MustGetStringProvided(cmd, "server-listen-addr")
-	if !provided {
-		// Fallback to deprecated flag
-		listenAddr = sflags.MustGetString(cmd, "listen-addr")
-	}
-
 	if listenAddr != "" {
-		zlog.Info("setting up query server", zap.String("dsn", dsn), zap.String("listen_addr", listenAddr))
-		server, err := setupServer(cmd, sink.Package(), kvDB)
+		zlog.Info("setting up query server")
+		server, err := setupServer(cmd, sink.Package(), kvDB, apiPrefix, listenSslSelfSigned)
 		if err != nil {
 			return fmt.Errorf("setup server: %w", err)
 
