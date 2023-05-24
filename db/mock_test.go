@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/test-go/testify/require"
 )
@@ -16,7 +16,7 @@ func TestMockDB_Scan(t *testing.T) {
 		exclusivelyEnd string
 		limit          int
 
-		expectValue []*kvv1.KV
+		expectValue []*pbkv.KV
 		expectLimit bool
 		expectErr   bool
 	}{
@@ -31,7 +31,7 @@ func TestMockDB_Scan(t *testing.T) {
 			},
 			start:          "a1",
 			exclusivelyEnd: "a4",
-			expectValue: []*kvv1.KV{
+			expectValue: []*pbkv.KV{
 				{Key: "a1", Value: []byte("blue")},
 				{Key: "a2", Value: []byte("yellow")},
 				{Key: "a3", Value: []byte("amber")},
@@ -61,7 +61,7 @@ func TestMockDB_Scan(t *testing.T) {
 			},
 			start:          "a",
 			exclusivelyEnd: "z",
-			expectValue: []*kvv1.KV{
+			expectValue: []*pbkv.KV{
 				{Key: "a1", Value: []byte("blue")},
 				{Key: "a2", Value: []byte("yellow")},
 				{Key: "a3", Value: []byte("amber")},

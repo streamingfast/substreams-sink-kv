@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 
 	"github.com/bufbuild/connect-go"
 	connect_go "github.com/bufbuild/connect-go"
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	kvv1connect "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1/kvv1connect"
+	pbkvconnect "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1/pbkvconnect"
 	sserver "github.com/streamingfast/substreams-sink-kv/server"
 	"go.uber.org/zap"
 )
@@ -26,7 +26,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 		logger:   logger,
 	}
 
-	location, handler := kvv1connect.NewKvHandler(cs)
+	location, handler := pbkvconnect.NewKvHandler(cs)
 	mappings := map[string]http.Handler{
 		location: handler,
 	}
@@ -48,7 +48,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 }
 
 type ConnectServer struct {
-	kvv1connect.UnimplementedKvHandler
+	pbkvconnect.UnimplementedKvHandler
 	srv      *connectweb.ConnectWebServer
 	DBReader db.Reader
 	logger   *zap.Logger
@@ -66,7 +66,7 @@ func (cs *ConnectServer) Serve(listenAddr string) error {
 	return cs.srv.Err()
 }
 
-func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.GetRequest]) (*connect_go.Response[kvv1.GetResponse], error) {
+func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[pbkv.GetRequest]) (*connect_go.Response[pbkv.GetResponse], error) {
 	logger := cs.logger.With(zap.String("key", req.Msg.Key))
 	val, err := cs.DBReader.Get(ctx, req.Msg.Key)
 	if err != nil {
@@ -77,13 +77,13 @@ func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.G
 		logger.Info("internal error", zap.Error(err))
 		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
 	}
-	resp := connect.NewResponse(&kvv1.GetResponse{
+	resp := connect.NewResponse(&pbkv.GetResponse{
 		Value: val,
 	})
 	return resp, nil
 }
 
-func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[kvv1.GetManyRequest]) (*connect_go.Response[kvv1.GetManyResponse], error) {
+func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[pbkv.GetManyRequest]) (*connect_go.Response[pbkv.GetManyResponse], error) {
 	logger := cs.logger.With(zap.Strings("keys", req.Msg.Keys))
 	vals, err := cs.DBReader.GetMany(ctx, req.Msg.Keys)
 	if err != nil {
@@ -98,13 +98,13 @@ func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[kv
 		logger.Info("internal error", zap.Error(err))
 		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
 	}
-	resp := connect.NewResponse(&kvv1.GetManyResponse{
+	resp := connect.NewResponse(&pbkv.GetManyResponse{
 		Values: vals,
 	})
 	return resp, nil
 }
 
-func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Request[kvv1.GetByPrefixRequest]) (*connect_go.Response[kvv1.GetByPrefixResponse], error) {
+func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Request[pbkv.GetByPrefixRequest]) (*connect_go.Response[pbkv.GetByPrefixResponse], error) {
 	logger := cs.logger.With(zap.String("prefix", req.Msg.Prefix), zap.Uint64("limit", req.Msg.Limit))
 	keyVals, limitReached, err := cs.DBReader.GetByPrefix(ctx, req.Msg.Prefix, int(req.Msg.Limit))
 	if err != nil {
@@ -119,21 +119,21 @@ func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Reques
 		logger.Info("internal error", zap.Error(err))
 		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
 	}
-	protoKeyVals := make([]*kvv1.KV, len(keyVals))
+	protoKeyVals := make([]*pbkv.KV, len(keyVals))
 	for i := range keyVals {
-		protoKeyVals[i] = &kvv1.KV{
+		protoKeyVals[i] = &pbkv.KV{
 			Key:   keyVals[i].Key,
 			Value: keyVals[i].Value,
 		}
 	}
-	resp := connect.NewResponse(&kvv1.GetByPrefixResponse{
+	resp := connect.NewResponse(&pbkv.GetByPrefixResponse{
 		KeyValues:    protoKeyVals,
 		LimitReached: limitReached,
 	})
 	return resp, nil
 }
 
-func (cs *ConnectServer) Scan(ctx context.Context, req *connect_go.Request[kvv1.ScanRequest]) (*connect_go.Response[kvv1.ScanResponse], error) {
+func (cs *ConnectServer) Scan(ctx context.Context, req *connect_go.Request[pbkv.ScanRequest]) (*connect_go.Response[pbkv.ScanResponse], error) {
 	logger := cs.logger.With(zap.String("begin", req.Msg.Begin), zap.Uint64("limit", req.Msg.Limit))
 	exclusiveEnd := ""
 	if req.Msg.ExclusiveEnd != nil {
@@ -152,14 +152,14 @@ func (cs *ConnectServer) Scan(ctx context.Context, req *connect_go.Request[kvv1.
 		logger.Info("internal error", zap.Error(err))
 		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
 	}
-	protoKeyVals := make([]*kvv1.KV, len(keyVals))
+	protoKeyVals := make([]*pbkv.KV, len(keyVals))
 	for i := range keyVals {
-		protoKeyVals[i] = &kvv1.KV{
+		protoKeyVals[i] = &pbkv.KV{
 			Key:   keyVals[i].Key,
 			Value: keyVals[i].Value,
 		}
 	}
-	resp := connect.NewResponse(&kvv1.ScanResponse{
+	resp := connect.NewResponse(&pbkv.ScanResponse{
 		KeyValues:    protoKeyVals,
 		LimitReached: limitReached,
 	})

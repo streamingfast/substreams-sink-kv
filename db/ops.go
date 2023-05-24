@@ -7,7 +7,7 @@ import (
 
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 )
 
@@ -20,13 +20,13 @@ var InfiniteEndBytes = []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
-func (l *DB) AddOperations(ops *kvv1.KVOperations) {
+func (l *DB) AddOperations(ops *pbkv.KVOperations) {
 	for _, op := range ops.Operations {
 		l.AddOperation(op)
 	}
 }
 
-func (l *DB) AddOperation(op *kvv1.KVOperation) {
+func (l *DB) AddOperation(op *pbkv.KVOperation) {
 	l.pendingOperations = append(l.pendingOperations, op)
 }
 
@@ -49,8 +49,8 @@ func (l *DB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err err
 	return len(puts) + len(deletes), nil
 }
 
-func lastOperationPerKey(ops []*kvv1.KVOperation) (puts []*kvv1.KVOperation, deletes [][]byte) {
-	opsPerKey := make(map[string][]*kvv1.KVOperation)
+func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, deletes [][]byte) {
+	opsPerKey := make(map[string][]*pbkv.KVOperation)
 
 	for _, op := range ops {
 		opsPerKey[op.Key] = append(opsPerKey[op.Key], op)
@@ -60,9 +60,9 @@ func lastOperationPerKey(ops []*kvv1.KVOperation) (puts []*kvv1.KVOperation, del
 		//		sortByOrdinal(ops)
 		lastOp := ops[len(ops)-1]
 		switch lastOp.Type {
-		case kvv1.KVOperation_SET:
+		case pbkv.KVOperation_SET:
 			puts = append(puts, lastOp)
-		case kvv1.KVOperation_DELETE:
+		case pbkv.KVOperation_DELETE:
 			deletes = append(deletes, userKey(lastOp.Key))
 		}
 	}
@@ -103,7 +103,7 @@ func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err e
 	return values, nil
 }
 
-func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 	if limit == 0 {
 		limit = l.QueryRowsLimit
 	}
@@ -122,7 +122,7 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 		}
 		it := itr.Item()
 		// it.Key must be userKey because it matches prefix userKey(...)
-		values = append(values, &kvv1.KV{
+		values = append(values, &pbkv.KV{
 			Key:   fromUserKey(it.Key),
 			Value: it.Value,
 		})
@@ -136,7 +136,7 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 	return values, limitReached, nil
 }
 
-func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 	if limit == 0 {
 		limit = l.QueryRowsLimit
 	}
@@ -159,7 +159,7 @@ func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (v
 			break
 		}
 		it := itr.Item()
-		values = append(values, &kvv1.KV{
+		values = append(values, &pbkv.KV{
 			Key:   fromUserKey(it.Key),
 			Value: it.Value,
 		})

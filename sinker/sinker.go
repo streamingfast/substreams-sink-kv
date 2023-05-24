@@ -10,7 +10,7 @@ import (
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	pbsubstreamsrpc "github.com/streamingfast/substreams/pb/sf/substreams/rpc/v2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -91,7 +91,7 @@ func (s *KVSinker) onTerminating(ctx context.Context, err error) {
 }
 
 func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreamsrpc.BlockScopedData, isLive *bool, cursor *sink.Cursor) error {
-	kvOps := &kvv1.KVOperations{}
+	kvOps := &pbkv.KVOperations{}
 	err := proto.Unmarshal(data.GetOutput().MapOutput.Value, kvOps)
 	if err != nil {
 		return fmt.Errorf("unmarshal database changes: %w", err)
