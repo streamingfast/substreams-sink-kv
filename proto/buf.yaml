@@ -1,0 +1,10 @@
+version: v1
+name: buf.build/streamingfast/substreams-sink-kv
+
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE
