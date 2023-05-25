@@ -31,6 +31,7 @@ var serveCmd = Command(serveRunE,
 		flags.String("listen-addr", ":7878", "Listen via gRPC Connect-Web on this address")
 		flags.Bool("listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
 		flags.String("api-prefix", "", "Launch query server with this API prefix so the URl to query is <listen-addr>/<api-prefix>")
+		flags.Int("query-rows-limit", 5000, "Query rows limit when fetching from database if user specify an unlimited scan or if his limit is above this value")
 	}),
 	Description(`
 		Launches a query server connected to a key-value store
@@ -55,6 +56,7 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	listenAddr := sflags.MustGetString(cmd, "listen-addr")
 	listenSslSelfSigned := sflags.MustGetBool(cmd, "listen-ssl-self-signed")
 	apiPrefix := sflags.MustGetString(cmd, "api-prefix")
+	queryRowLimit := sflags.MustGetInt(cmd, "query-rows-limit")
 
 	zlog.Info("serve substreams-sink-kv",
 		zap.String("dsn", dsn),
@@ -70,7 +72,7 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
 
-	kvDB, err := db.New(dsn, zlog, tracer)
+	kvDB, err := db.New(dsn, queryRowLimit, zlog, tracer)
 	if err != nil {
 		return fmt.Errorf("new kvdb: %w", err)
 	}

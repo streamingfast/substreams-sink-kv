@@ -28,6 +28,7 @@ var injectCmd = Command(injectRunE,
 		flags.String("server-listen-addr", "", "Launch query server on this address")
 		flags.Bool("server-listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
 		flags.String("server-api-prefix", "", "Launch query server with this API prefix so the URl to query is <server-listen-addr>/<server-api-prefix>")
+		flags.Int("query-rows-limit", 5000, "Query rows limit when fetching from database if user specify an unlimited scan or if his limit is above this value")
 
 		flags.String("listen-addr", "", "Launch query server on this address")
 		flags.Lookup("listen-addr").Deprecated = "use --server-listen-addr instead"
@@ -65,6 +66,7 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	sinker.RegisterMetrics()
 
 	endpoint, dsn, manifestPath, blockRange := extractInjectArgs(cmd, args)
+	queryRowLimit := sflags.MustGetInt(cmd, "query-rows-limit")
 
 	flushInterval := sflags.MustGetDuration(cmd, "flush-interval")
 	module := sflags.MustGetString(cmd, "module")
@@ -98,7 +100,7 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 
 	zlog.Info("starting KV sinker", fields...)
 
-	kvDB, err := db.New(dsn, zlog, tracer)
+	kvDB, err := db.New(dsn, queryRowLimit, zlog, tracer)
 	if err != nil {
 		return fmt.Errorf("new psql loader: %w", err)
 	}

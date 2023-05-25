@@ -24,13 +24,13 @@ type DB struct {
 	tracer            logging.Tracer
 }
 
-func New(dsn string, logger *zap.Logger, tracer logging.Tracer) (*DB, error) {
+func New(dsn string, queryRowsLimit int, logger *zap.Logger, tracer logging.Tracer) (*DB, error) {
 	s, err := store.New(dsn)
 	if err != nil {
 		return nil, err
 	}
 	return &DB{
-		QueryRowsLimit: 1000,
+		QueryRowsLimit: queryRowsLimit,
 		store:          s,
 		logger:         logger,
 		tracer:         tracer,
