@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package sf.substreams.sink.kv.v1;
 
-option go_package = "github.com/streamingfast/substreams-sink-kv/pb;pbkv";
+option go_package = "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1;pbkv";
 
 service Kv {
 

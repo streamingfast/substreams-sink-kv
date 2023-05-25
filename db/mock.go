@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	sink "github.com/streamingfast/substreams-sink"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 )
 
 var _ Loader = (*MockDB)(nil)
@@ -22,11 +22,11 @@ func NewMockDB() *MockDB {
 	}
 }
 
-func (m *MockDB) AddOperations(ops *kvv1.KVOperations) {
+func (m *MockDB) AddOperations(ops *pbkv.KVOperations) {
 	panic("implement me")
 }
 
-func (m *MockDB) AddOperation(op *kvv1.KVOperation) {
+func (m *MockDB) AddOperation(op *pbkv.KVOperation) {
 	panic("implement me")
 }
 
@@ -63,10 +63,10 @@ func (m *MockDB) GetMany(ctx context.Context, keys []string) (values [][]byte, e
 	return
 }
 
-func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 
 	var keys []string
-	for k, _ := range m.KV {
+	for k := range m.KV {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -76,7 +76,7 @@ func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (val
 			continue
 		}
 
-		values = append(values, &kvv1.KV{Key: k, Value: m.KV[k]})
+		values = append(values, &pbkv.KV{Key: k, Value: m.KV[k]})
 
 		if len(values) == limit {
 			limitReached = true
@@ -90,16 +90,16 @@ func (m *MockDB) GetByPrefix(ctx context.Context, prefix string, limit int) (val
 	return values, limitReached, nil
 }
 
-func (m *MockDB) Scan(ctx context.Context, start string, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (m *MockDB) Scan(ctx context.Context, start string, exclusiveEnd string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 	var keys []string
-	for k, _ := range m.KV {
+	for k := range m.KV {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	for _, k := range keys {
 		if k >= start && k < exclusiveEnd {
-			values = append(values, &kvv1.KV{Key: k, Value: m.KV[k]})
+			values = append(values, &pbkv.KV{Key: k, Value: m.KV[k]})
 
 			if len(values) == limit {
 				limitReached = true

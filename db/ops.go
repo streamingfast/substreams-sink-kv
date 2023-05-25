@@ -7,8 +7,7 @@ import (
 
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	"go.uber.org/zap"
 )
 
@@ -104,7 +103,7 @@ func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err e
 	return values, nil
 }
 
-func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 	if limit == 0 {
 		limit = l.QueryRowsLimit
 	}
@@ -123,7 +122,7 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 		}
 		it := itr.Item()
 		// it.Key must be userKey because it matches prefix userKey(...)
-		values = append(values, &kvv1.KV{
+		values = append(values, &pbkv.KV{
 			Key:   fromUserKey(it.Key),
 			Value: it.Value,
 		})
@@ -137,7 +136,7 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 	return values, limitReached, nil
 }
 
-func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*pbkv.KV, limitReached bool, err error) {
 	if limit == 0 {
 		limit = l.QueryRowsLimit
 	}
@@ -160,7 +159,7 @@ func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (v
 			break
 		}
 		it := itr.Item()
-		values = append(values, &kvv1.KV{
+		values = append(values, &pbkv.KV{
 			Key:   fromUserKey(it.Key),
 			Value: it.Value,
 		})

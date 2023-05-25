@@ -53,7 +53,7 @@ The `block-meta` Substreams tracks the first and last block of every month since
 ```
 You can see the full `substreams.yaml` [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/substreams.yaml#L46-L54)
 
-The module outputs  [`KVOperations`](../../proto/substreams/sink/kv/v1/kv.proto) that the `substreams-sink-kv` will apply to key-value-store. The implementation details can be found [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/src/kv_out.rs)
+The module outputs  [`KVOperations`](../../proto/sf/substreams/sink/kv/v1/kv.proto) that the `substreams-sink-kv` will apply to key-value-store. The implementation details can be found [here](https://github.com/streamingfast/substreams-eth-block-meta/blob/adfd451a8354eba1fa40e94dc205b1499df69f5b/src/kv_out.rs)
 
 ```rust
 use substreams::proto;
@@ -120,7 +120,7 @@ kmonth:first:201512	->	{"number":"622214","hash":"fw3ZOpMrUo8mqZReGkt+SBfnpv0aiP
 
 The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs.
 
-The API is defined in `protobuf` [here](../../proto/substreams/sink/kv/v1/read.proto).
+The API is defined in `protobuf` [here](../../proto/sf/substreams/sink/kv/v1/read.proto).
 
 
 Launch the API, this starts the Connect-Web server
@@ -159,7 +159,7 @@ plugins:
     # package.json
     # "scripts": {
     # ...
-    "buf:generate": "buf generate ../proto/substreams/sink/kv/v1 && buf generate ./proto",
+    "buf:generate": "buf generate ../proto/sf/substreams/sink/kv/v1 && buf generate ./proto",
 ```
 
 * Generate code:

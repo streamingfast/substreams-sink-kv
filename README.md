@@ -69,10 +69,10 @@ sink:
 
 breaking down the `sink` block we get the following:
 
-- **module**: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/substreams/sink/kv/v1/kv.proto)
+- **module**: The name of the module that will be used to sink the key-value store. The module should be of kind `map` with an output type of [`sf.substreams.sink.kv.v1.KVOperations`](https://github.com/streamingfast/substreams-sink-kv/blob/main/proto/sf/substreams/sink/kv/v1/kv.proto)
 - **type**: Support to types currently:
-  - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/substreams/sink/kv/v1/services.proto)
-  - [`sf.substreams.sink.kv.v1.GenericService`](./proto/substreams/sink/kv/v1/services.proto)
+  - [`sf.substreams.sink.kv.v1.WASMQueryService`](./proto/sf/substreams/sink/kv/v1/services.proto)
+  - [`sf.substreams.sink.kv.v1.GenericService`](./proto/sf/substreams/sink/kv/v1/services.proto)
 - **config**: a key-value structure that matches the attributes of the Proto object for the given `type` selected above
 
 > **_NOTE:_**  the `@@` notation will read the path and inject the content of the file in bytes, while the `@` notation will dump the file content in ascii
@@ -80,7 +80,7 @@ breaking down the `sink` block we get the following:
 
 ### Generic Service
 
-The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/substreams/sink/kv/v1/read.proto).
+The Generic Query service is a [Connect-Web protocol](https://connect.build/docs/introduction) (gRPC-compatible). It exposes a browser and gRPC-compatible APIs. The API is defined in `protobuf` [here](./proto/sf/substreams/sink/kv/v1/read.proto).
 
 You can find a detailed example with documentation [here](./examples/generic-service)
 

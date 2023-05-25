@@ -10,7 +10,7 @@ import (
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	pbkv "github.com/streamingfast/substreams-sink-kv/pb/sf/substreams/sink/kv/v1"
 	pbsubstreamsrpc "github.com/streamingfast/substreams/pb/sf/substreams/rpc/v2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
