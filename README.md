@@ -121,7 +121,6 @@ You can inspect badger files written by this tool with:
 go install github.com/streamingfast/kvdb/cmd/kvdb@develop
 ```
 
-
 ## License
 
 [Apache 2.0](https://github.com/streamingfast/substreams/blob/develop/LICENSE/README.md).

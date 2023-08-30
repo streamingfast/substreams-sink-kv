@@ -34,7 +34,13 @@ main() {
   if [[ "$name" == "runtime" ]]; then
     build_args="--build-arg=VERSION=$version --platform=linux/amd64 -t ${tag_host}substreams-sink-kv:$version"
   elif [[ "$name" == "builder" ]]; then
-    build_args="--build-arg=VERSION=$version --platform=linux/amd64,linux/arm64 -t ${tag_host}substreams-sink-kv-builder:v1.20.3"
+    builder_version="`cat "$docker_file" | grep "FROM goreleaser/goreleaser-cross" | cut -d ':' -f 2`"
+    if [[ "$builder_version" == "" ]]; then
+      echo "ERROR: Unable to extract 'goreleaser/goreleaser-cross' image version in Dockerfile '$docker_file'"
+      exit 1
+    fi
+
+    build_args="--platform=linux/amd64,linux/arm64 -t ${tag_host}substreams-sink-kv-builder:$builder_version"
   else
     usage_error "Unknown Dockerfile '$docker_file'"
   fi

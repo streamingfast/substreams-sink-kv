@@ -1,6 +1,6 @@
 FROM --platform=linux/amd64 ubuntu:20.04 AS x86_64-linux-gnu
 
-FROM goreleaser/goreleaser-cross:v1.20.3
+FROM goreleaser/goreleaser-cross:v1.20.5
 
 RUN cd /root &&\
     mkdir wasmedge-ubuntu-20.04-x86-64 &&\
@@ -11,6 +11,16 @@ RUN cd /root &&\
     cp -R WasmEdge-0.11.2-Linux/include/* /usr/x86_64-linux-gnu/include &&\
     cp -R WasmEdge-0.11.2-Linux/lib/* /usr/x86_64-linux-gnu/lib &&\
     rm -rf wasmedge-ubuntu-20.04-x86-64
+
+RUN cd /root &&\
+    mkdir wasmedge-ubuntu-20.04-aarch64 &&\
+    cd wasmedge-ubuntu-20.04-aarch64 &&\
+    wget -O wasmedge.tar.gz https://github.com/WasmEdge/WasmEdge/releases/download/0.11.2/WasmEdge-0.11.2-manylinux2014_aarch64.tar.gz &&\
+    tar -xzvf wasmedge.tar.gz &&\
+    mkdir -p /usr/lib &&\
+    cp -R WasmEdge-0.11.2-Linux/include/* /usr/include &&\
+    cp -R WasmEdge-0.11.2-Linux/lib64/* /usr/lib &&\
+    rm -rf wasmedge-ubuntu-20.04-aarch64
 
 RUN cd /root &&\
     mkdir wasmedge-darwin-arm64 &&\
