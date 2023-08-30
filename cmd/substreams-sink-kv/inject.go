@@ -45,6 +45,9 @@ var injectCmd = Command(injectRunE,
 		- <manifest>: URL or local path to a '.spkg' file (e.g. 'https://github.com/streamingfast/substreams-eth-block-meta/releases/download/v0.4.0/substreams-eth-block-meta-v0.4.0.spkg').
 		- <start>:<stop>: The range of block to sync, if not provided, will sync from the module's initial block and then forever.
 
+		If the <manifest> is not provided, assume '.' contains a Substreams project to run. If
+		<start>:<stop> is not provided, assumes the whole chain.
+
 		Note that if you need to provide a block range, <manifest> needs to be provided. Use '.'
 		which is the default when <manifest> is not provided.
 	`),

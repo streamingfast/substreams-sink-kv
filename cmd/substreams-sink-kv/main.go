@@ -70,7 +70,7 @@ func preStart(_ *cobra.Command, _ []string) error {
 
 func loggingOptions(logFormat string) []logging.InstantiateOption {
 	options := []logging.InstantiateOption{
-		logging.WithSwitcherServerAutoStart(),
+		logging.WithLogLevelSwitcherServerAutoStart(),
 		logging.WithDefaultLevel(zap.InfoLevel),
 		logging.WithConsoleToStderr(),
 	}
