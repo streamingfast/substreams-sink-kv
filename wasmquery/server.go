@@ -37,7 +37,9 @@ func (e *Engine) newServer(registerProto bool, config *ServiceConfig) (*server, 
 		))
 	}
 
-	mappings := map[string]http.Handler{config.connectWebPath: mux}
+	handlerGetter := func(opts ...connect_go.HandlerOption) (string, http.Handler) {
+		return config.connectWebPath, mux
+	}
 
 	// we need to add the protoFile to the global proto registry or else
 	// connect-web over gRPC will not work. it uses the registry to
@@ -55,7 +57,7 @@ func (e *Engine) newServer(registerProto bool, config *ServiceConfig) (*server, 
 	}
 	servOpts = append(servOpts, grpcservers.WithPlainTextServer())
 
-	c.srv = connectweb.New(mappings, servOpts...)
+	c.srv = connectweb.New([]connectweb.HandlerGetter{handlerGetter}, servOpts...)
 	return c, nil
 }
 

@@ -66,7 +66,11 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 		zap.String("api_prefix", apiPrefix),
 	)
 
-	manifestReader := manifest.NewReader(manifestPath)
+	manifestReader, err := manifest.NewReader(manifestPath)
+	if err != nil {
+		return fmt.Errorf("get manifest reader %q: %w", manifestPath, err)
+	}
+
 	pkg, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)

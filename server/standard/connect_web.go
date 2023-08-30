@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"net/http"
+
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 
 	"github.com/bufbuild/connect-go"
 	connect_go "github.com/bufbuild/connect-go"
@@ -25,9 +26,8 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 		logger:   logger,
 	}
 
-	location, handler := kvconnect.NewKvHandler(cs)
-	mappings := map[string]http.Handler{
-		location: handler,
+	handlerGetter := func(opts ...connect_go.HandlerOption) (string, http.Handler) {
+		return kvconnect.NewKvHandler(cs)
 	}
 
 	opts := []server.Option{
@@ -42,7 +42,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 	} else {
 		opts = append(opts, server.WithPlainTextServer())
 	}
-	cs.srv = connectweb.New(mappings, opts...)
+	cs.srv = connectweb.New([]connectweb.HandlerGetter{handlerGetter}, opts...)
 	return cs
 }
 
