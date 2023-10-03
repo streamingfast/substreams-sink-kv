@@ -19,7 +19,7 @@ curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/insta
 Get from the [Releases tab](https://github.com/streamingfast/substreams-sink-kv/releases), or from source:
 
 ```bash
-go install -v github.com/streaminfast/substreams-sink-kv/cmd/substreams-sink-kv@latest
+go install -v github.com/streamingfast/substreams-sink-kv/cmd/substreams-sink-kv@latest
 ```
 
 ## Running
