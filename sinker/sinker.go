@@ -97,6 +97,7 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
+	s.dbLoader.StoreReverseOperations(ctx, data.Clock.GetNumber(), kvOps.Operations)
 	s.dbLoader.AddOperations(kvOps)
 
 	s.lastCursor = cursor
@@ -115,10 +116,19 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		FlushDuration.AddInt64(time.Since(flushStart).Nanoseconds())
 	}
 
+	//todo Handle the deletion when a block is considered as LIB
+
 	return nil
 }
 
 func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreamsrpc.BlockUndoSignal, cursor *sink.Cursor) error {
+	err := s.dbLoader.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber(), cursor)
+	if err != nil {
+		return fmt.Errorf("unable to handle undo signal: %w", err)
+	}
+
+	//todo: Do not forget to update the cursor...
+
 	return fmt.Errorf("received undo signal but there is no handling of undo, this is because you used `--undo-buffer-size=0` which is invalid right now")
 }
 

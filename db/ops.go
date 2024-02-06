@@ -2,14 +2,17 @@ package db
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 var ErrInvalidArguments = errors.New("invalid arguments")
@@ -48,6 +51,88 @@ func (l *DB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err err
 	}
 	l.reset()
 	return len(puts) + len(deletes), nil
+}
+
+func (l *DB) StoreReverseOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
+	reversedKVOperations := l.reverseOperations(ctx, ops)
+	encodedReversedOperations, err := proto.Marshal(reversedKVOperations)
+	if err != nil {
+		return fmt.Errorf("unable to marshal reversed operations: %w", err)
+	}
+
+	err = l.store.Put(ctx, undoKey(blockNumber), encodedReversedOperations)
+	if err != nil {
+		return fmt.Errorf("unable to store reversed operations: %w", err)
+	}
+	return nil
+}
+
+func (l *DB) reverseOperations(ctx context.Context, ops []*pbkv.KVOperation) *pbkv.KVOperations {
+	reversedOperations := make([]*pbkv.KVOperation, len(ops))
+	for _, operation := range ops {
+		var reverseOperation *pbkv.KVOperation
+		previousValue, errNotFound := l.store.Get(ctx, userKey(operation.Key))
+
+		switch operation.Type {
+		case pbkv.KVOperation_SET:
+			if errNotFound != nil {
+				reverseOperation = &pbkv.KVOperation{
+					Type:  pbkv.KVOperation_DELETE,
+					Key:   operation.Key,
+					Value: operation.Value,
+				}
+			} else {
+				reverseOperation = &pbkv.KVOperation{
+					Type:  pbkv.KVOperation_SET,
+					Key:   operation.Key,
+					Value: previousValue,
+				}
+			}
+		case pbkv.KVOperation_DELETE:
+			reverseOperation = &pbkv.KVOperation{
+				Type:  pbkv.KVOperation_SET,
+				Key:   operation.Key,
+				Value: operation.Value,
+			}
+
+		case pbkv.KVOperation_UNSET:
+			panic("Not implemented")
+		}
+
+		reversedOperations = append(reversedOperations, reverseOperation)
+	}
+
+	reversedKVOperations := &pbkv.KVOperations{Operations: reversedOperations}
+	return reversedKVOperations
+}
+
+func (l *DB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64, cursor *sink.Cursor) error {
+	blockNumber := cursor.Block().Num() //Set the cursor to the current block number
+
+	for blockNumber > lastValidBlock {
+		encodedOperations, ErrNotFound := l.store.Get(ctx, undoKey(blockNumber))
+		kvOperations := &pbkv.KVOperations{}
+
+		if ErrNotFound != nil {
+			return fmt.Errorf("unable to find undo operations for block %d: %w", blockNumber, ErrNotFound)
+		}
+
+		err := proto.Unmarshal(encodedOperations, kvOperations)
+		if err != nil {
+			return fmt.Errorf("unable to unmarshal undo operations for block %d: %w", blockNumber, err)
+		}
+
+		l.AddOperations(kvOperations)
+
+		_, err = l.Flush(ctx, cursor)
+		if err != nil {
+			return fmt.Errorf("unable to flush undo operations for block %d: %w", blockNumber, err)
+		}
+
+		blockNumber -= 1
+	}
+
+	return nil
 }
 
 func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, deletes [][]byte) {
@@ -175,7 +260,16 @@ func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (v
 }
 
 func userKey(k string) []byte {
-	return []byte(fmt.Sprintf("k%s", k))
+	out := make([]byte, len(k)+1)
+	out[0] = 'k'
+	copy(out[1:], k)
+	return out
+}
+
+func undoKey(num uint64) []byte {
+	numBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(numBytes, math.MaxUint64-num)
+	return append([]byte{'u'}, numBytes...)
 }
 
 func isUserKey(k []byte) bool {
