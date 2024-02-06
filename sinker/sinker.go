@@ -25,7 +25,7 @@ type KVSinker struct {
 	*shutter.Shutter
 	*sink.Sinker
 
-	dbLoader      db.Loader
+	operationDB   *db.OperationDB
 	flushInterval time.Duration
 	logger        *zap.Logger
 	tracer        logging.Tracer
@@ -34,11 +34,11 @@ type KVSinker struct {
 	stats      *Stats
 }
 
-func New(sinker *sink.Sinker, dbLoader db.Loader, flushInterval time.Duration, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
+func New(sinker *sink.Sinker, dbLoader *db.OperationDB, flushInterval time.Duration, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
 	s := &KVSinker{
 		Shutter:       shutter.New(),
 		Sinker:        sinker,
-		dbLoader:      dbLoader,
+		operationDB:   dbLoader,
 		flushInterval: flushInterval,
 		logger:        logger,
 		tracer:        tracer,
@@ -56,7 +56,7 @@ func New(sinker *sink.Sinker, dbLoader db.Loader, flushInterval time.Duration, l
 }
 
 func (s *KVSinker) Run(ctx context.Context) {
-	cursor, err := s.dbLoader.GetCursor(ctx)
+	cursor, err := s.operationDB.GetCursor(ctx)
 	if err != nil && !errors.Is(err, db.ErrCursorNotFound) {
 		s.Shutdown(fmt.Errorf("unable to retrieve cursor: %w", err))
 		return
@@ -87,7 +87,7 @@ func (s *KVSinker) onTerminating(ctx context.Context, err error) {
 		return
 	}
 
-	_ = s.dbLoader.WriteCursor(ctx, s.lastCursor)
+	_ = s.operationDB.WriteCursor(ctx, s.lastCursor)
 }
 
 func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreamsrpc.BlockScopedData, isLive *bool, cursor *sink.Cursor) error {
@@ -97,30 +97,37 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	batchModulo := s.batchBlockModulo(isLive)
-
-	s.lastCursor = cursor
-	blockRef := cursor.Block()
-
-	flushDone, err := s.dbLoader.HandleOperations(ctx, data.Clock.GetNumber(), kvOps, batchModulo)
+	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), kvOps)
 	if err != nil {
 		return fmt.Errorf("handling scoped data: %w", err)
 	}
 
-	if flushDone {
+	blockRef := cursor.Block()
+	if blockRef.Num()%s.batchBlockModulo(isLive) == 0 {
+		flushStart := time.Now()
+		count, err := s.operationDB.Flush(ctx, cursor)
+		if err != nil {
+			return fmt.Errorf("flushing operations: %w", err)
+		}
+
+		FlushCount.Inc()
+		FlushedEntriesCount.AddInt(count)
+		FlushedEntriesCount.AddInt64(time.Since(flushStart).Nanoseconds())
+
 		s.stats.RecordBlock(blockRef)
 	}
 
+	s.lastCursor = cursor
 	return nil
 }
 
 func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreamsrpc.BlockUndoSignal, cursor *sink.Cursor) error {
-	err := s.dbLoader.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
+	err := s.operationDB.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
 	if err != nil {
 		return fmt.Errorf("handling undo signal: %w", err)
 	}
 
-	_, err = s.dbLoader.Flush(ctx, cursor)
+	_, err = s.operationDB.Flush(ctx, cursor)
 	if err != nil {
 		return fmt.Errorf("flushing undo operations for: %w", err)
 	}

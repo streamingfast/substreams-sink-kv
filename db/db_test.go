@@ -1,10 +1,11 @@
 package db
 
 import (
+	"testing"
+
 	"github.com/streamingfast/logging"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"go.uber.org/zap"
-	"testing"
 )
 
 func TestDB_HandleBlockUndo(t *testing.T) {
@@ -28,15 +29,15 @@ func TestDB_HandleBlockUndo(t *testing.T) {
 	opsSecondBlock := []*pbkv.KVOperation{}
 	opsThirdBlock := []*pbkv.KVOperation{}
 
-	err = db.StoreReverseOperations(nil, 1, opsFirstBlock)
+	err = db.storeUndoOperations(nil, 1, opsFirstBlock)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = db.StoreReverseOperations(nil, 2, opsSecondBlock)
+	err = db.storeUndoOperations(nil, 2, opsSecondBlock)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = db.StoreReverseOperations(nil, 3, opsThirdBlock)
+	err = db.storeUndoOperations(nil, 3, opsThirdBlock)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,7 +15,7 @@ import (
 var ErrCursorNotFound = errors.New("cursor not found")
 var cursorKey = []byte("xc")
 
-func (db *DB) GetCursor(ctx context.Context) (*sink.Cursor, error) {
+func (db *OperationDB) GetCursor(ctx context.Context) (*sink.Cursor, error) {
 	val, err := db.store.Get(ctx, cursorKey)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -29,7 +29,7 @@ func (db *DB) GetCursor(ctx context.Context) (*sink.Cursor, error) {
 	return cursorFromBytes(val)
 }
 
-func (db *DB) WriteCursor(ctx context.Context, c *sink.Cursor) error {
+func (db *OperationDB) WriteCursor(ctx context.Context, c *sink.Cursor) error {
 	val := cursorToBytes(c)
 	if err := db.store.Put(ctx, cursorKey, val); err != nil {
 		return err

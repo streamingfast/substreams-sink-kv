@@ -12,11 +12,8 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/substreams-sink-kv/db"
-	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	"github.com/streamingfast/substreams-sink-kv/server"
 	"github.com/streamingfast/substreams-sink-kv/server/standard"
-	"github.com/streamingfast/substreams-sink-kv/server/wasm"
-	"github.com/streamingfast/substreams-sink-kv/wasmquery"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"go.uber.org/zap"
@@ -123,44 +120,11 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.DB, apiPrefix string, listenSslSelfSigned bool) (server.Serveable, error) {
+func setupServer(cmd *cobra.Command, pkg *pbsubstreams.Package, kvDB *db.OperationDB, apiPrefix string, listenSslSelfSigned bool) (server.Serveable, error) {
 	if pkg.SinkConfig == nil {
 		return nil, fmt.Errorf("no sink config found in spkg")
 	}
-	switch pkg.SinkConfig.TypeUrl {
-	case "sf.substreams.sink.kv.v1.WASMQueryService":
-		wasmServ := &pbkv.WASMQueryService{}
-		if err := pkg.SinkConfig.UnmarshalTo(wasmServ); err != nil {
-			return nil, fmt.Errorf("failed to proto unmarshall: %w", err)
-		}
-		fileDesc, err := findProtoDefWithGRPCService(pkg, wasmServ.GrpcService)
-		if err != nil {
-			return nil, fmt.Errorf("find proto file descriptor: %w", err)
-		}
-
-		config, err := wasmquery.NewServiceConfig(fileDesc, wasmServ.GrpcService, apiPrefix)
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup grpc config: %w", err)
-		}
-
-		engine, err := wasmquery.NewEngine(
-			wasmquery.NewEngineConfig(1, wasmServ.GetWasmQueryModule(), config),
-			func(vm wasmquery.VM, logger *zap.Logger) wasmquery.WASMExtension {
-				return wasm.NewKVExtension(kvDB, vm, logger)
-			},
-			zlog,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup wasm engine.go: %w", err)
-		}
-
-		return engine, nil
-	case "sf.substreams.sink.kv.v1.GenericService":
-		return standard.NewServer(kvDB, zlog, listenSslSelfSigned), nil
-
-	default:
-		return nil, fmt.Errorf("invalid sink_config type: %s", pkg.SinkConfig.TypeUrl)
-	}
+	return standard.NewServer(kvDB, zlog, listenSslSelfSigned), nil
 }
 
 func findProtoDefWithGRPCService(pkg *pbsubstreams.Package, fqGrpcService string) (*descriptorpb.FileDescriptorProto, error) {

@@ -3,19 +3,8 @@ package db
 import (
 	"context"
 
-	sink "github.com/streamingfast/substreams-sink"
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 )
-
-type Loader interface {
-	AddOperations(ops *kvv1.KVOperations)
-	AddOperation(op *kvv1.KVOperation)
-	Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error)
-	GetCursor(ctx context.Context) (*sink.Cursor, error)
-	WriteCursor(ctx context.Context, c *sink.Cursor) error
-	HandleBlockUndo(ctx context.Context, lastValidBlock uint64) error
-	HandleOperations(ctx context.Context, number uint64, operations *kvv1.KVOperations, batchModulo uint64) (bool, error)
-}
 
 type Reader interface {
 	Get(ctx context.Context, key string) (value []byte, err error)

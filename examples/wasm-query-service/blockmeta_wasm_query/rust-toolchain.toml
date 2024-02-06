@@ -1,4 +1,0 @@
-[toolchain]
-channel = "1.67.0"
-components = [ "rustfmt" ]
-targets = [ "wasm32-wasi" ]
