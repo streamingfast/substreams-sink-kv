@@ -5,7 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/streamingfast/substreams-sink-kv/sinker"
 	"math"
+	"time"
 
 	"github.com/streamingfast/kvdb/store"
 	sink "github.com/streamingfast/substreams-sink"
@@ -14,6 +16,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
+
+var undoPrefix = []byte{'x', 'u'}
 
 var ErrInvalidArguments = errors.New("invalid arguments")
 var ErrNotFound = errors.New("not found")
@@ -24,114 +28,128 @@ var InfiniteEndBytes = []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
-func (l *DB) AddOperations(ops *pbkv.KVOperations) {
+func (db *DB) AddOperations(ops *pbkv.KVOperations) {
 	for _, op := range ops.Operations {
-		l.AddOperation(op)
+		db.AddOperation(op)
 	}
 }
 
-func (l *DB) AddOperation(op *pbkv.KVOperation) {
-	l.pendingOperations = append(l.pendingOperations, op)
+func (db *DB) AddOperation(op *pbkv.KVOperation) {
+	db.pendingOperations = append(db.pendingOperations, op)
 }
 
-func (l *DB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
-	puts, deletes := lastOperationPerKey(l.pendingOperations)
+func (db *DB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
+	puts, deletes := lastOperationPerKey(db.pendingOperations)
 	for _, put := range puts {
-		if err := l.store.Put(ctx, userKey(put.Key), put.Value); err != nil {
+		if err := db.store.Put(ctx, userKey(put.Key), put.Value); err != nil {
 			return 0, err
 		}
 	}
 
-	if err := l.store.BatchDelete(ctx, deletes); err != nil {
+	if err := db.store.BatchDelete(ctx, deletes); err != nil {
 		return 0, err
 	}
 
-	if err := l.WriteCursor(ctx, cursor); err != nil {
+	if err := db.WriteCursor(ctx, cursor); err != nil {
 		return 0, err
 	}
-	l.reset()
+	db.reset()
 	return len(puts) + len(deletes), nil
 }
 
-func (l *DB) StoreReverseOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
-	reversedKVOperations := l.reverseOperations(ctx, ops)
+func (db *DB) HandleOperations(ctx context.Context, blockNumber uint64, kvOps *kvv1.KVOperations, cursor *sink.Cursor, batchModulo uint64, s *sinker.KVSinker) (flushDone bool, error) {
+	err := db.StoreReverseOperations(ctx, blockNumber, kvOps.Operations)
+	if err != nil {
+		return false, fmt.Errorf("storing reverse operations: %w", err)
+	}
+
+	db.AddOperations(kvOps)
+
+	blockRef := cursor.Block()
+	if blockRef.Num()%batchModulo == 0 {
+		flushStart := time.Now()
+		count, err := db.Flush(ctx, cursor)
+		if err != nil {
+			return false, fmt.Errorf("failed to flush: %w", err)
+		}
+
+		sinker.FlushCount.Inc()
+		sinker.FlushedEntriesCount.AddInt(count)
+		sinker.FlushedEntriesCount.AddInt64(time.Since(flushStart).Nanoseconds())
+	}
+}
+func (db *DB) StoreReverseOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
+	reversedKVOperations := db.reverseOperations(ctx, ops)
 	encodedReversedOperations, err := proto.Marshal(reversedKVOperations)
 	if err != nil {
 		return fmt.Errorf("unable to marshal reversed operations: %w", err)
 	}
 
-	err = l.store.Put(ctx, undoKey(blockNumber), encodedReversedOperations)
+	err = db.store.Put(ctx, undoKey(blockNumber), encodedReversedOperations)
 	if err != nil {
 		return fmt.Errorf("unable to store reversed operations: %w", err)
 	}
 	return nil
 }
 
-func (l *DB) reverseOperations(ctx context.Context, ops []*pbkv.KVOperation) *pbkv.KVOperations {
-	reversedOperations := make([]*pbkv.KVOperation, len(ops))
-	for _, operation := range ops {
+func (db *DB) reverseOperations(ctx context.Context, ops []*pbkv.KVOperation) *pbkv.KVOperations {
+	var reversedOperations []*pbkv.KVOperation
+	for _, op := range ops {
 		var reverseOperation *pbkv.KVOperation
-		previousValue, errNotFound := l.store.Get(ctx, userKey(operation.Key))
+		previousValue, errNotFound := db.store.Get(ctx, userKey(op.Key))
 
-		switch operation.Type {
+		switch op.Type {
 		case pbkv.KVOperation_SET:
 			if errNotFound != nil {
 				reverseOperation = &pbkv.KVOperation{
 					Type:  pbkv.KVOperation_DELETE,
-					Key:   operation.Key,
-					Value: operation.Value,
+					Key:   op.Key,
+					Value: op.Value,
 				}
-			} else {
-				reverseOperation = &pbkv.KVOperation{
-					Type:  pbkv.KVOperation_SET,
-					Key:   operation.Key,
-					Value: previousValue,
-				}
+				break
 			}
-		case pbkv.KVOperation_DELETE:
 			reverseOperation = &pbkv.KVOperation{
 				Type:  pbkv.KVOperation_SET,
-				Key:   operation.Key,
-				Value: operation.Value,
+				Key:   op.Key,
+				Value: previousValue,
+			}
+		case pbkv.KVOperation_DELETE:
+			if errNotFound != nil {
+				break
+			}
+			reverseOperation = &pbkv.KVOperation{
+				Type:  pbkv.KVOperation_SET,
+				Key:   op.Key,
+				Value: op.Value,
 			}
 
 		case pbkv.KVOperation_UNSET:
-			panic("Not implemented")
+			panic("Missing valid op")
 		}
 
-		reversedOperations = append(reversedOperations, reverseOperation)
+		reversedOperations = append([]*pbkv.KVOperation{reverseOperation}, reversedOperations...)
 	}
 
 	reversedKVOperations := &pbkv.KVOperations{Operations: reversedOperations}
 	return reversedKVOperations
 }
 
-func (l *DB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64, cursor *sink.Cursor) error {
-	blockNumber := cursor.Block().Num() //Set the cursor to the current block number
-
-	for blockNumber > lastValidBlock {
-		encodedOperations, ErrNotFound := l.store.Get(ctx, undoKey(blockNumber))
-		kvOperations := &pbkv.KVOperations{}
-
-		if ErrNotFound != nil {
-			return fmt.Errorf("unable to find undo operations for block %d: %w", blockNumber, ErrNotFound)
-		}
+func (db *DB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64) error {
+	scanResult := db.store.Scan(ctx, undoKey(math.MaxUint64), undoKey(lastValidBlock), 0)
+	if scanResult.Err() != nil {
+		return fmt.Errorf("scanning undo operations for block %d: %w", lastValidBlock, scanResult.Err())
+	}
+	kvOperations := &pbkv.KVOperations{}
+	var encodedOperations []byte
+	for scanResult.Next() {
+		encodedOperations = scanResult.Item().Value
 
 		err := proto.Unmarshal(encodedOperations, kvOperations)
 		if err != nil {
-			return fmt.Errorf("unable to unmarshal undo operations for block %d: %w", blockNumber, err)
+			return fmt.Errorf("unmarshaling undo operations: %w", err)
 		}
-
-		l.AddOperations(kvOperations)
-
-		_, err = l.Flush(ctx, cursor)
-		if err != nil {
-			return fmt.Errorf("unable to flush undo operations for block %d: %w", blockNumber, err)
-		}
-
-		blockNumber -= 1
+		db.AddOperations(kvOperations)
 	}
-
 	return nil
 }
 
@@ -156,19 +174,19 @@ func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, del
 	return
 }
 
-func (l *DB) reset() {
-	l.pendingOperations = nil
+func (db *DB) reset() {
+	db.pendingOperations = nil
 }
 
-func (l *DB) Get(ctx context.Context, key string) (val []byte, err error) {
-	val, err = l.store.Get(ctx, userKey(key))
+func (db *DB) Get(ctx context.Context, key string) (val []byte, err error) {
+	val, err = db.store.Get(ctx, userKey(key))
 	if err != nil && errors.Is(err, store.ErrNotFound) {
 		return nil, ErrNotFound
 	}
 	return
 }
 
-func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err error) {
+func (db *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err error) {
 	if len(keys) == 0 {
 		return nil, fmt.Errorf("%w: you must specify at least one key", ErrInvalidArguments)
 	}
@@ -177,7 +195,7 @@ func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err e
 		userKeys[i] = userKey(keys[i])
 	}
 
-	itr := l.store.BatchGet(ctx, userKeys)
+	itr := db.store.BatchGet(ctx, userKeys)
 	for itr.Next() {
 		values = append(values, itr.Item().Value)
 	}
@@ -189,18 +207,18 @@ func (l *DB) GetMany(ctx context.Context, keys []string) (values [][]byte, err e
 	return values, nil
 }
 
-func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (db *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
 	if limit == 0 {
-		limit = l.QueryRowsLimit
+		limit = db.QueryRowsLimit
 	}
-	if limit < 0 || limit > l.QueryRowsLimit {
-		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, l.QueryRowsLimit, limit)
+	if limit < 0 || limit > db.QueryRowsLimit {
+		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, db.QueryRowsLimit, limit)
 	}
 	if prefix == "" {
 		return nil, false, fmt.Errorf("%w: request value for 'prefix' must not be empty", ErrInvalidArguments)
 	}
 
-	itr := l.store.Prefix(ctx, userKey(prefix), limit+1)
+	itr := db.store.Prefix(ctx, userKey(prefix), limit+1)
 	for itr.Next() {
 		if len(values) == limit {
 			limitReached = true
@@ -222,22 +240,22 @@ func (l *DB) GetByPrefix(ctx context.Context, prefix string, limit int) (values 
 	return values, limitReached, nil
 }
 
-func (l *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
+func (db *DB) Scan(ctx context.Context, begin, exclusiveEnd string, limit int) (values []*kvv1.KV, limitReached bool, err error) {
 	if limit == 0 {
-		limit = l.QueryRowsLimit
+		limit = db.QueryRowsLimit
 	}
-	if limit < 0 || limit > l.QueryRowsLimit {
-		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, l.QueryRowsLimit, limit)
+	if limit < 0 || limit > db.QueryRowsLimit {
+		return nil, false, fmt.Errorf("%w: request value for 'limit' must be between 1 and %d, but received %d", ErrInvalidArguments, db.QueryRowsLimit, limit)
 	}
 
 	endBytes := InfiniteEndBytes
 	if exclusiveEnd != "" {
 		endBytes = userKey(exclusiveEnd)
 	}
-	itr := l.store.Scan(ctx, userKey(begin), endBytes, limit+1)
+	itr := db.store.Scan(ctx, userKey(begin), endBytes, limit+1)
 	for itr.Next() {
 		if !isUserKey(itr.Item().Key) {
-			l.logger.Debug("skipping non-user-key", zap.String("key", string(itr.Item().Key)))
+			db.logger.Debug("skipping non-user-key", zap.String("key", string(itr.Item().Key)))
 			continue // skip keys that are not valid user keys
 		}
 		if len(values) == limit {
@@ -269,7 +287,7 @@ func userKey(k string) []byte {
 func undoKey(num uint64) []byte {
 	numBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(numBytes, math.MaxUint64-num)
-	return append([]byte{'u'}, numBytes...)
+	return append(undoPrefix, numBytes...)
 }
 
 func isUserKey(k []byte) bool {

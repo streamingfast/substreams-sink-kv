@@ -97,42 +97,37 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	s.dbLoader.StoreReverseOperations(ctx, data.Clock.GetNumber(), kvOps.Operations)
-	s.dbLoader.AddOperations(kvOps)
+	batchModulo := s.batchBlockModulo(isLive)
 
 	s.lastCursor = cursor
-
 	blockRef := cursor.Block()
-	if blockRef.Num()%s.batchBlockModulo(data, isLive) == 0 {
-		flushStart := time.Now()
-		count, err := s.dbLoader.Flush(ctx, cursor)
-		if err != nil {
-			return fmt.Errorf("failed to flush: %w", err)
-		}
 
-		s.stats.RecordBlock(blockRef)
-		FlushCount.Inc()
-		FlushedEntriesCount.AddInt(count)
-		FlushDuration.AddInt64(time.Since(flushStart).Nanoseconds())
+	flushDone, err := s.dbLoader.HandleOperations(ctx, data.Clock.GetNumber(), kvOps, batchModulo)
+	if err != nil {
+		return fmt.Errorf("handling scoped data: %w", err)
 	}
 
-	//todo Handle the deletion when a block is considered as LIB
+	if flushDone {
+		s.stats.RecordBlock(blockRef)
+	}
 
 	return nil
 }
 
 func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreamsrpc.BlockUndoSignal, cursor *sink.Cursor) error {
-	err := s.dbLoader.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber(), cursor)
+	err := s.dbLoader.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
 	if err != nil {
-		return fmt.Errorf("unable to handle undo signal: %w", err)
+		return fmt.Errorf("handling undo signal: %w", err)
 	}
 
-	//todo: Do not forget to update the cursor...
-
-	return fmt.Errorf("received undo signal but there is no handling of undo, this is because you used `--undo-buffer-size=0` which is invalid right now")
+	_, err = s.dbLoader.Flush(ctx, cursor)
+	if err != nil {
+		return fmt.Errorf("flushing undo operations for: %w", err)
+	}
+	return nil
 }
 
-func (s *KVSinker) batchBlockModulo(blockData *pbsubstreamsrpc.BlockScopedData, isLive *bool) uint64 {
+func (s *KVSinker) batchBlockModulo(isLive *bool) uint64 {
 	if isLive == nil {
 		panic(fmt.Errorf("liveness checker has been disabled on the Sinker instance, this is invalid in the context of 'substreams-sink-postgres'"))
 	}

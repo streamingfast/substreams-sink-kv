@@ -13,8 +13,8 @@ type Loader interface {
 	Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error)
 	GetCursor(ctx context.Context) (*sink.Cursor, error)
 	WriteCursor(ctx context.Context, c *sink.Cursor) error
-	StoreReverseOperations(ctx context.Context, num uint64, operations []*kvv1.KVOperation) error
-	HandleBlockUndo(ctx context.Context, lastValidBlock uint64, cursor *sink.Cursor) error
+	HandleBlockUndo(ctx context.Context, lastValidBlock uint64) error
+	HandleOperations(ctx context.Context, number uint64, operations *kvv1.KVOperations, batchModulo uint64) (bool, error)
 }
 
 type Reader interface {

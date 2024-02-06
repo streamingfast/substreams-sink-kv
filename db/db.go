@@ -37,8 +37,8 @@ func New(dsn string, queryRowsLimit int, logger *zap.Logger, tracer logging.Trac
 	}, nil
 }
 
-func (l *DB) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
+func (db *DB) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	//TODO implement me
-	//encoder.AddUint64("entries_count", l.EntriesCount)
+	//encoder.AddUint64("entries_count", db.EntriesCount)
 	return nil
 }
