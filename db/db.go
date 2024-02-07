@@ -11,7 +11,6 @@ import (
 	"github.com/streamingfast/logging"
 	sink "github.com/streamingfast/substreams-sink"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/protobuf/proto"
@@ -124,7 +123,7 @@ func (db *OperationDB) DeleteLIBUndoOperations(ctx context.Context, finalBlockHe
 }
 
 func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
-	undoOperations := db.generateUndoOperations(ctx, ops)
+	undoOperations := generateUndoOperations(ctx, ops, db.store)
 	data, err := proto.Marshal(undoOperations)
 	if err != nil {
 		return fmt.Errorf("unable to marshal reversed operations: %w", err)
@@ -143,68 +142,63 @@ func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint
 	return nil
 }
 
-func (db *OperationDB) generateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation) *pbkv.KVOperations {
-	var reversedOperations []*pbkv.KVOperation
+func generateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation, kvStore store.KVStore) *pbkv.KVOperations {
+	var undoOperations []*pbkv.KVOperation
 	for _, op := range ops {
-		var reverseOperation *pbkv.KVOperation
-		previousValue, errNotFound := db.store.Get(ctx, userKey(op.Key))
-
-		switch op.Type {
-		case pbkv.KVOperation_SET:
-			if errNotFound != nil {
-				reverseOperation = &pbkv.KVOperation{
-					Type:  pbkv.KVOperation_DELETE,
-					Key:   op.Key,
-					Value: op.Value,
-				}
-				break
-			}
-			reverseOperation = &pbkv.KVOperation{
-				Type:  pbkv.KVOperation_SET,
-				Key:   op.Key,
-				Value: previousValue,
-			}
-		case pbkv.KVOperation_DELETE:
-			if errNotFound != nil {
-				break
-			}
-			reverseOperation = &pbkv.KVOperation{
-				Type:  pbkv.KVOperation_SET,
-				Key:   op.Key,
-				Value: op.Value,
-			}
-
-		case pbkv.KVOperation_UNSET:
-			panic("Missing valid op")
-		}
-
-		reversedOperations = append([]*pbkv.KVOperation{reverseOperation}, reversedOperations...)
+		previousValue, errNotFound := kvStore.Get(ctx, userKey(op.Key))
+		undoOp := undoOperation(op, previousValue, errNotFound != nil)
+		undoOperations = append([]*pbkv.KVOperation{undoOp}, undoOperations...)
 	}
-
-	reversedKVOperations := &pbkv.KVOperations{Operations: reversedOperations}
+	reversedKVOperations := &pbkv.KVOperations{Operations: undoOperations}
 	return reversedKVOperations
 }
 
-func (db *OperationDB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64) ([][]byte, error) {
+func undoOperation(op *pbkv.KVOperation, previousValue []byte, notFound bool) *pbkv.KVOperation {
+	switch op.Type {
+	case pbkv.KVOperation_SET:
+		if notFound { // if previous value was not notFound, we need to delete the key when applying the undo
+			return &pbkv.KVOperation{
+				Type:  pbkv.KVOperation_DELETE,
+				Key:   op.Key,
+				Value: op.Value,
+			}
+		}
+		return &pbkv.KVOperation{
+			Type:  pbkv.KVOperation_SET,
+			Key:   op.Key,
+			Value: previousValue,
+		}
+	case pbkv.KVOperation_DELETE:
+		if notFound {
+			return nil
+		}
+		return &pbkv.KVOperation{
+			Type:  pbkv.KVOperation_SET,
+			Key:   op.Key,
+			Value: op.Value,
+		}
+	default:
+		panic(fmt.Sprintf("invalid operation type %d", op.Type))
+	}
+}
+
+func (db *OperationDB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64) error {
 	scanResult := db.store.Scan(ctx, undoKey(math.MaxUint64), undoKey(lastValidBlock), 0)
 	if scanResult.Err() != nil {
-		return nil, fmt.Errorf("scanning undo operations for block %d: %w", lastValidBlock, scanResult.Err())
+		return fmt.Errorf("scanning undo operations for block %d: %w", lastValidBlock, scanResult.Err())
 	}
 	kvOperations := &pbkv.KVOperations{}
 	var encodedOperations []byte
-	var undoKeysToDelete [][]byte
 
 	for scanResult.Next() {
 		encodedOperations = scanResult.Item().Value
-		undoKeysToDelete = append(undoKeysToDelete, scanResult.Item().Key)
 		err := proto.Unmarshal(encodedOperations, kvOperations)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshaling undo operations: %w", err)
+			return fmt.Errorf("unmarshaling undo operations: %w", err)
 		}
 		db.AddOperations(kvOperations)
-
 	}
-	return undoKeysToDelete, nil
+	return nil
 }
 
 func (db *OperationDB) DeleteUndoKeys(ctx context.Context, keys [][]byte) error {

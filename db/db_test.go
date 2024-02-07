@@ -3,23 +3,19 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/test-go/testify/require"
 	"os"
 	"testing"
 
 	_ "github.com/streamingfast/kvdb/store/badger3"
 	"github.com/streamingfast/logging"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
+	"github.com/test-go/testify/require"
 	"go.uber.org/zap"
 )
 
 func TestDB_HandleOperations(t *testing.T) {
 	ctx := context.Background()
 	dbPath := "/tmp/substreams-sink-kv-db"
-
-	//delete dbPath if it exists
-	err := os.RemoveAll(dbPath)
-	require.NoError(t, err)
 
 	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
 
@@ -105,6 +101,10 @@ func TestDB_HandleOperations(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			//delete dbPath if it exists
+			err := os.RemoveAll(dbPath)
+			require.NoError(t, err)
+
 			for _, block := range c.blocks {
 				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, block.operations)
 				require.NoError(t, err)
@@ -137,14 +137,129 @@ func TestDB_HandleOperations(t *testing.T) {
 		})
 	}
 }
+func TestDB_HandleUndo(t *testing.T) {
+	ctx := context.Background()
+	dbPath := "/tmp/substreams-sink-kv-db"
+
+	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
+
+	db, err := New(fmt.Sprintf("badger3://%s", dbPath), 0, zap.NewNop(), tracer)
+	require.NoError(t, err)
+
+	type blockOperations struct {
+		blockNumber      uint64
+		operations       *pbkv.KVOperations
+		finalBlockHeight uint64
+	}
+	cases := []struct {
+		name           string
+		blocks         []blockOperations
+		lastValidBlock uint64
+		expectedKV     map[string]string
+	}{
+		{
+			name: "sunny path",
+			blocks: []blockOperations{
+				{
+					blockNumber: 3,
+					operations: &pbkv.KVOperations{
+						Operations: []*pbkv.KVOperation{
+							{
+								Key:   "key.1",
+								Value: []byte("value.1"),
+								Type:  pbkv.KVOperation_SET,
+							},
+						},
+					},
+					finalBlockHeight: 1,
+				},
+			},
+			lastValidBlock: 2,
+			expectedKV:     map[string]string{},
+		},
+
+		//{
+		//	name: "undo deletion",
+		//	blocks: []blockOperations{
+		//		{
+		//			blockNumber: 1,
+		//			operations: &pbkv.KVOperations{
+		//				Operations: []*pbkv.KVOperation{
+		//					{
+		//						Key:   "key.3",
+		//						Value: []byte("value.3"),
+		//						Type:  pbkv.KVOperation_SET,
+		//					},
+		//				},
+		//			},
+		//			finalBlockHeight: 1,
+		//		},
+		//		{
+		//			blockNumber: 2,
+		//			operations: &pbkv.KVOperations{
+		//				Operations: []*pbkv.KVOperation{
+		//					{
+		//						Key:   "key.2",
+		//						Value: []byte("value.2"),
+		//						Type:  pbkv.KVOperation_SET,
+		//					},
+		//				},
+		//			},
+		//			finalBlockHeight: 1,
+		//		},
+		//		{
+		//			blockNumber: 3,
+		//			operations: &pbkv.KVOperations{
+		//				Operations: []*pbkv.KVOperation{
+		//					{
+		//						Key:   "key.1",
+		//						Value: []byte("value.1"),
+		//						Type:  pbkv.KVOperation_SET,
+		//					},
+		//				},
+		//			},
+		//			finalBlockHeight: 1,
+		//		},
+		//	},
+		//	expectedRemainingKey: [][]byte{userKey("key.1"), userKey("key.2"), userKey("key.3"), []byte("xc"), undoKey(3), undoKey(2)},
+		//},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			//delete dbPath if it exists
+			err := os.RemoveAll(dbPath)
+			require.NoError(t, err)
+
+			for _, block := range c.blocks {
+				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, block.operations)
+				require.NoError(t, err)
+				_, err = db.Flush(ctx, nil)
+				require.NoError(t, err)
+			}
+
+			err = db.HandleBlockUndo(ctx, c.lastValidBlock)
+			require.NoError(t, err)
+
+			_, err = db.Flush(ctx, nil)
+			require.NoError(t, err)
+
+			scanOutput := db.store.Scan(ctx, userKey(""), []byte{'l'}, 0)
+			require.NoError(t, scanOutput.Err())
+
+			currentState := map[string]string{}
+			for scanOutput.Next() {
+				currentState[string(scanOutput.Item().Key)] = string(scanOutput.Item().Value)
+			}
+
+			require.Equal(t, c.expectedKV, currentState)
+		})
+	}
+}
 
 func TestDB_StoreUndoOperations(t *testing.T) {
 	ctx := context.Background()
 	dbPath := "/tmp/substreams-sink-kv-db"
-
-	//delete dbPath if it exists
-	err := os.RemoveAll(dbPath)
-	require.NoError(t, err)
 
 	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
 
@@ -251,6 +366,9 @@ func TestDB_StoreUndoOperations(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			//delete dbPath if it exists
+			err := os.RemoveAll(dbPath)
+			require.NoError(t, err)
 
 			db.AddOperations(c.operationsPreviouslyDone)
 			_, err = db.Flush(ctx, nil)
