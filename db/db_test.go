@@ -257,136 +257,91 @@ func TestDB_HandleUndo(t *testing.T) {
 	}
 }
 
-func TestDB_StoreUndoOperations(t *testing.T) {
+func TestDB_UndoOperation(t *testing.T) {
 	ctx := context.Background()
 	dbPath := "/tmp/substreams-sink-kv-db"
+
+	//delete dbPath if it exists
+	err := os.RemoveAll(dbPath)
+	require.NoError(t, err)
 
 	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
 
 	db, err := New(fmt.Sprintf("badger3://%s", dbPath), 0, zap.NewNop(), tracer)
 	require.NoError(t, err)
 
-	type blockOperation struct {
-		blockNumber uint64
-		operations  *pbkv.KVOperations
+	type foundValue struct {
+		found          bool
+		previouslValue []byte
 	}
-
 	cases := []struct {
-		name                     string
-		block                    blockOperation
-		operationsPreviouslyDone *pbkv.KVOperations
-		expectedUndoValue        []byte
+		name                  string
+		operation             *pbkv.KVOperation
+		foundValue            foundValue
+		expectedUndoOperation *pbkv.KVOperation
 	}{
 		{
-			name:                     "sunny path",
-			operationsPreviouslyDone: &pbkv.KVOperations{},
-			block: blockOperation{
-				blockNumber: 1,
-				operations: &pbkv.KVOperations{
-					Operations: []*pbkv.KVOperation{
-						{
-							Key:   "key.3",
-							Value: []byte("value.3"),
-							Type:  pbkv.KVOperation_SET,
-						},
-					},
-				},
+			name:       "sunny path",
+			foundValue: foundValue{false, nil},
+			operation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_SET,
 			},
-			expectedUndoValue: []byte{10, 18, 10, 5, 107, 101, 121, 46, 51, 18, 7, 118, 97, 108, 117, 101, 46, 51, 32, 2}, //Marshal for KVOperations [{key:key.3, value: []bytes(value.3), type:KVOperation_DELETE]
+			expectedUndoOperation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_DELETE,
+			},
 		},
 
 		{
-			name: "set operation for previously key set",
-			operationsPreviouslyDone: &pbkv.KVOperations{
-				Operations: []*pbkv.KVOperation{
-					{
-						Key:   "key.3",
-						Value: []byte("value.4"),
-						Type:  pbkv.KVOperation_SET,
-					},
-				}},
-
-			block: blockOperation{
-				blockNumber: 1,
-				operations: &pbkv.KVOperations{
-					Operations: []*pbkv.KVOperation{
-						{
-							Key:   "key.3",
-							Value: []byte("value.3"),
-							Type:  pbkv.KVOperation_SET,
-						},
-					},
-				},
+			name:       "set operation for previously key set",
+			foundValue: foundValue{true, []byte("value.4")},
+			operation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_SET,
 			},
-			expectedUndoValue: []byte{10, 18, 10, 5, 107, 101, 121, 46, 51, 18, 7, 118, 97, 108, 117, 101, 46, 52, 32, 1},
+			expectedUndoOperation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.4"),
+				Type:  pbkv.KVOperation_SET,
+			},
 		},
 		{
-			name:                     "delete operation",
-			operationsPreviouslyDone: &pbkv.KVOperations{},
-			block: blockOperation{
-				blockNumber: 1,
-				operations: &pbkv.KVOperations{
-					Operations: []*pbkv.KVOperation{
-						{
-							Key:   "key.2",
-							Value: []byte("value.2"),
-							Type:  pbkv.KVOperation_DELETE,
-						},
-					},
-				},
+			name:       "delete operation",
+			foundValue: foundValue{false, nil},
+			operation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_DELETE,
 			},
-			expectedUndoValue: []byte{10, 0},
+			expectedUndoOperation: &pbkv.KVOperation{},
 		},
 		{
-			name: "delete operation for previously set key",
-			operationsPreviouslyDone: &pbkv.KVOperations{
-				Operations: []*pbkv.KVOperation{
-					{
-						Key:   "key.3",
-						Value: []byte("value.3"),
-						Type:  pbkv.KVOperation_SET,
-					},
-				},
+			name:       "delete operation for previously set key",
+			foundValue: foundValue{true, []byte("value.3")},
+			operation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_DELETE,
 			},
-			block: blockOperation{
-				blockNumber: 1,
-				operations: &pbkv.KVOperations{
-					Operations: []*pbkv.KVOperation{
-						{
-							Key:   "key.3",
-							Value: []byte("value.3"),
-							Type:  pbkv.KVOperation_DELETE,
-						},
-					},
-				},
+			expectedUndoOperation: &pbkv.KVOperation{
+				Key:   "key.3",
+				Value: []byte("value.3"),
+				Type:  pbkv.KVOperation_SET,
 			},
-			expectedUndoValue: []byte{10, 18, 10, 5, 107, 101, 121, 46, 51, 18, 7, 118, 97, 108, 117, 101, 46, 51, 32, 1},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			//delete dbPath if it exists
-			err := os.RemoveAll(dbPath)
+			undoOperation, err = db.undoOperation(ctx, c.operation, c.foundValue.found, c.foundValue.previouslValue)
 			require.NoError(t, err)
 
-			db.AddOperations(c.operationsPreviouslyDone)
-			_, err = db.Flush(ctx, nil)
-			require.NoError(t, err)
-
-			err = db.storeUndoOperations(ctx, c.block.blockNumber, c.block.operations.Operations)
-			require.NoError(t, err)
-
-			var undoValue []byte
-			undoValue, err = db.store.Get(ctx, undoKey(c.block.blockNumber))
-			require.NoError(t, err)
-			require.Equal(t, c.expectedUndoValue, undoValue)
+			require.Equal(t, c.expectedUndoOperation, undoOperation)
 		})
 	}
-
-}
-
-func TestDB_HandleBlockUndo(t *testing.T) {
-	//ctx := context.Background()
 
 }
