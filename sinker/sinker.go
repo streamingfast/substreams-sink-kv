@@ -97,7 +97,7 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), kvOps)
+	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, kvOps)
 	if err != nil {
 		return fmt.Errorf("handling scoped data: %w", err)
 	}
@@ -122,7 +122,8 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 }
 
 func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreamsrpc.BlockUndoSignal, cursor *sink.Cursor) error {
-	err := s.operationDB.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
+
+	affectedKeys, err := s.operationDB.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
 	if err != nil {
 		return fmt.Errorf("handling undo signal: %w", err)
 	}
@@ -131,6 +132,12 @@ func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreams
 	if err != nil {
 		return fmt.Errorf("flushing undo operations for: %w", err)
 	}
+
+	err = s.operationDB.DeleteUndoKeys(ctx, affectedKeys)
+	if err != nil {
+		return fmt.Errorf("deleting undo keys: %w", err)
+	}
+
 	return nil
 }
 

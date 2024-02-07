@@ -91,8 +91,13 @@ func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count in
 	return len(puts) + len(deletes), nil
 }
 
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, kvOps *pbkv.KVOperations) error {
-	err := db.storeUndoOperations(ctx, blockNumber, kvOps.Operations)
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, kvOps *pbkv.KVOperations) error {
+	err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
+	if err != nil {
+		return fmt.Errorf("deleting LIB undo operations: %w", err)
+	}
+
+	err = db.storeUndoOperations(ctx, blockNumber, kvOps.Operations)
 	if err != nil {
 		return fmt.Errorf("storing reverse operations: %w", err)
 	}
@@ -100,6 +105,22 @@ func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64,
 	db.AddOperations(kvOps)
 
 	return nil
+}
+
+func (db *OperationDB) DeleteLIBUndoOperations(ctx context.Context, finalBlockHeight uint64) error {
+	keys := make([][]byte, 0)
+
+	scanOutput := db.store.Scan(ctx, undoKey(finalBlockHeight), undoKey(0), 0)
+
+	if scanOutput.Err() != nil {
+		return fmt.Errorf("scanning undo operations for block %d: %w", finalBlockHeight, scanOutput.Err())
+	}
+
+	for scanOutput.Next() {
+		keys = append(keys, scanOutput.Item().Key)
+	}
+
+	return db.store.BatchDelete(ctx, keys)
 }
 
 func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
@@ -111,8 +132,14 @@ func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint
 
 	err = db.store.Put(ctx, undoKey(blockNumber), data)
 	if err != nil {
-		return fmt.Errorf("unable to store reversed operations: %w", err)
+		return fmt.Errorf("storing reversed operations: %w", err)
 	}
+
+	err = db.store.FlushPuts(ctx)
+	if err != nil {
+		return fmt.Errorf("flushing undo put: %w", err)
+	}
+
 	return nil
 }
 
@@ -158,23 +185,30 @@ func (db *OperationDB) generateUndoOperations(ctx context.Context, ops []*pbkv.K
 	return reversedKVOperations
 }
 
-func (db *OperationDB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64) error {
+func (db *OperationDB) HandleBlockUndo(ctx context.Context, lastValidBlock uint64) ([][]byte, error) {
 	scanResult := db.store.Scan(ctx, undoKey(math.MaxUint64), undoKey(lastValidBlock), 0)
 	if scanResult.Err() != nil {
-		return fmt.Errorf("scanning undo operations for block %d: %w", lastValidBlock, scanResult.Err())
+		return nil, fmt.Errorf("scanning undo operations for block %d: %w", lastValidBlock, scanResult.Err())
 	}
 	kvOperations := &pbkv.KVOperations{}
 	var encodedOperations []byte
+	var undoKeysToDelete [][]byte
+
 	for scanResult.Next() {
 		encodedOperations = scanResult.Item().Value
-
+		undoKeysToDelete = append(undoKeysToDelete, scanResult.Item().Key)
 		err := proto.Unmarshal(encodedOperations, kvOperations)
 		if err != nil {
-			return fmt.Errorf("unmarshaling undo operations: %w", err)
+			return nil, fmt.Errorf("unmarshaling undo operations: %w", err)
 		}
 		db.AddOperations(kvOperations)
+
 	}
-	return nil
+	return undoKeysToDelete, nil
+}
+
+func (db *OperationDB) DeleteUndoKeys(ctx context.Context, keys [][]byte) error {
+	return db.store.BatchDelete(ctx, keys)
 }
 
 func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, deletes [][]byte) {
