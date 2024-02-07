@@ -102,7 +102,7 @@ func TestDB_HandleOperations(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			//delete dbPath if it exists
-			err := os.RemoveAll(dbPath)
+			err = os.RemoveAll(dbPath)
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
@@ -141,7 +141,7 @@ func TestDB_HandleUndo(t *testing.T) {
 	ctx := context.Background()
 	dbPath := "/tmp/substreams-sink-kv-db"
 
-	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
+	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test2")
 
 	db, err := New(fmt.Sprintf("badger3://%s", dbPath), 0, zap.NewNop(), tracer)
 	require.NoError(t, err)
@@ -178,57 +178,71 @@ func TestDB_HandleUndo(t *testing.T) {
 			expectedKV:     map[string]string{},
 		},
 
-		//{
-		//	name: "undo deletion",
-		//	blocks: []blockOperations{
-		//		{
-		//			blockNumber: 1,
-		//			operations: &pbkv.KVOperations{
-		//				Operations: []*pbkv.KVOperation{
-		//					{
-		//						Key:   "key.3",
-		//						Value: []byte("value.3"),
-		//						Type:  pbkv.KVOperation_SET,
-		//					},
-		//				},
-		//			},
-		//			finalBlockHeight: 1,
-		//		},
-		//		{
-		//			blockNumber: 2,
-		//			operations: &pbkv.KVOperations{
-		//				Operations: []*pbkv.KVOperation{
-		//					{
-		//						Key:   "key.2",
-		//						Value: []byte("value.2"),
-		//						Type:  pbkv.KVOperation_SET,
-		//					},
-		//				},
-		//			},
-		//			finalBlockHeight: 1,
-		//		},
-		//		{
-		//			blockNumber: 3,
-		//			operations: &pbkv.KVOperations{
-		//				Operations: []*pbkv.KVOperation{
-		//					{
-		//						Key:   "key.1",
-		//						Value: []byte("value.1"),
-		//						Type:  pbkv.KVOperation_SET,
-		//					},
-		//				},
-		//			},
-		//			finalBlockHeight: 1,
-		//		},
-		//	},
-		//	expectedRemainingKey: [][]byte{userKey("key.1"), userKey("key.2"), userKey("key.3"), []byte("xc"), undoKey(3), undoKey(2)},
-		//},
+		{
+			name: "deletion until last valid block",
+			blocks: []blockOperations{
+				{
+					blockNumber: 4,
+					operations: &pbkv.KVOperations{
+						Operations: []*pbkv.KVOperation{
+							{
+								Key:   "key.4",
+								Value: []byte("value.4"),
+								Type:  pbkv.KVOperation_SET,
+							},
+						},
+					},
+					finalBlockHeight: 1,
+				},
+				{
+					blockNumber: 3,
+					operations: &pbkv.KVOperations{
+						Operations: []*pbkv.KVOperation{
+							{
+								Key:   "key.3",
+								Value: []byte("value.3"),
+								Type:  pbkv.KVOperation_SET,
+							},
+						},
+					},
+					finalBlockHeight: 1,
+				},
+				{
+					blockNumber: 2,
+					operations: &pbkv.KVOperations{
+						Operations: []*pbkv.KVOperation{
+							{
+								Key:   "key.2",
+								Value: []byte("value.2"),
+								Type:  pbkv.KVOperation_SET,
+							},
+						},
+					},
+					finalBlockHeight: 1,
+				},
+				{
+					blockNumber: 1,
+					operations: &pbkv.KVOperations{
+						Operations: []*pbkv.KVOperation{
+							{
+								Key:   "key.1",
+								Value: []byte("value.1"),
+								Type:  pbkv.KVOperation_SET,
+							},
+						},
+					},
+					finalBlockHeight: 1,
+				},
+			},
+			lastValidBlock: 2,
+			expectedKV:     map[string]string{"kkey.1": "value.1", "kkey.2": "value.2"},
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			//delete dbPath if it exists
-			err := os.RemoveAll(dbPath)
+			err = os.RemoveAll(dbPath)
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
@@ -258,21 +272,9 @@ func TestDB_HandleUndo(t *testing.T) {
 }
 
 func TestDB_UndoOperation(t *testing.T) {
-	ctx := context.Background()
-	dbPath := "/tmp/substreams-sink-kv-db"
-
-	//delete dbPath if it exists
-	err := os.RemoveAll(dbPath)
-	require.NoError(t, err)
-
-	_, tracer := logging.PackageLogger("db", "github.com/streamingfast/substreams-sink-kv/db.test")
-
-	db, err := New(fmt.Sprintf("badger3://%s", dbPath), 0, zap.NewNop(), tracer)
-	require.NoError(t, err)
-
 	type foundValue struct {
-		found          bool
-		previouslValue []byte
+		found         bool
+		previousValue []byte
 	}
 	cases := []struct {
 		name                  string
@@ -317,7 +319,7 @@ func TestDB_UndoOperation(t *testing.T) {
 				Value: []byte("value.3"),
 				Type:  pbkv.KVOperation_DELETE,
 			},
-			expectedUndoOperation: &pbkv.KVOperation{},
+			expectedUndoOperation: nil,
 		},
 		{
 			name:       "delete operation for previously set key",
@@ -337,10 +339,8 @@ func TestDB_UndoOperation(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			undoOperation, err = db.undoOperation(ctx, c.operation, c.foundValue.found, c.foundValue.previouslValue)
-			require.NoError(t, err)
-
-			require.Equal(t, c.expectedUndoOperation, undoOperation)
+			undoOperationResult := undoOperation(c.operation, c.foundValue.previousValue, !c.foundValue.found)
+			require.Equal(t, c.expectedUndoOperation, undoOperationResult)
 		})
 	}
 
