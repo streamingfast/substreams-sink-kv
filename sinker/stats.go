@@ -14,9 +14,11 @@ type Stats struct {
 	*shutter.Shutter
 
 	dbFlushRate    *dmetrics.AvgRatePromCounter
-	flusehdEntries *dmetrics.ValueFromMetric
+	flushedEntries *dmetrics.ValueFromMetric
 	lastBlock      bstream.BlockRef
 	logger         *zap.Logger
+	blockRate      *dmetrics.AvgRatePromCounter
+	flushDuration  *dmetrics.AvgDurationCounter
 }
 
 func NewStats(logger *zap.Logger) *Stats {
@@ -24,7 +26,9 @@ func NewStats(logger *zap.Logger) *Stats {
 		Shutter: shutter.New(),
 
 		dbFlushRate:    dmetrics.MustNewAvgRateFromPromCounter(FlushCount, 1*time.Second, 30*time.Second, "flush"),
-		flusehdEntries: dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
+		blockRate:      dmetrics.MustNewAvgRateFromPromCounter(BlockCount, 1*time.Second, 30*time.Second, "block"),
+		flushedEntries: dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
+		flushDuration:  dmetrics.NewAvgDurationCounter(30*time.Second, time.Second, "flush duration"),
 		lastBlock:      unsetBlockRef{},
 		logger:         logger,
 	}
@@ -32,6 +36,10 @@ func NewStats(logger *zap.Logger) *Stats {
 
 func (s *Stats) RecordBlock(block bstream.BlockRef) {
 	s.lastBlock = block
+}
+
+func (s *Stats) RecordFlushDuration(since time.Duration) {
+
 }
 
 func (s *Stats) Start(each time.Duration, cursor *sink.Cursor) {
@@ -63,7 +71,9 @@ func (s *Stats) LogNow() {
 	// them so the development logs looks nicer.
 	s.logger.Info("substreams kv stats",
 		zap.Stringer("db_flush_rate", s.dbFlushRate),
-		zap.Uint64("flushed_entries", s.flusehdEntries.ValueUint()),
+		zap.String("flush_duration", s.flushDuration.String()),
+		zap.Stringer("block_rate", s.blockRate),
+		zap.Uint64("flushed_entries", s.flushedEntries.ValueUint()),
 		zap.Stringer("last_block", s.lastBlock),
 	)
 }

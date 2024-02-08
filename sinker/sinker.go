@@ -112,8 +112,8 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 		FlushCount.Inc()
 		FlushedEntriesCount.AddInt(count)
-		FlushedEntriesCount.AddInt64(time.Since(flushStart).Nanoseconds())
-
+		FlushDuration.AddInt64(time.Since(flushStart).Nanoseconds())
+		s.stats.RecordFlushDuration(time.Since(flushStart))
 		s.stats.RecordBlock(blockRef)
 	}
 

@@ -23,7 +23,7 @@ var injectCmd = Command(injectRunE,
 	Flags(func(flags *pflag.FlagSet) {
 		sink.AddFlagsToSet(flags)
 
-		flags.Int("flush-interval", 1000, "When in catch up mode, flush every N blocks")
+		flags.Int("flush-interval", 100, "When in catch up mode, flush every N blocks")
 		flags.String("module", "", "An explicit module to sink, if not provided, expecting the Substreams manifest to defined 'sink' configuration")
 		flags.String("server-listen-addr", "", "Launch query server on this address")
 		flags.Bool("server-listen-ssl-self-signed", false, "Listen with an HTTPS server (with self-signed certificate)")
