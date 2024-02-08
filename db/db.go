@@ -8,7 +8,7 @@ import (
 	"math"
 
 	"github.com/streamingfast/bstream"
-
+	"github.com/streamingfast/kvdb"
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	sink "github.com/streamingfast/substreams-sink"
@@ -52,7 +52,8 @@ func (db *OperationDB) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	return nil
 }
 
-var undoPrefix = []byte{'x', 'u'}
+var undoPrefix = [2]byte{'x', 'u'}
+var userKeyPrefix byte = 'k'
 
 var ErrInvalidArguments = errors.New("invalid arguments")
 var ErrNotFound = errors.New("not found")
@@ -70,6 +71,7 @@ func (db *OperationDB) AddOperations(ops *pbkv.KVOperations) {
 }
 
 func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
+	// Make this a MAP, and keep always the latest KVOperation.
 	db.pendingOperations = append(db.pendingOperations, op)
 }
 
@@ -148,18 +150,22 @@ func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint
 func generateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation, kvStore store.KVStore) *pbkv.KVOperations {
 	var undoOperations []*pbkv.KVOperation
 	for _, op := range ops {
-		previousValue, errNotFound := kvStore.Get(ctx, userKey(op.Key))
-		undoOp := undoOperation(op, previousValue, errNotFound != nil)
+		previousValue, err := kvStore.Get(ctx, userKey(op.Key))
+		previousKeyExists := err == kvdb.ErrNotFound
+		if err != nil {
+			return nil, err
+		}
+		undoOp := undoOperation(op, previousValue, previousKeyExists)
 		undoOperations = append([]*pbkv.KVOperation{undoOp}, undoOperations...)
 	}
 	reversedKVOperations := &pbkv.KVOperations{Operations: undoOperations}
 	return reversedKVOperations
 }
 
-func undoOperation(op *pbkv.KVOperation, previousValue []byte, notFound bool) *pbkv.KVOperation {
+func undoOperation(op *pbkv.KVOperation, previousValue []byte, previousKeyExists bool) *pbkv.KVOperation {
 	switch op.Type {
 	case pbkv.KVOperation_SET:
-		if notFound { // if previous value was not notFound, we need to delete the key when applying the undo
+		if previousKeyExists { // if previous value was not notFound, we need to delete the key when applying the undo
 			return &pbkv.KVOperation{
 				Type:  pbkv.KVOperation_DELETE,
 				Key:   op.Key,
@@ -172,7 +178,7 @@ func undoOperation(op *pbkv.KVOperation, previousValue []byte, notFound bool) *p
 			Value: previousValue,
 		}
 	case pbkv.KVOperation_DELETE:
-		if notFound {
+		if previousKeyExists {
 			return nil
 		}
 		return &pbkv.KVOperation{
@@ -334,24 +340,26 @@ func (db *OperationDB) Scan(ctx context.Context, begin, exclusiveEnd string, lim
 
 func userKey(k string) []byte {
 	out := make([]byte, len(k)+1)
-	out[0] = 'k'
+	out[0] = userKeyPrefix
 	copy(out[1:], k)
 	return out
 }
 
 func undoKey(num uint64) []byte {
-	numBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(numBytes, math.MaxUint64-num)
-	return append(undoPrefix, numBytes...)
+	numBytes := make([]byte, 8+len(undoPrefix))
+	copy(numBytes, undoPrefix[:])
+	binary.BigEndian.PutUint64(numBytes[2:], math.MaxUint64-num)
+	return numBytes
 }
 
 func isUserKey(k []byte) bool {
-	if len(k) > 1 && k[0] == 'k' {
+	if len(k) > 1 && k[0] == userKeyPrefix {
 		return true
 	}
 	return false
 }
 
 func fromUserKey(k []byte) string {
+	// skip the `userKeyPrefix`
 	return string(k[1:])
 }

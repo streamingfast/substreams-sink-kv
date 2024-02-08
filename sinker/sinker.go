@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/logging"
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
@@ -102,24 +103,36 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
+	// Check if step == StepNew, generate undo operations
+	//    WARN: the Undo operation FLUSHES, so make it explicit in the name
+	//    this function will do a very DEEP flush, side stepping does a very deep Flush
+	// Seaprately, add the AddOperations(kvOps) at this level.
+	// GOal: the HandleOperations does ONE thing, and the caller determines the flow.
+	if step == bstream.StepNew {
+		err := s.operationDB.PutUndoOperations() // takes some repsonsibility from `HandleOpoerations`, and `HandleOperations` only adds the keys.
+	}
+
+	// TODO: somewhere we need to have `AddOperation` that is aware of the undos... and doesn't treat them as "userKey"
+	// probably, the `AddOperation` should come with a keyprefix. .. puts in a separeate list? And puts + deletes those keys
+
 	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, cursor.Step, kvOps)
 	if err != nil {
 		return fmt.Errorf("handling scoped data: %w", err)
 	}
 
-	blockRef := cursor.Block()
 	BlockCount.Inc()
-	if blockRef.Num()%s.batchBlockModulo(isLive) == 0 {
-		flushStart := time.Now()
+
+	if s.shouldFlushKeys(cursor) {
 		count, err := s.operationDB.Flush(ctx, cursor)
 		if err != nil {
 			return fmt.Errorf("flushing operations: %w", err)
 		}
+		FlushedEntriesCount.AddInt(count)
+		flushStart := time.Now()
 
 		FlushCount.Inc()
-		FlushedEntriesCount.AddInt(count)
 		s.stats.RecordFlushDuration(time.Since(flushStart))
-		s.stats.RecordBlock(blockRef)
+		s.stats.RecordBlock(cursor.Block())
 		s.stats.RecordFinalBlockHeight(data.FinalBlockHeight)
 	}
 
@@ -144,18 +157,16 @@ func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreams
 	return nil
 }
 
-func (s *KVSinker) batchBlockModulo(isLive *bool) uint64 {
-	if isLive == nil {
-		panic(fmt.Errorf("liveness checker has been disabled on the Sinker instance, this is invalid in the context of 'substreams-sink-postgres'"))
+func (s *KVSinker) shouldFlushKeys(cursor *sink.Cursor) bool {
+	currentBlockNum := cursor.Block().Num()
+	if cursor.Step == bstream.StepNew {
+		return true
 	}
-
-	if *isLive {
-		return LIVE_BLOCK_FLUSH_EACH
-	}
-
+	// TODO: make this thing a block count and not a duration?!%!
 	if s.flushInterval > 0 {
-		return uint64(s.flushInterval)
+		return currentBlockNum%uint64(s.flushInterval) == 0
 	}
 
-	return HISTORICAL_BLOCK_FLUSH_EACH
+	// TODO: this probably  not needed if `flushInterval` works properly and is always set somehow.
+	return currentBlockNum%HISTORICAL_BLOCK_FLUSH_EACH == 0
 }
