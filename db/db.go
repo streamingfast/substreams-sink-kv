@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/streamingfast/bstream"
+
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	sink "github.com/streamingfast/substreams-sink"
@@ -90,8 +92,8 @@ func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count in
 	return len(puts) + len(deletes), nil
 }
 
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, kvOps *pbkv.KVOperations) error {
-	if blockNumber >= finalBlockHeight {
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, cursor *sink.Cursor, kvOps *pbkv.KVOperations) error {
+	if cursor.Step == bstream.StepNew {
 		err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
 			return fmt.Errorf("deleting LIB undo operations: %w", err)
