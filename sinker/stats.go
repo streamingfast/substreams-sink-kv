@@ -21,6 +21,7 @@ type Stats struct {
 	flushDuration                  *dmetrics.AvgDurationCounter
 	blockScopedDataProcessDuration *dmetrics.AvgDurationCounter
 	durationBetweenBlock           *dmetrics.AvgDurationCounter
+	finalBlockHeight               uint64
 }
 
 func NewStats(logger *zap.Logger) *Stats {
@@ -40,6 +41,9 @@ func NewStats(logger *zap.Logger) *Stats {
 
 func (s *Stats) RecordBlock(block bstream.BlockRef) {
 	s.lastBlock = block
+}
+func (s *Stats) RecordFinalBlockHeight(num uint64) {
+	s.finalBlockHeight = num
 }
 
 func (s *Stats) RecordFlushDuration(duration time.Duration) {
@@ -87,6 +91,7 @@ func (s *Stats) LogNow() {
 		zap.Stringer("block_rate", s.blockRate),
 		zap.Uint64("flushed_entries", s.flushedEntries.ValueUint()),
 		zap.Stringer("last_block", s.lastBlock),
+		zap.Uint64("final_block_height", s.finalBlockHeight),
 	)
 }
 
