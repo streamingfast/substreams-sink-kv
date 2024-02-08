@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/logging"
 	"github.com/streamingfast/shutter"
 	sink "github.com/streamingfast/substreams-sink"
@@ -18,7 +19,6 @@ import (
 
 const (
 	HISTORICAL_BLOCK_FLUSH_EACH = 1000
-	LIVE_BLOCK_FLUSH_EACH       = 1
 )
 
 type KVSinker struct {
@@ -26,7 +26,7 @@ type KVSinker struct {
 	*sink.Sinker
 
 	operationDB   *db.OperationDB
-	flushInterval time.Duration
+	flushInterval uint64
 	logger        *zap.Logger
 	tracer        logging.Tracer
 
@@ -34,7 +34,7 @@ type KVSinker struct {
 	stats      *Stats
 }
 
-func New(sinker *sink.Sinker, dbLoader *db.OperationDB, flushInterval time.Duration, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
+func New(sinker *sink.Sinker, dbLoader *db.OperationDB, flushInterval uint64, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
 	s := &KVSinker{
 		Shutter:       shutter.New(),
 		Sinker:        sinker,
@@ -102,24 +102,23 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, cursor.Step, kvOps)
+	err = s.operationDB.HandleOperations(ctx, data.Clock.Number, data.FinalBlockHeight, cursor.Step, kvOps)
 	if err != nil {
-		return fmt.Errorf("handling scoped data: %w", err)
+		return fmt.Errorf("handling operation: %w", err)
 	}
 
-	blockRef := cursor.Block()
 	BlockCount.Inc()
-	if blockRef.Num()%s.batchBlockModulo(isLive) == 0 {
-		flushStart := time.Now()
+	if s.shouldFlushKeys(cursor) {
 		count, err := s.operationDB.Flush(ctx, cursor)
 		if err != nil {
 			return fmt.Errorf("flushing operations: %w", err)
 		}
+		FlushedEntriesCount.AddInt(count)
+		flushStart := time.Now()
 
 		FlushCount.Inc()
-		FlushedEntriesCount.AddInt(count)
 		s.stats.RecordFlushDuration(time.Since(flushStart))
-		s.stats.RecordBlock(blockRef)
+		s.stats.RecordBlock(cursor.Block())
 		s.stats.RecordFinalBlockHeight(data.FinalBlockHeight)
 	}
 
@@ -144,18 +143,10 @@ func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreams
 	return nil
 }
 
-func (s *KVSinker) batchBlockModulo(isLive *bool) uint64 {
-	if isLive == nil {
-		panic(fmt.Errorf("liveness checker has been disabled on the Sinker instance, this is invalid in the context of 'substreams-sink-postgres'"))
+func (s *KVSinker) shouldFlushKeys(cursor *sink.Cursor) bool {
+	currentBlockNum := cursor.Block().Num()
+	if cursor.Step == bstream.StepNew {
+		return true
 	}
-
-	if *isLive {
-		return LIVE_BLOCK_FLUSH_EACH
-	}
-
-	if s.flushInterval > 0 {
-		return uint64(s.flushInterval)
-	}
-
-	return HISTORICAL_BLOCK_FLUSH_EACH
+	return currentBlockNum%s.flushInterval == 0
 }

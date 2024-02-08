@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/streamingfast/bstream"
-
 	_ "github.com/streamingfast/kvdb/store/badger3"
 	"github.com/streamingfast/logging"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
@@ -275,8 +274,8 @@ func TestDB_HandleUndo(t *testing.T) {
 
 func TestDB_UndoOperation(t *testing.T) {
 	type foundValue struct {
-		found         bool
-		previousValue []byte
+		previousKeyExists bool
+		previousValue     []byte
 	}
 	cases := []struct {
 		name                  string
@@ -341,7 +340,7 @@ func TestDB_UndoOperation(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			undoOperationResult := undoOperation(c.operation, c.foundValue.previousValue, !c.foundValue.found)
+			undoOperationResult := undoOperation(c.operation, c.foundValue.previousValue, c.foundValue.previousKeyExists)
 			require.Equal(t, c.expectedUndoOperation, undoOperationResult)
 		})
 	}
