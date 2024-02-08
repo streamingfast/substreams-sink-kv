@@ -103,6 +103,7 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 	}
 
 	blockRef := cursor.Block()
+	BlockCount.Inc()
 	if blockRef.Num()%s.batchBlockModulo(isLive) == 0 {
 		flushStart := time.Now()
 		count, err := s.operationDB.Flush(ctx, cursor)
