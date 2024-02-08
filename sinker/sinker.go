@@ -90,7 +90,11 @@ func (s *KVSinker) onTerminating(ctx context.Context, err error) {
 	_ = s.operationDB.WriteCursor(ctx, s.lastCursor)
 }
 
+var lastBlockCompletedAt = time.Now()
+
 func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreamsrpc.BlockScopedData, isLive *bool, cursor *sink.Cursor) error {
+	s.stats.RecordDuractionBetweenBlock(time.Since(lastBlockCompletedAt))
+
 	start := time.Now()
 	kvOps := &pbkv.KVOperations{}
 	err := proto.Unmarshal(data.GetOutput().MapOutput.Value, kvOps)
@@ -120,6 +124,7 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 	s.stats.RecordProcessDuration(time.Since(start))
 	s.lastCursor = cursor
+	lastBlockCompletedAt = time.Now()
 	return nil
 }
 

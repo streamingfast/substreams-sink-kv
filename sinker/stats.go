@@ -20,6 +20,7 @@ type Stats struct {
 	blockRate                      *dmetrics.AvgRatePromCounter
 	flushDuration                  *dmetrics.AvgDurationCounter
 	blockScopedDataProcessDuration *dmetrics.AvgDurationCounter
+	durationBetweenBlock           *dmetrics.AvgDurationCounter
 }
 
 func NewStats(logger *zap.Logger) *Stats {
@@ -30,7 +31,8 @@ func NewStats(logger *zap.Logger) *Stats {
 		blockRate:                      dmetrics.MustNewAvgRateFromPromCounter(BlockCount, 1*time.Second, 30*time.Second, "block"),
 		flushedEntries:                 dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
 		flushDuration:                  dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
-		blockScopedDataProcessDuration: dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
+		blockScopedDataProcessDuration: dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "process duration"),
+		durationBetweenBlock:           dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "duration between block"),
 		lastBlock:                      unsetBlockRef{},
 		logger:                         logger,
 	}
@@ -45,6 +47,9 @@ func (s *Stats) RecordFlushDuration(duration time.Duration) {
 }
 func (s *Stats) RecordProcessDuration(duration time.Duration) {
 	s.blockScopedDataProcessDuration.AddDuration(duration)
+}
+func (s *Stats) RecordDuractionBetweenBlock(duration time.Duration) {
+	s.durationBetweenBlock.AddDuration(duration)
 }
 
 func (s *Stats) Start(each time.Duration, cursor *sink.Cursor) {
