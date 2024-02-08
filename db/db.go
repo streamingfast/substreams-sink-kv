@@ -91,14 +91,15 @@ func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count in
 }
 
 func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, kvOps *pbkv.KVOperations) error {
-	err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
-	if err != nil {
-		return fmt.Errorf("deleting LIB undo operations: %w", err)
-	}
-
-	err = db.storeUndoOperations(ctx, blockNumber, kvOps.Operations)
-	if err != nil {
-		return fmt.Errorf("storing reverse operations: %w", err)
+	if blockNumber >= finalBlockHeight {
+		err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
+		if err != nil {
+			return fmt.Errorf("deleting LIB undo operations: %w", err)
+		}
+		err = db.storeUndoOperations(ctx, blockNumber, kvOps.Operations)
+		if err != nil {
+			return fmt.Errorf("storing reverse operations: %w", err)
+		}
 	}
 
 	db.AddOperations(kvOps)
