@@ -102,7 +102,7 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, kvOps)
+	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, cursor.Step, kvOps)
 	if err != nil {
 		return fmt.Errorf("handling scoped data: %w", err)
 	}

@@ -92,8 +92,8 @@ func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count in
 	return len(puts) + len(deletes), nil
 }
 
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, cursor *sink.Cursor, kvOps *pbkv.KVOperations) error {
-	if cursor.Step == bstream.StepNew {
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) error {
+	if step == bstream.StepNew {
 		err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
 			return fmt.Errorf("deleting LIB undo operations: %w", err)

@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/streamingfast/bstream"
+
 	_ "github.com/streamingfast/kvdb/store/badger3"
 	"github.com/streamingfast/logging"
 	pbkv "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
@@ -106,7 +108,7 @@ func TestDB_HandleOperations(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
-				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, block.operations)
+				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
 				require.NoError(t, err)
 				_, err = db.Flush(ctx, nil)
 				require.NoError(t, err)
@@ -246,7 +248,7 @@ func TestDB_HandleUndo(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
-				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, block.operations)
+				err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
 				require.NoError(t, err)
 				_, err = db.Flush(ctx, nil)
 				require.NoError(t, err)
