@@ -28,7 +28,7 @@ func NewStats(logger *zap.Logger) *Stats {
 		dbFlushRate:    dmetrics.MustNewAvgRateFromPromCounter(FlushCount, 1*time.Second, 30*time.Second, "flush"),
 		blockRate:      dmetrics.MustNewAvgRateFromPromCounter(BlockCount, 1*time.Second, 30*time.Second, "block"),
 		flushedEntries: dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
-		flushDuration:  dmetrics.NewAvgDurationCounter(30*time.Second, time.Second, "flush duration"),
+		flushDuration:  dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
 		lastBlock:      unsetBlockRef{},
 		logger:         logger,
 	}
