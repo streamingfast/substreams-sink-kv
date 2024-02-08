@@ -38,8 +38,8 @@ func (s *Stats) RecordBlock(block bstream.BlockRef) {
 	s.lastBlock = block
 }
 
-func (s *Stats) RecordFlushDuration(since time.Duration) {
-
+func (s *Stats) RecordFlushDuration(duration time.Duration) {
+	s.flushDuration.AddDuration(duration)
 }
 
 func (s *Stats) Start(each time.Duration, cursor *sink.Cursor) {
