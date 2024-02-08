@@ -71,7 +71,7 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 	endpoint, dsn, manifestPath, blockRange := extractInjectArgs(cmd, args)
 	queryRowLimit := sflags.MustGetInt(cmd, "query-rows-limit")
 
-	flushInterval := sflags.MustGetDuration(cmd, "flush-interval")
+	flushInterval := sflags.MustGetUint64(cmd, "flush-interval")
 	module := sflags.MustGetString(cmd, "module")
 
 	listenAddr, provided := sflags.MustGetStringProvided(cmd, "server-listen-addr")
@@ -88,7 +88,7 @@ func injectRunE(cmd *cobra.Command, args []string) error {
 		zap.String("endpoint", endpoint),
 		zap.String("manifest_path", manifestPath),
 		zap.String("block_range", blockRange),
-		zap.Duration("flush_interval", flushInterval),
+		zap.Uint64("flush_interval", flushInterval),
 		zap.String("module", module),
 	}
 

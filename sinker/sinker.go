@@ -19,7 +19,6 @@ import (
 
 const (
 	HISTORICAL_BLOCK_FLUSH_EACH = 1000
-	LIVE_BLOCK_FLUSH_EACH       = 1
 )
 
 type KVSinker struct {
@@ -27,7 +26,7 @@ type KVSinker struct {
 	*sink.Sinker
 
 	operationDB   *db.OperationDB
-	flushInterval time.Duration
+	flushInterval uint64
 	logger        *zap.Logger
 	tracer        logging.Tracer
 
@@ -35,7 +34,7 @@ type KVSinker struct {
 	stats      *Stats
 }
 
-func New(sinker *sink.Sinker, dbLoader *db.OperationDB, flushInterval time.Duration, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
+func New(sinker *sink.Sinker, dbLoader *db.OperationDB, flushInterval uint64, logger *zap.Logger, tracer logging.Tracer) (*KVSinker, error) {
 	s := &KVSinker{
 		Shutter:       shutter.New(),
 		Sinker:        sinker,
@@ -103,25 +102,12 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
-	// Check if step == StepNew, generate undo operations
-	//    WARN: the Undo operation FLUSHES, so make it explicit in the name
-	//    this function will do a very DEEP flush, side stepping does a very deep Flush
-	// Seaprately, add the AddOperations(kvOps) at this level.
-	// GOal: the HandleOperations does ONE thing, and the caller determines the flow.
-	if step == bstream.StepNew {
-		err := s.operationDB.PutUndoOperations() // takes some repsonsibility from `HandleOpoerations`, and `HandleOperations` only adds the keys.
-	}
-
-	// TODO: somewhere we need to have `AddOperation` that is aware of the undos... and doesn't treat them as "userKey"
-	// probably, the `AddOperation` should come with a keyprefix. .. puts in a separeate list? And puts + deletes those keys
-
-	err = s.operationDB.HandleOperations(ctx, data.Clock.GetNumber(), data.FinalBlockHeight, cursor.Step, kvOps)
+	err = s.operationDB.HandleOperations(ctx, data.Clock.Number, data.FinalBlockHeight, cursor.Step, kvOps)
 	if err != nil {
-		return fmt.Errorf("handling scoped data: %w", err)
+		return fmt.Errorf("handling operation: %w", err)
 	}
 
 	BlockCount.Inc()
-
 	if s.shouldFlushKeys(cursor) {
 		count, err := s.operationDB.Flush(ctx, cursor)
 		if err != nil {
@@ -162,11 +148,5 @@ func (s *KVSinker) shouldFlushKeys(cursor *sink.Cursor) bool {
 	if cursor.Step == bstream.StepNew {
 		return true
 	}
-	// TODO: make this thing a block count and not a duration?!%!
-	if s.flushInterval > 0 {
-		return currentBlockNum%uint64(s.flushInterval) == 0
-	}
-
-	// TODO: this probably  not needed if `flushInterval` works properly and is always set somehow.
-	return currentBlockNum%HISTORICAL_BLOCK_FLUSH_EACH == 0
+	return currentBlockNum%s.flushInterval == 0
 }

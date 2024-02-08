@@ -8,7 +8,7 @@ import (
 	"math"
 
 	"github.com/streamingfast/bstream"
-	"github.com/streamingfast/kvdb"
+
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	sink "github.com/streamingfast/substreams-sink"
@@ -28,9 +28,10 @@ type OperationDB struct {
 	store store.KVStore
 
 	QueryRowsLimit    int
-	pendingOperations []*pbkv.KVOperation
+	pendingOperations map[string]*pbkv.KVOperation
 	logger            *zap.Logger
 	tracer            logging.Tracer
+	undosOperations   map[uint64][]byte
 }
 
 func New(dsn string, queryRowsLimit int, logger *zap.Logger, tracer logging.Tracer) (*OperationDB, error) {
@@ -39,10 +40,12 @@ func New(dsn string, queryRowsLimit int, logger *zap.Logger, tracer logging.Trac
 		return nil, err
 	}
 	return &OperationDB{
-		QueryRowsLimit: queryRowsLimit,
-		store:          s,
-		logger:         logger,
-		tracer:         tracer,
+		QueryRowsLimit:    queryRowsLimit,
+		store:             s,
+		logger:            logger,
+		tracer:            tracer,
+		pendingOperations: make(map[string]*pbkv.KVOperation),
+		undosOperations:   make(map[uint64][]byte),
 	}, nil
 }
 
@@ -71,47 +74,64 @@ func (db *OperationDB) AddOperations(ops *pbkv.KVOperations) {
 }
 
 func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
-	// Make this a MAP, and keep always the latest KVOperation.
-	db.pendingOperations = append(db.pendingOperations, op)
+	//this will only keep the last operation for a given key
+	db.pendingOperations[op.Key] = op
 }
-
-func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
-	puts, deletes := lastOperationPerKey(db.pendingOperations)
-	for _, put := range puts {
-		if err := db.store.Put(ctx, userKey(put.Key), put.Value); err != nil {
-			return 0, err
-		}
-	}
-
-	if err := db.store.BatchDelete(ctx, deletes); err != nil {
-		return 0, err
-	}
-
-	if err := db.WriteCursor(ctx, cursor); err != nil {
-		return 0, err
-	}
-	db.reset()
-	return len(puts) + len(deletes), nil
-}
-
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) error {
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) error {
 	if step == bstream.StepNew {
-		err := db.DeleteLIBUndoOperations(ctx, finalBlockHeight)
+		err := db.PurgeUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
 			return fmt.Errorf("deleting LIB undo operations: %w", err)
 		}
-		err = db.storeUndoOperations(ctx, blockNumber, kvOps.Operations)
+
+		undoOperations, err := db.GenerateUndoOperations(ctx, kvOps.Operations)
+		if err != nil {
+			return fmt.Errorf("generating reverse operations: %w", err)
+		}
+
+		err = db.AddUndosOperations(ctx, blockNumber, undoOperations)
 		if err != nil {
 			return fmt.Errorf("storing reverse operations: %w", err)
 		}
 	}
 
 	db.AddOperations(kvOps)
-
 	return nil
 }
 
-func (db *OperationDB) DeleteLIBUndoOperations(ctx context.Context, finalBlockHeight uint64) error {
+func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
+	for _, op := range db.pendingOperations {
+		switch op.Type {
+		case pbkv.KVOperation_SET:
+			if err := db.store.Put(ctx, userKey(op.Key), op.Value); err != nil {
+				return 0, err
+			}
+		case pbkv.KVOperation_DELETE:
+			if err := db.store.BatchDelete(ctx, [][]byte{userKey(op.Key)}); err != nil {
+				return 0, err
+			}
+		default:
+			panic(fmt.Sprintf("invalid operation type %d", op.Type))
+		}
+	}
+
+	for blockNumber, undoOperations := range db.undosOperations {
+		if err := db.store.Put(ctx, undoKey(blockNumber), undoOperations); err != nil {
+			return 0, err
+		}
+	}
+
+	if err := db.WriteCursor(ctx, cursor); err != nil {
+		return 0, err
+	}
+
+	opCount := len(db.pendingOperations)
+	db.reset()
+
+	return opCount, nil
+}
+
+func (db *OperationDB) PurgeUndoOperations(ctx context.Context, finalBlockHeight uint64) error {
 	keys := make([][]byte, 0)
 
 	scanOutput := db.store.Scan(ctx, undoKey(finalBlockHeight), undoKey(0), 0)
@@ -127,65 +147,59 @@ func (db *OperationDB) DeleteLIBUndoOperations(ctx context.Context, finalBlockHe
 	return db.store.BatchDelete(ctx, keys)
 }
 
-func (db *OperationDB) storeUndoOperations(ctx context.Context, blockNumber uint64, ops []*pbkv.KVOperation) error {
-	undoOperations := generateUndoOperations(ctx, ops, db.store)
+func (db *OperationDB) AddUndosOperations(ctx context.Context, blockNumber uint64, undoOperations *pbkv.KVOperations) error {
 	data, err := proto.Marshal(undoOperations)
 	if err != nil {
 		return fmt.Errorf("unable to marshal reversed operations: %w", err)
 	}
 
-	err = db.store.Put(ctx, undoKey(blockNumber), data)
-	if err != nil {
-		return fmt.Errorf("storing reversed operations: %w", err)
-	}
-
-	err = db.store.FlushPuts(ctx)
-	if err != nil {
-		return fmt.Errorf("flushing undo put: %w", err)
-	}
+	db.undosOperations[blockNumber] = data
 
 	return nil
 }
 
-func generateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation, kvStore store.KVStore) *pbkv.KVOperations {
+func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation) (*pbkv.KVOperations, error) {
 	var undoOperations []*pbkv.KVOperation
 	for _, op := range ops {
-		previousValue, err := kvStore.Get(ctx, userKey(op.Key))
-		previousKeyExists := err == kvdb.ErrNotFound
+		previousValue, err := db.store.Get(ctx, userKey(op.Key))
+		previousKeyExists := true
 		if err != nil {
-			return nil, err
+			if !errors.Is(err, store.ErrNotFound) {
+				return nil, fmt.Errorf("getting previous value for key %s %T: %w", op.Key, err, err)
+			}
+			previousKeyExists = false
 		}
 		undoOp := undoOperation(op, previousValue, previousKeyExists)
 		undoOperations = append([]*pbkv.KVOperation{undoOp}, undoOperations...)
 	}
 	reversedKVOperations := &pbkv.KVOperations{Operations: undoOperations}
-	return reversedKVOperations
+	return reversedKVOperations, nil
 }
 
 func undoOperation(op *pbkv.KVOperation, previousValue []byte, previousKeyExists bool) *pbkv.KVOperation {
 	switch op.Type {
 	case pbkv.KVOperation_SET:
-		if previousKeyExists { // if previous value was not notFound, we need to delete the key when applying the undo
+		if previousKeyExists {
 			return &pbkv.KVOperation{
-				Type:  pbkv.KVOperation_DELETE,
+				Type:  pbkv.KVOperation_SET,
+				Key:   op.Key,
+				Value: previousValue,
+			}
+		}
+		return &pbkv.KVOperation{
+			Type:  pbkv.KVOperation_DELETE,
+			Key:   op.Key,
+			Value: op.Value,
+		}
+	case pbkv.KVOperation_DELETE:
+		if previousKeyExists {
+			return &pbkv.KVOperation{
+				Type:  pbkv.KVOperation_SET,
 				Key:   op.Key,
 				Value: op.Value,
 			}
 		}
-		return &pbkv.KVOperation{
-			Type:  pbkv.KVOperation_SET,
-			Key:   op.Key,
-			Value: previousValue,
-		}
-	case pbkv.KVOperation_DELETE:
-		if previousKeyExists {
-			return nil
-		}
-		return &pbkv.KVOperation{
-			Type:  pbkv.KVOperation_SET,
-			Key:   op.Key,
-			Value: op.Value,
-		}
+		return nil
 	default:
 		panic(fmt.Sprintf("invalid operation type %d", op.Type))
 	}
@@ -214,29 +228,9 @@ func (db *OperationDB) DeleteUndoKeys(ctx context.Context, keys [][]byte) error 
 	return db.store.BatchDelete(ctx, keys)
 }
 
-func lastOperationPerKey(ops []*pbkv.KVOperation) (puts []*pbkv.KVOperation, deletes [][]byte) {
-	opsPerKey := make(map[string][]*pbkv.KVOperation)
-
-	for _, op := range ops {
-		opsPerKey[op.Key] = append(opsPerKey[op.Key], op)
-	}
-
-	for _, ops := range opsPerKey {
-		//		sortByOrdinal(ops)
-		lastOp := ops[len(ops)-1]
-		switch lastOp.Type {
-		case pbkv.KVOperation_SET:
-			puts = append(puts, lastOp)
-		case pbkv.KVOperation_DELETE:
-			deletes = append(deletes, userKey(lastOp.Key))
-		}
-	}
-
-	return
-}
-
 func (db *OperationDB) reset() {
-	db.pendingOperations = nil
+	db.pendingOperations = make(map[string]*pbkv.KVOperation)
+	db.undosOperations = make(map[uint64][]byte)
 }
 
 func (db *OperationDB) Get(ctx context.Context, key string) (val []byte, err error) {
