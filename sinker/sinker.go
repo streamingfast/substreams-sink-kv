@@ -91,6 +91,7 @@ func (s *KVSinker) onTerminating(ctx context.Context, err error) {
 }
 
 func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreamsrpc.BlockScopedData, isLive *bool, cursor *sink.Cursor) error {
+	start := time.Now()
 	kvOps := &pbkv.KVOperations{}
 	err := proto.Unmarshal(data.GetOutput().MapOutput.Value, kvOps)
 	if err != nil {
@@ -113,11 +114,11 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 		FlushCount.Inc()
 		FlushedEntriesCount.AddInt(count)
-		FlushDuration.AddInt64(time.Since(flushStart).Nanoseconds())
 		s.stats.RecordFlushDuration(time.Since(flushStart))
 		s.stats.RecordBlock(blockRef)
 	}
 
+	s.stats.RecordProcessDuration(time.Since(start))
 	s.lastCursor = cursor
 	return nil
 }

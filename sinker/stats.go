@@ -13,24 +13,26 @@ import (
 type Stats struct {
 	*shutter.Shutter
 
-	dbFlushRate    *dmetrics.AvgRatePromCounter
-	flushedEntries *dmetrics.ValueFromMetric
-	lastBlock      bstream.BlockRef
-	logger         *zap.Logger
-	blockRate      *dmetrics.AvgRatePromCounter
-	flushDuration  *dmetrics.AvgDurationCounter
+	dbFlushRate                    *dmetrics.AvgRatePromCounter
+	flushedEntries                 *dmetrics.ValueFromMetric
+	lastBlock                      bstream.BlockRef
+	logger                         *zap.Logger
+	blockRate                      *dmetrics.AvgRatePromCounter
+	flushDuration                  *dmetrics.AvgDurationCounter
+	blockScopedDataProcessDuration *dmetrics.AvgDurationCounter
 }
 
 func NewStats(logger *zap.Logger) *Stats {
 	return &Stats{
 		Shutter: shutter.New(),
 
-		dbFlushRate:    dmetrics.MustNewAvgRateFromPromCounter(FlushCount, 1*time.Second, 30*time.Second, "flush"),
-		blockRate:      dmetrics.MustNewAvgRateFromPromCounter(BlockCount, 1*time.Second, 30*time.Second, "block"),
-		flushedEntries: dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
-		flushDuration:  dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
-		lastBlock:      unsetBlockRef{},
-		logger:         logger,
+		dbFlushRate:                    dmetrics.MustNewAvgRateFromPromCounter(FlushCount, 1*time.Second, 30*time.Second, "flush"),
+		blockRate:                      dmetrics.MustNewAvgRateFromPromCounter(BlockCount, 1*time.Second, 30*time.Second, "block"),
+		flushedEntries:                 dmetrics.NewValueFromMetric(FlushedEntriesCount, "entries"),
+		flushDuration:                  dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
+		blockScopedDataProcessDuration: dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "flush duration"),
+		lastBlock:                      unsetBlockRef{},
+		logger:                         logger,
 	}
 }
 
@@ -40,6 +42,9 @@ func (s *Stats) RecordBlock(block bstream.BlockRef) {
 
 func (s *Stats) RecordFlushDuration(duration time.Duration) {
 	s.flushDuration.AddDuration(duration)
+}
+func (s *Stats) RecordProcessDuration(duration time.Duration) {
+	s.blockScopedDataProcessDuration.AddDuration(duration)
 }
 
 func (s *Stats) Start(each time.Duration, cursor *sink.Cursor) {
@@ -72,6 +77,7 @@ func (s *Stats) LogNow() {
 	s.logger.Info("substreams kv stats",
 		zap.Stringer("db_flush_rate", s.dbFlushRate),
 		zap.String("flush_duration", s.flushDuration.String()),
+		zap.String("process_duration", s.flushDuration.String()),
 		zap.Stringer("block_rate", s.blockRate),
 		zap.Uint64("flushed_entries", s.flushedEntries.ValueUint()),
 		zap.Stringer("last_block", s.lastBlock),
