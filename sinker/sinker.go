@@ -109,13 +109,12 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 	BlockCount.Inc()
 	if s.shouldFlushKeys(cursor) {
+		flushStart := time.Now()
 		count, err := s.operationDB.Flush(ctx, cursor)
 		if err != nil {
 			return fmt.Errorf("flushing operations: %w", err)
 		}
 		FlushedEntriesCount.AddInt(count)
-		flushStart := time.Now()
-
 		FlushCount.Inc()
 		s.stats.RecordFlushDuration(time.Since(flushStart))
 		s.stats.RecordBlock(cursor.Block())
