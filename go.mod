@@ -3,9 +3,8 @@ module github.com/streamingfast/substreams-sink-kv
 go 1.18
 
 require (
+	connectrpc.com/connect v1.14.0
 	github.com/bufbuild/connect-go v1.8.0
-	github.com/second-state/WasmEdge-go v0.11.2
-	github.com/second-state/wasmedge-bindgen v0.4.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.15.0
@@ -17,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.24.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
@@ -144,7 +143,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
-	github.com/jhump/protoreflect v1.14.0
+	github.com/jhump/protoreflect v1.14.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/lithammer/dedent v1.1.0 // indirect
@@ -171,13 +170,13 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.6.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

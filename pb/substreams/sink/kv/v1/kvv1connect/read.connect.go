@@ -5,9 +5,9 @@
 package kvv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	connect_go "github.com/bufbuild/connect-go"
 	v1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	http "net/http"
 	strings "strings"
@@ -18,23 +18,50 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// KvName is the fully-qualified name of the Kv service.
 	KvName = "sf.substreams.sink.kv.v1.Kv"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// KvGetProcedure is the fully-qualified name of the Kv's Get RPC.
+	KvGetProcedure = "/sf.substreams.sink.kv.v1.Kv/Get"
+	// KvGetManyProcedure is the fully-qualified name of the Kv's GetMany RPC.
+	KvGetManyProcedure = "/sf.substreams.sink.kv.v1.Kv/GetMany"
+	// KvGetByPrefixProcedure is the fully-qualified name of the Kv's GetByPrefix RPC.
+	KvGetByPrefixProcedure = "/sf.substreams.sink.kv.v1.Kv/GetByPrefix"
+	// KvScanProcedure is the fully-qualified name of the Kv's Scan RPC.
+	KvScanProcedure = "/sf.substreams.sink.kv.v1.Kv/Scan"
+)
+
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	kvServiceDescriptor           = v1.File_substreams_sink_kv_v1_read_proto.Services().ByName("Kv")
+	kvGetMethodDescriptor         = kvServiceDescriptor.Methods().ByName("Get")
+	kvGetManyMethodDescriptor     = kvServiceDescriptor.Methods().ByName("GetMany")
+	kvGetByPrefixMethodDescriptor = kvServiceDescriptor.Methods().ByName("GetByPrefix")
+	kvScanMethodDescriptor        = kvServiceDescriptor.Methods().ByName("Scan")
+)
+
 // KvClient is a client for the sf.substreams.sink.kv.v1.Kv service.
 type KvClient interface {
 	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
-	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
-	GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error)
+	GetMany(context.Context, *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error)
 	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
-	GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error)
+	GetByPrefix(context.Context, *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error)
 	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
-	Scan(context.Context, *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error)
+	Scan(context.Context, *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error)
 }
 
 // NewKvClient constructs a client for the sf.substreams.sink.kv.v1.Kv service. By default, it uses
@@ -44,70 +71,74 @@ type KvClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewKvClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) KvClient {
+func NewKvClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) KvClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &kvClient{
-		get: connect_go.NewClient[v1.GetRequest, v1.GetResponse](
+		get: connect.NewClient[v1.GetRequest, v1.GetResponse](
 			httpClient,
-			baseURL+"/sf.substreams.sink.kv.v1.Kv/Get",
-			opts...,
+			baseURL+KvGetProcedure,
+			connect.WithSchema(kvGetMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		getMany: connect_go.NewClient[v1.GetManyRequest, v1.GetManyResponse](
+		getMany: connect.NewClient[v1.GetManyRequest, v1.GetManyResponse](
 			httpClient,
-			baseURL+"/sf.substreams.sink.kv.v1.Kv/GetMany",
-			opts...,
+			baseURL+KvGetManyProcedure,
+			connect.WithSchema(kvGetManyMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		getByPrefix: connect_go.NewClient[v1.GetByPrefixRequest, v1.GetByPrefixResponse](
+		getByPrefix: connect.NewClient[v1.GetByPrefixRequest, v1.GetByPrefixResponse](
 			httpClient,
-			baseURL+"/sf.substreams.sink.kv.v1.Kv/GetByPrefix",
-			opts...,
+			baseURL+KvGetByPrefixProcedure,
+			connect.WithSchema(kvGetByPrefixMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		scan: connect_go.NewClient[v1.ScanRequest, v1.ScanResponse](
+		scan: connect.NewClient[v1.ScanRequest, v1.ScanResponse](
 			httpClient,
-			baseURL+"/sf.substreams.sink.kv.v1.Kv/Scan",
-			opts...,
+			baseURL+KvScanProcedure,
+			connect.WithSchema(kvScanMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // kvClient implements KvClient.
 type kvClient struct {
-	get         *connect_go.Client[v1.GetRequest, v1.GetResponse]
-	getMany     *connect_go.Client[v1.GetManyRequest, v1.GetManyResponse]
-	getByPrefix *connect_go.Client[v1.GetByPrefixRequest, v1.GetByPrefixResponse]
-	scan        *connect_go.Client[v1.ScanRequest, v1.ScanResponse]
+	get         *connect.Client[v1.GetRequest, v1.GetResponse]
+	getMany     *connect.Client[v1.GetManyRequest, v1.GetManyResponse]
+	getByPrefix *connect.Client[v1.GetByPrefixRequest, v1.GetByPrefixResponse]
+	scan        *connect.Client[v1.ScanRequest, v1.ScanResponse]
 }
 
 // Get calls sf.substreams.sink.kv.v1.Kv.Get.
-func (c *kvClient) Get(ctx context.Context, req *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error) {
+func (c *kvClient) Get(ctx context.Context, req *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
 	return c.get.CallUnary(ctx, req)
 }
 
 // GetMany calls sf.substreams.sink.kv.v1.Kv.GetMany.
-func (c *kvClient) GetMany(ctx context.Context, req *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error) {
+func (c *kvClient) GetMany(ctx context.Context, req *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error) {
 	return c.getMany.CallUnary(ctx, req)
 }
 
 // GetByPrefix calls sf.substreams.sink.kv.v1.Kv.GetByPrefix.
-func (c *kvClient) GetByPrefix(ctx context.Context, req *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error) {
+func (c *kvClient) GetByPrefix(ctx context.Context, req *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error) {
 	return c.getByPrefix.CallUnary(ctx, req)
 }
 
 // Scan calls sf.substreams.sink.kv.v1.Kv.Scan.
-func (c *kvClient) Scan(ctx context.Context, req *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error) {
+func (c *kvClient) Scan(ctx context.Context, req *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error) {
 	return c.scan.CallUnary(ctx, req)
 }
 
 // KvHandler is an implementation of the sf.substreams.sink.kv.v1.Kv service.
 type KvHandler interface {
 	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
-	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
-	GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error)
+	GetMany(context.Context, *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error)
 	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
-	GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error)
+	GetByPrefix(context.Context, *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error)
 	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
-	Scan(context.Context, *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error)
+	Scan(context.Context, *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error)
 }
 
 // NewKvHandler builds an HTTP handler from the service implementation. It returns the path on which
@@ -115,46 +146,62 @@ type KvHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewKvHandler(svc KvHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/sf.substreams.sink.kv.v1.Kv/Get", connect_go.NewUnaryHandler(
-		"/sf.substreams.sink.kv.v1.Kv/Get",
+func NewKvHandler(svc KvHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	kvGetHandler := connect.NewUnaryHandler(
+		KvGetProcedure,
 		svc.Get,
-		opts...,
-	))
-	mux.Handle("/sf.substreams.sink.kv.v1.Kv/GetMany", connect_go.NewUnaryHandler(
-		"/sf.substreams.sink.kv.v1.Kv/GetMany",
+		connect.WithSchema(kvGetMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	kvGetManyHandler := connect.NewUnaryHandler(
+		KvGetManyProcedure,
 		svc.GetMany,
-		opts...,
-	))
-	mux.Handle("/sf.substreams.sink.kv.v1.Kv/GetByPrefix", connect_go.NewUnaryHandler(
-		"/sf.substreams.sink.kv.v1.Kv/GetByPrefix",
+		connect.WithSchema(kvGetManyMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	kvGetByPrefixHandler := connect.NewUnaryHandler(
+		KvGetByPrefixProcedure,
 		svc.GetByPrefix,
-		opts...,
-	))
-	mux.Handle("/sf.substreams.sink.kv.v1.Kv/Scan", connect_go.NewUnaryHandler(
-		"/sf.substreams.sink.kv.v1.Kv/Scan",
+		connect.WithSchema(kvGetByPrefixMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	kvScanHandler := connect.NewUnaryHandler(
+		KvScanProcedure,
 		svc.Scan,
-		opts...,
-	))
-	return "/sf.substreams.sink.kv.v1.Kv/", mux
+		connect.WithSchema(kvScanMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/sf.substreams.sink.kv.v1.Kv/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case KvGetProcedure:
+			kvGetHandler.ServeHTTP(w, r)
+		case KvGetManyProcedure:
+			kvGetManyHandler.ServeHTTP(w, r)
+		case KvGetByPrefixProcedure:
+			kvGetByPrefixHandler.ServeHTTP(w, r)
+		case KvScanProcedure:
+			kvScanHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedKvHandler returns CodeUnimplemented from all methods.
 type UnimplementedKvHandler struct{}
 
-func (UnimplementedKvHandler) Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Get is not implemented"))
+func (UnimplementedKvHandler) Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Get is not implemented"))
 }
 
-func (UnimplementedKvHandler) GetMany(context.Context, *connect_go.Request[v1.GetManyRequest]) (*connect_go.Response[v1.GetManyResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetMany is not implemented"))
+func (UnimplementedKvHandler) GetMany(context.Context, *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetMany is not implemented"))
 }
 
-func (UnimplementedKvHandler) GetByPrefix(context.Context, *connect_go.Request[v1.GetByPrefixRequest]) (*connect_go.Response[v1.GetByPrefixResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetByPrefix is not implemented"))
+func (UnimplementedKvHandler) GetByPrefix(context.Context, *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.GetByPrefix is not implemented"))
 }
 
-func (UnimplementedKvHandler) Scan(context.Context, *connect_go.Request[v1.ScanRequest]) (*connect_go.Response[v1.ScanResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Scan is not implemented"))
+func (UnimplementedKvHandler) Scan(context.Context, *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sf.substreams.sink.kv.v1.Kv.Scan is not implemented"))
 }
