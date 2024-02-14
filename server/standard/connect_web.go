@@ -1,6 +1,7 @@
 package standard
 
 import (
+	"connectrpc.com/connect"
 	"context"
 	"errors"
 	"fmt"
@@ -8,8 +9,6 @@ import (
 
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 
-	"github.com/bufbuild/connect-go"
-	connect_go "github.com/bufbuild/connect-go"
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
@@ -26,7 +25,7 @@ func NewServer(dbReader db.Reader, logger *zap.Logger, encrypted bool) *ConnectS
 		logger:   logger,
 	}
 
-	handlerGetter := func(opts ...connect_go.HandlerOption) (string, http.Handler) {
+	handlerGetter := func(opts ...connect.HandlerOption) (string, http.Handler) {
 		return kvconnect.NewKvHandler(cs)
 	}
 
@@ -65,16 +64,16 @@ func (cs *ConnectServer) Serve(listenAddr string) error {
 	return cs.srv.Err()
 }
 
-func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.GetRequest]) (*connect_go.Response[kvv1.GetResponse], error) {
+func (cs *ConnectServer) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	logger := cs.logger.With(zap.String("key", req.Msg.Key))
 	val, err := cs.DBReader.Get(ctx, req.Msg.Key)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			logger.Debug("key not found", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("requested key not found in database: %w", err))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("requested key not found in database: %w", err))
 		}
 		logger.Info("internal error", zap.Error(err))
-		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 	resp := connect.NewResponse(&kvv1.GetResponse{
 		Value: val,
@@ -82,20 +81,20 @@ func (cs *ConnectServer) Get(ctx context.Context, req *connect_go.Request[kvv1.G
 	return resp, nil
 }
 
-func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[kvv1.GetManyRequest]) (*connect_go.Response[kvv1.GetManyResponse], error) {
+func (cs *ConnectServer) GetMany(ctx context.Context, req *connect.Request[kvv1.GetManyRequest]) (*connect.Response[kvv1.GetManyResponse], error) {
 	logger := cs.logger.With(zap.Strings("keys", req.Msg.Keys))
 	vals, err := cs.DBReader.GetMany(ctx, req.Msg.Keys)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			logger.Debug("key not found", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
 		}
 		if errors.Is(err, db.ErrInvalidArguments) {
 			logger.Debug("invalid arguments", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		logger.Info("internal error", zap.Error(err))
-		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 	resp := connect.NewResponse(&kvv1.GetManyResponse{
 		Values: vals,
@@ -103,20 +102,20 @@ func (cs *ConnectServer) GetMany(ctx context.Context, req *connect_go.Request[kv
 	return resp, nil
 }
 
-func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Request[kvv1.GetByPrefixRequest]) (*connect_go.Response[kvv1.GetByPrefixResponse], error) {
+func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect.Request[kvv1.GetByPrefixRequest]) (*connect.Response[kvv1.GetByPrefixResponse], error) {
 	logger := cs.logger.With(zap.String("prefix", req.Msg.Prefix), zap.Uint64("limit", req.Msg.Limit))
 	keyVals, limitReached, err := cs.DBReader.GetByPrefix(ctx, req.Msg.Prefix, int(req.Msg.Limit))
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			logger.Debug("prefix not found", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
 		}
 		if errors.Is(err, db.ErrInvalidArguments) {
 			logger.Debug("invalid arguments", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		logger.Info("internal error", zap.Error(err))
-		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 	protoKeyVals := make([]*kvv1.KV, len(keyVals))
 	for i := range keyVals {
@@ -132,7 +131,7 @@ func (cs *ConnectServer) GetByPrefix(ctx context.Context, req *connect_go.Reques
 	return resp, nil
 }
 
-func (cs *ConnectServer) Scan(ctx context.Context, req *connect_go.Request[kvv1.ScanRequest]) (*connect_go.Response[kvv1.ScanResponse], error) {
+func (cs *ConnectServer) Scan(ctx context.Context, req *connect.Request[kvv1.ScanRequest]) (*connect.Response[kvv1.ScanResponse], error) {
 	logger := cs.logger.With(zap.String("begin", req.Msg.Begin), zap.Uint64("limit", req.Msg.Limit))
 	exclusiveEnd := ""
 	if req.Msg.ExclusiveEnd != nil {
@@ -142,14 +141,14 @@ func (cs *ConnectServer) Scan(ctx context.Context, req *connect_go.Request[kvv1.
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			logger.Debug("no values found", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("one of the requested keys was not found in database: %w", err))
 		}
 		if errors.Is(err, db.ErrInvalidArguments) {
 			logger.Debug("invalid arguments", zap.Error(err))
-			return nil, connect_go.NewError(connect_go.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		logger.Info("internal error", zap.Error(err))
-		return nil, connect_go.NewError(connect_go.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 	protoKeyVals := make([]*kvv1.KV, len(keyVals))
 	for i := range keyVals {
