@@ -54,13 +54,13 @@ var (
 
 // KvClient is a client for the sf.substreams.sink.kv.v1.Kv service.
 type KvClient interface {
-	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, not found error code otherwise.
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
-	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, not found error code otherwise.
 	GetMany(context.Context, *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error)
-	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, not found error code otherwise.
 	GetByPrefix(context.Context, *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error)
-	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, not found error code otherwise.
 	Scan(context.Context, *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error)
 }
 
@@ -131,13 +131,13 @@ func (c *kvClient) Scan(ctx context.Context, req *connect.Request[v1.ScanRequest
 
 // KvHandler is an implementation of the sf.substreams.sink.kv.v1.Kv service.
 type KvHandler interface {
-	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, not found error code otherwise.
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
-	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, not found error code otherwise.
 	GetMany(context.Context, *connect.Request[v1.GetManyRequest]) (*connect.Response[v1.GetManyResponse], error)
-	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, not found error code otherwise.
 	GetByPrefix(context.Context, *connect.Request[v1.GetByPrefixRequest]) (*connect.Response[v1.GetByPrefixResponse], error)
-	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, not found error code otherwise.
 	Scan(context.Context, *connect.Request[v1.ScanRequest]) (*connect.Response[v1.ScanResponse], error)
 }
 

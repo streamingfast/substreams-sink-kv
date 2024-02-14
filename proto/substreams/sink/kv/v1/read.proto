@@ -6,16 +6,16 @@ option go_package = "github.com/streamingfast/substreams-sink-kv/pb;pbkv";
 
 service Kv {
 
-  // Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
+  // Get returns the requested value as bytes if it exists, not found error code otherwise.
   rpc Get(GetRequest) returns (GetResponse);
 
-  // GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
+  // GetMany returns the requested values as bytes if all of them exists, not found error code otherwise.
   rpc GetMany(GetManyRequest) returns (GetManyResponse);
 
-  // GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+  // GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, not found error code otherwise.
   rpc GetByPrefix(GetByPrefixRequest) returns (GetByPrefixResponse);
 
-  // Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+  // Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, not found error code otherwise.
   rpc Scan(ScanRequest) returns (ScanResponse);
 
 }

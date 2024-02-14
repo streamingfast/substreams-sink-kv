@@ -22,13 +22,13 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type KvClient interface {
-	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, not found error code otherwise.
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
-	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, not found error code otherwise.
 	GetMany(ctx context.Context, in *GetManyRequest, opts ...grpc.CallOption) (*GetManyResponse, error)
-	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, not found error code otherwise.
 	GetByPrefix(ctx context.Context, in *GetByPrefixRequest, opts ...grpc.CallOption) (*GetByPrefixResponse, error)
-	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, not found error code otherwise.
 	Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (*ScanResponse, error)
 }
 
@@ -80,13 +80,13 @@ func (c *kvClient) Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallO
 // All implementations should embed UnimplementedKvServer
 // for forward compatibility
 type KvServer interface {
-	// Get returns the requested value as bytes if it exists, grpc_error: NOT_FOUND otherwise.
+	// Get returns the requested value as bytes if it exists, not found error code otherwise.
 	Get(context.Context, *GetRequest) (*GetResponse, error)
-	// GetMany returns the requested values as bytes if all of them exists, grpc_error: NOT_FOUND otherwise.
+	// GetMany returns the requested values as bytes if all of them exists, not found error code otherwise.
 	GetMany(context.Context, *GetManyRequest) (*GetManyResponse, error)
-	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, grpc_error: NOT_FOUND otherwise.
+	// GetByPrefix returns the next _limit_ key/value pair that match the requested prefix if any exist, not found error code otherwise.
 	GetByPrefix(context.Context, *GetByPrefixRequest) (*GetByPrefixResponse, error)
-	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, grpc_error: NOT_FOUND otherwise.
+	// Scan returns then next _limit_ key/value pairs starting lexicographically at the given key, not found error code otherwise.
 	Scan(context.Context, *ScanRequest) (*ScanResponse, error)
 }
 
