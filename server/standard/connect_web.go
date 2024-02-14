@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
-
 	"github.com/streamingfast/dgrpc/server"
 	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
 	"github.com/streamingfast/substreams-sink-kv/db"
+	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1/kvv1connect"
 	sserver "github.com/streamingfast/substreams-sink-kv/server"
 	"go.uber.org/zap"
