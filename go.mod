@@ -2,8 +2,6 @@ module github.com/streamingfast/substreams-sink-kv
 
 go 1.21
 
-toolchain go1.22.0
-
 require (
 	connectrpc.com/connect v1.14.0
 	github.com/spf13/cobra v1.6.1
