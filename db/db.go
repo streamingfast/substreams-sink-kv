@@ -8,7 +8,6 @@ import (
 	"math"
 
 	"github.com/streamingfast/bstream"
-
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
 	sink "github.com/streamingfast/substreams-sink"
@@ -79,7 +78,6 @@ func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
 }
 func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) error {
 	if step == bstream.StepNew {
-		db.logger.Info("handling undos", zap.Uint64("block_number", blockNumber), zap.Int("step", int(step)))
 		err := db.PurgeUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
 			return fmt.Errorf("deleting LIB undo operations: %w", err)
