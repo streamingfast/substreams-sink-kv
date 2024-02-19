@@ -129,6 +129,8 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 
 func (s *KVSinker) handleBlockUndoSignal(ctx context.Context, data *pbsubstreamsrpc.BlockUndoSignal, cursor *sink.Cursor) error {
 
+	s.logger.Info("handling undo signal", zap.Uint64("block_num", data.LastValidBlock.GetNumber()))
+
 	err := s.operationDB.HandleBlockUndo(ctx, data.LastValidBlock.GetNumber())
 	if err != nil {
 		return fmt.Errorf("handling undo signal: %w", err)
