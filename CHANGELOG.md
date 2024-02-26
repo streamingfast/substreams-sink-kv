@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+* Handling of undo signal implementing `handleBlockUndoSignal`
+* Bump `github.com/bufbuild/connect-go` to `connectrpc.com/connect`
 * Bump to [substreams-sink v0.3.3](https://github.com/streamingfast/substreams-sink/releases/tag/v0.3.3) which fixed a bug related to error retrying and improved logging of `stream stats` line.
+ 
 
 ## v2.1.6
 
