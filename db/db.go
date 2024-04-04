@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"time"
+
+	"github.com/streamingfast/substreams-sink-kv/sinker"
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/kvdb/store"
@@ -76,14 +79,15 @@ func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
 	//this will only keep the last operation for a given key
 	db.pendingOperations[op.Key] = op
 }
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) error {
+
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations, stats *sinker.Stats) error {
 	if step == bstream.StepNew {
 		err := db.PurgeUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
 			return fmt.Errorf("deleting LIB undo operations: %w", err)
 		}
 
-		undoOperations, err := db.GenerateUndoOperations(ctx, kvOps.Operations)
+		undoOperations, err := db.GenerateUndoOperations(ctx, kvOps.Operations, stats)
 		if err != nil {
 			return fmt.Errorf("generating reverse operations: %w", err)
 		}
@@ -157,10 +161,13 @@ func (db *OperationDB) AddUndosOperations(ctx context.Context, blockNumber uint6
 	return nil
 }
 
-func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation) (*pbkv.KVOperations, error) {
+func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation, stats *sinker.Stats) (*pbkv.KVOperations, error) {
 	var undoOperations []*pbkv.KVOperation
 	for _, op := range ops {
+		start := time.Now()
 		previousValue, err := db.store.Get(ctx, userKey(op.Key))
+		stats.RecordDurationFetchPrevValueFetch(time.Since(start))
+
 		previousKeyExists := true
 		if err != nil {
 			if !errors.Is(err, store.ErrNotFound) {
