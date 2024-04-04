@@ -102,10 +102,12 @@ func (s *KVSinker) handleBlockScopedData(ctx context.Context, data *pbsubstreams
 		return fmt.Errorf("unmarshal database changes: %w", err)
 	}
 
+	startHandleOperations := time.Now()
 	prevValueFetchDuration, err := s.operationDB.HandleOperations(ctx, data.Clock.Number, data.FinalBlockHeight, cursor.Step, kvOps)
 	if err != nil {
 		return fmt.Errorf("handling operation: %w", err)
 	}
+	s.stats.RecordHandleOperationsDuration(time.Since(startHandleOperations))
 	s.stats.RecordDurationFetchPrevValueFetch(prevValueFetchDuration)
 
 	BlockCount.Inc()

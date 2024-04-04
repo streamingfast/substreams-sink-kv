@@ -22,6 +22,7 @@ type Stats struct {
 	blockScopedDataProcessDuration *dmetrics.AvgDurationCounter
 	durationBetweenBlock           *dmetrics.AvgDurationCounter
 	fetchPrevValuesDuration        *dmetrics.AvgDurationCounter
+	handleOperationsDuration       *dmetrics.AvgDurationCounter
 	finalBlockHeight               uint64
 }
 
@@ -36,6 +37,7 @@ func NewStats(logger *zap.Logger) *Stats {
 		fetchPrevValuesDuration:        dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "fetch prev values duration"),
 		blockScopedDataProcessDuration: dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "process duration"),
 		durationBetweenBlock:           dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "duration between block"),
+		handleOperationsDuration:       dmetrics.NewAvgDurationCounter(30*time.Second, time.Millisecond, "handle operations duration"),
 		lastBlock:                      unsetBlockRef{},
 		logger:                         logger,
 	}
@@ -56,6 +58,9 @@ func (s *Stats) RecordProcessDuration(duration time.Duration) {
 }
 func (s *Stats) RecordDuractionBetweenBlock(duration time.Duration) {
 	s.durationBetweenBlock.AddDuration(duration)
+}
+func (s *Stats) RecordHandleOperationsDuration(duration time.Duration) {
+	s.handleOperationsDuration.AddDuration(duration)
 }
 
 func (s *Stats) RecordDurationFetchPrevValueFetch(duration time.Duration) {
@@ -95,6 +100,7 @@ func (s *Stats) LogNow() {
 		zap.String("process_duration", s.blockScopedDataProcessDuration.String()),
 		zap.String("duration_between_block", s.durationBetweenBlock.String()),
 		zap.String("fetch_prev_values_duration", s.fetchPrevValuesDuration.String()),
+		zap.String("handle_operations_duration", s.handleOperationsDuration.String()),
 		zap.Stringer("block_rate", s.blockRate),
 		zap.Uint64("flushed_entries", s.flushedEntries.ValueUint()),
 		zap.Stringer("last_block", s.lastBlock),

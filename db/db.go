@@ -85,7 +85,6 @@ func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64,
 		if err != nil {
 			return 0, fmt.Errorf("deleting LIB undo operations: %w", err)
 		}
-
 		undoOperations, fetchDuration, err := db.GenerateUndoOperations(ctx, kvOps.Operations)
 		prevValueFetchDuration = fetchDuration
 		if err != nil {
