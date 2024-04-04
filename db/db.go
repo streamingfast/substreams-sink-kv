@@ -140,7 +140,7 @@ func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count in
 func (db *OperationDB) PurgeUndoOperations(ctx context.Context, finalBlockHeight uint64) error {
 	keys := make([][]byte, 0)
 
-	scanOutput := db.store.Scan(ctx, undoKey(finalBlockHeight), undoKey(0), 0)
+	scanOutput := db.store.Scan(ctx, undoKey(finalBlockHeight), undoKey(finalBlockHeight-1000), 0)
 
 	if scanOutput.Err() != nil {
 		return fmt.Errorf("scanning undo operations for block %d: %w", finalBlockHeight, scanOutput.Err())
