@@ -57,7 +57,7 @@ func TestDB_HandleOperations(t *testing.T) {
 			name: "undo deletion",
 			blocks: []blockOperations{
 				{
-					blockNumber: 1,
+					blockNumber: 200,
 					operations: &pbkv.KVOperations{
 						Operations: []*pbkv.KVOperation{
 							{
@@ -67,10 +67,10 @@ func TestDB_HandleOperations(t *testing.T) {
 							},
 						},
 					},
-					finalBlockHeight: 1,
+					finalBlockHeight: 200,
 				},
 				{
-					blockNumber: 2,
+					blockNumber: 201,
 					operations: &pbkv.KVOperations{
 						Operations: []*pbkv.KVOperation{
 							{
@@ -80,10 +80,10 @@ func TestDB_HandleOperations(t *testing.T) {
 							},
 						},
 					},
-					finalBlockHeight: 1,
+					finalBlockHeight: 200,
 				},
 				{
-					blockNumber: 3,
+					blockNumber: 202,
 					operations: &pbkv.KVOperations{
 						Operations: []*pbkv.KVOperation{
 							{
@@ -93,10 +93,10 @@ func TestDB_HandleOperations(t *testing.T) {
 							},
 						},
 					},
-					finalBlockHeight: 1,
+					finalBlockHeight: 200,
 				},
 			},
-			expectedRemainingKey: [][]byte{userKey("key.1"), userKey("key.2"), userKey("key.3"), []byte("xc"), undoKey(3), undoKey(2)},
+			expectedRemainingKey: [][]byte{userKey("key.1"), userKey("key.2"), userKey("key.3"), []byte("xc"), undoKey(202), undoKey(201)},
 		},
 	}
 
