@@ -107,7 +107,7 @@ func TestDB_HandleOperations(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
-				_, err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
+				_, _, err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
 				require.NoError(t, err)
 				_, err = db.Flush(ctx, nil)
 				require.NoError(t, err)
@@ -247,7 +247,7 @@ func TestDB_HandleUndo(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, block := range c.blocks {
-				_, err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
+				_, _, err = db.HandleOperations(ctx, block.blockNumber, block.finalBlockHeight, bstream.StepNew, block.operations)
 				require.NoError(t, err)
 				_, err = db.Flush(ctx, nil)
 				require.NoError(t, err)

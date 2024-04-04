@@ -78,27 +78,31 @@ func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
 	db.pendingOperations[op.Key] = op
 }
 
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) (time.Duration, error) {
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) (time.Duration, time.Duration, error) {
 	prevValueFetchDuration := time.Duration(0)
+	purgeOldUndosDuration := time.Duration(0)
 	if step == bstream.StepNew {
+		startPurge := time.Now()
 		err := db.PurgeUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
-			return 0, fmt.Errorf("deleting LIB undo operations: %w", err)
+			return 0, 0, fmt.Errorf("deleting LIB undo operations: %w", err)
 		}
+		purgeOldUndosDuration = time.Since(startPurge)
 		undoOperations, fetchDuration, err := db.GenerateUndoOperations(ctx, kvOps.Operations)
 		prevValueFetchDuration = fetchDuration
+
 		if err != nil {
-			return 0, fmt.Errorf("generating reverse operations: %w", err)
+			return 0, 0, fmt.Errorf("generating reverse operations: %w", err)
 		}
 
 		err = db.AddUndosOperations(ctx, blockNumber, undoOperations)
 		if err != nil {
-			return 0, fmt.Errorf("storing reverse operations: %w", err)
+			return 0, 0, fmt.Errorf("storing reverse operations: %w", err)
 		}
 	}
 
 	db.AddOperations(kvOps)
-	return prevValueFetchDuration, nil
+	return prevValueFetchDuration, purgeOldUndosDuration, nil
 }
 
 func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
