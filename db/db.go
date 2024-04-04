@@ -8,8 +8,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/streamingfast/substreams-sink-kv/sinker"
-
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/kvdb/store"
 	"github.com/streamingfast/logging"
@@ -80,26 +78,28 @@ func (db *OperationDB) AddOperation(op *pbkv.KVOperation) {
 	db.pendingOperations[op.Key] = op
 }
 
-func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations, stats *sinker.Stats) error {
+func (db *OperationDB) HandleOperations(ctx context.Context, blockNumber uint64, finalBlockHeight uint64, step bstream.StepType, kvOps *pbkv.KVOperations) (time.Duration, error) {
+	prevValueFetchDuration := time.Duration(0)
 	if step == bstream.StepNew {
 		err := db.PurgeUndoOperations(ctx, finalBlockHeight)
 		if err != nil {
-			return fmt.Errorf("deleting LIB undo operations: %w", err)
+			return 0, fmt.Errorf("deleting LIB undo operations: %w", err)
 		}
 
-		undoOperations, err := db.GenerateUndoOperations(ctx, kvOps.Operations, stats)
+		undoOperations, fetchDuration, err := db.GenerateUndoOperations(ctx, kvOps.Operations)
+		prevValueFetchDuration = fetchDuration
 		if err != nil {
-			return fmt.Errorf("generating reverse operations: %w", err)
+			return 0, fmt.Errorf("generating reverse operations: %w", err)
 		}
 
 		err = db.AddUndosOperations(ctx, blockNumber, undoOperations)
 		if err != nil {
-			return fmt.Errorf("storing reverse operations: %w", err)
+			return 0, fmt.Errorf("storing reverse operations: %w", err)
 		}
 	}
 
 	db.AddOperations(kvOps)
-	return nil
+	return prevValueFetchDuration, nil
 }
 
 func (db *OperationDB) Flush(ctx context.Context, cursor *sink.Cursor) (count int, err error) {
@@ -161,17 +161,18 @@ func (db *OperationDB) AddUndosOperations(ctx context.Context, blockNumber uint6
 	return nil
 }
 
-func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation, stats *sinker.Stats) (*pbkv.KVOperations, error) {
+func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.KVOperation) (*pbkv.KVOperations, time.Duration, error) {
+	fetchDuration := time.Duration(0)
 	var undoOperations []*pbkv.KVOperation
 	for _, op := range ops {
 		start := time.Now()
 		previousValue, err := db.store.Get(ctx, userKey(op.Key))
-		stats.RecordDurationFetchPrevValueFetch(time.Since(start))
+		fetchDuration = fetchDuration + time.Since(start)
 
 		previousKeyExists := true
 		if err != nil {
 			if !errors.Is(err, store.ErrNotFound) {
-				return nil, fmt.Errorf("getting previous value for key %s %T: %w", op.Key, err, err)
+				return nil, fetchDuration, fmt.Errorf("getting previous value for key %s %T: %w", op.Key, err, err)
 			}
 			previousKeyExists = false
 		}
@@ -179,7 +180,7 @@ func (db *OperationDB) GenerateUndoOperations(ctx context.Context, ops []*pbkv.K
 		undoOperations = append([]*pbkv.KVOperation{undoOp}, undoOperations...)
 	}
 	reversedKVOperations := &pbkv.KVOperations{Operations: undoOperations}
-	return reversedKVOperations, nil
+	return reversedKVOperations, fetchDuration, nil
 }
 
 func undoOperation(op *pbkv.KVOperation, previousValue []byte, previousKeyExists bool) *pbkv.KVOperation {
