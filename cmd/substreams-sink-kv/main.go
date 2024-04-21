@@ -42,7 +42,11 @@ func main() {
 }
 
 func preStart(_ *cobra.Command, _ []string) error {
-	logging.InstantiateLoggers(loggingOptions(viper.GetString("global-log-format"))...)
+	logging.InstantiateLoggers(
+		logging.WithLogLevelSwitcherServerAutoStart(),
+		logging.WithDefaultLevel(zap.InfoLevel),
+		logging.WithConsoleToStderr(),
+	)
 
 	delay := viper.GetDuration("global-delay-before-start")
 	if delay > 0 {
@@ -66,18 +70,4 @@ func preStart(_ *cobra.Command, _ []string) error {
 	}
 
 	return nil
-}
-
-func loggingOptions(logFormat string) []logging.InstantiateOption {
-	options := []logging.InstantiateOption{
-		logging.WithLogLevelSwitcherServerAutoStart(),
-		logging.WithDefaultLevel(zap.InfoLevel),
-		logging.WithConsoleToStderr(),
-	}
-
-	if logFormat == "stackdriver" || logFormat == "json" {
-		options = append(options, logging.WithProductionLogger())
-	}
-
-	return options
 }
