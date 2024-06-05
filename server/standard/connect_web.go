@@ -1,14 +1,15 @@
 package standard
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"connectrpc.com/connect"
+
 	"github.com/streamingfast/dgrpc/server"
-	connectweb "github.com/streamingfast/dgrpc/server/connect-web"
+	connectweb "github.com/streamingfast/dgrpc/server/connectrpc"
 	"github.com/streamingfast/substreams-sink-kv/db"
 	kvv1 "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1"
 	kvconnect "github.com/streamingfast/substreams-sink-kv/pb/substreams/sink/kv/v1/kvv1connect"

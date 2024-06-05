@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v2.2.0
 
+* Bumped substreams to v1.7.3
+* Enable gzip compression on substreams data on the wire
 * Handling of undo signal implementing `handleBlockUndoSignal`, enabling live sinking (Make sure to set --undo-buffer-size flag at 0 to use the new implemented undo algorithm)    
 * Bump `github.com/bufbuild/connect-go` to `connectrpc.com/connect`
-* Bump to [substreams-sink v0.3.3](https://github.com/streamingfast/substreams-sink/releases/tag/v0.3.3) which fixed a bug related to error retrying and improved logging of `stream stats` line.
+* Bump to [substreams-sink v0.4.0](https://github.com/streamingfast/substreams-sink/releases/tag/v0.4.0) which fixed a bug related to error retrying and improved logging of `stream stats` line.
  
 
 ## v2.1.6
