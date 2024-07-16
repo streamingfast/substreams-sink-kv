@@ -1,6 +1,6 @@
 module github.com/streamingfast/substreams-sink-kv
 
-go 1.21
+go 1.22
 
 require (
 	connectrpc.com/connect v1.16.1
