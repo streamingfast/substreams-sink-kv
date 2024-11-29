@@ -1,6 +1,3 @@
 global:
   language: golang
   variant: application
-release:
-  goreleaser-docker-image: ghcr.io/streamingfast/substreams-sink-kv-builder:v1.20.5
-  upload-substreams-spkg: substreams.yaml
