@@ -68,7 +68,7 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get manifest reader %q: %w", manifestPath, err)
 	}
 
-	pkg, _, err := manifestReader.Read()
+	packageBundle, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
@@ -82,7 +82,7 @@ func serveRunE(cmd *cobra.Command, args []string) error {
 		zap.String("dsn", dsn),
 		zap.String("listen_addr", listenAddr),
 	)
-	server, err := setupServer(cmd, pkg, kvDB, apiPrefix, listenSslSelfSigned)
+	server, err := setupServer(cmd, packageBundle.Package, kvDB, apiPrefix, listenSslSelfSigned)
 	if err != nil {
 		return fmt.Errorf("setup server: %w", err)
 
