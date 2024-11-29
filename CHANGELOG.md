@@ -5,14 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v2.3.0
+
+* Bumped substreams to v1.11.1
+* Bumped substreams-sink to v0.5.0
+
 ## v2.2.0
 
 * Bumped substreams to v1.7.3
 * Enable gzip compression on substreams data on the wire
-* Handling of undo signal implementing `handleBlockUndoSignal`, enabling live sinking (Make sure to set --undo-buffer-size flag at 0 to use the new implemented undo algorithm)    
+* Handling of undo signal implementing `handleBlockUndoSignal`, enabling live sinking (Make sure to set --undo-buffer-size flag at 0 to use the new implemented undo algorithm)
 * Bump `github.com/bufbuild/connect-go` to `connectrpc.com/connect`
 * Bump to [substreams-sink v0.4.0](https://github.com/streamingfast/substreams-sink/releases/tag/v0.4.0) which fixed a bug related to error retrying and improved logging of `stream stats` line.
- 
 
 ## v2.1.6
 
@@ -91,7 +95,7 @@ substreams-sink-kv inject mainnet.eth.streamingfast.io:443 <dsn> substreams.spkg
 
 ### Changed
 
-- **Breaking** Flag `-e, --endpoint` has been replaced by a mandatory positional argument instead, see highlights for upgrade procedure.
+* **Breaking** Flag `-e, --endpoint` has been replaced by a mandatory positional argument instead, see highlights for upgrade procedure.
 
 ## v2.0.0
 
@@ -109,17 +113,17 @@ The errors coming from KV store are **not** retried anymore and will stop the bi
 
 ### Added
 
-- Added `--infinite-retry` to never exit on error and retry indefinitely instead.
+* Added `--infinite-retry` to never exit on error and retry indefinitely instead.
 
-- Added `--development-mode` to run in development mode.
+* Added `--development-mode` to run in development mode.
 
     > **Warning** You should use that flag for testing purposes, development mode drastically reduce performance you get from the server.
 
-- Added `--final-blocks-only` to only deal with final (irreversible) blocks.
+* Added `--final-blocks-only` to only deal with final (irreversible) blocks.
 
-- Added `--undo-buffer-size` (defaults to 12) that deals with re-org handling, this will delayed your live block by this amount.
+* Added `--undo-buffer-size` (defaults to 12) that deals with re-org handling, this will delayed your live block by this amount.
 
-- Added `--live-block-time-delta` (defaults to 300s) that determine if a block is considered "live" or "historical". The if `time.Now() - block's timestamp` is lower or equal to `--live-block-time-delta` then the block is considered live.
+* Added `--live-block-time-delta` (defaults to 300s) that determine if a block is considered "live" or "historical". The if `time.Now() - block's timestamp` is lower or equal to `--live-block-time-delta` then the block is considered live.
 
 ## [0.1.3](https://github.com/streamingfast/substreams-sink-kv/releases/tag/v0.1.3)
 
